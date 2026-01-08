@@ -1,0 +1,36 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Incline Bench Press (Dumbbell)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 25.0, "reps": 10},
+        {"set_num": 2, "weight": 25.0, "reps": 10},
+        {"set_num": 3, "weight": 25.0, "reps": 10}
+      ]
+    },
+    {
+      "name": "Seated Row (Cable)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 50.0, "reps": 10},
+        {"set_num": 2, "weight": 50.0, "reps": 10},
+        {"set_num": 3, "weight": 50.0, "reps": 10}
+      ]
+    },
+    {
+      "name": "Bicep Curl (Dumbbell)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 12.0, "reps": 12},
+        {"set_num": 2, "weight": 12.0, "reps": 12},
+        {"set_num": 3, "weight": 12.0, "reps": 12}
+      ]
+    }
+  ],
+  "date": "synthetic"
+}

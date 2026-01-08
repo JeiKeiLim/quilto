@@ -1,0 +1,14 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Bench Press (Barbell)",
+      "sets": 1,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 80.0, "reps": 1}
+      ]
+    }
+  ],
+  "date": "synthetic"
+}

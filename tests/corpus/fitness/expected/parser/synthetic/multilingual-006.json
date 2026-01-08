@@ -1,0 +1,27 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Squat (Barbell)",
+      "sets": 4,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 100.0, "reps": 8},
+        {"set_num": 2, "weight": 100.0, "reps": 8},
+        {"set_num": 3, "weight": 100.0, "reps": 8},
+        {"set_num": 4, "weight": 100.0, "reps": 8}
+      ]
+    },
+    {
+      "name": "Pull Up",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": null, "reps": 10},
+        {"set_num": 2, "weight": null, "reps": 10},
+        {"set_num": 3, "weight": null, "reps": 10}
+      ]
+    }
+  ],
+  "date": "synthetic"
+}

@@ -14,6 +14,7 @@ from tests.corpus.schemas import (
     ExpectedExerciseRecord,
     ExpectedParserOutput,
     ExpectedSetDetail,
+    is_synthetic,
 )
 
 
@@ -147,3 +148,48 @@ class TestGeneratedJsonValidation:
         assert output.exercises[0].sets == 5
         assert output.exercises[1].name == "Push Press"
         assert output.exercises[1].sets == 5
+
+
+class TestIsSynthetic:
+    """Tests for is_synthetic utility function."""
+
+    def test_path_with_synthetic_directory_returns_true(self) -> None:
+        """Test that path containing /synthetic/ returns True."""
+        assert is_synthetic("tests/corpus/fitness/entries/synthetic/typo-001.md")
+        assert is_synthetic(Path("tests/corpus/fitness/entries/synthetic/typo-001.md"))
+
+    def test_path_without_synthetic_directory_returns_false(self) -> None:
+        """Test that path without /synthetic/ returns False."""
+        assert not is_synthetic("tests/corpus/fitness/entries/from_csv/2019-01-28.md")
+        assert not is_synthetic(Path("tests/corpus/fitness/entries/from_csv/2019-01-28.md"))
+
+    def test_expected_output_with_synthetic_date_returns_true(self) -> None:
+        """Test that expected_output.date == 'synthetic' returns True."""
+        output = ExpectedParserOutput(
+            exercises=[ExpectedExerciseRecord(name="Bench Press", sets=3)],
+            date="synthetic",
+        )
+        # Path doesn't have /synthetic/ but expected_output.date is 'synthetic'
+        assert is_synthetic("tests/corpus/fitness/entries/from_csv/test.md", output)
+
+    def test_expected_output_with_real_date_returns_false(self) -> None:
+        """Test that expected_output.date != 'synthetic' returns False."""
+        output = ExpectedParserOutput(
+            exercises=[ExpectedExerciseRecord(name="Bench Press", sets=3)],
+            date="2019-01-28",
+        )
+        assert not is_synthetic("tests/corpus/fitness/entries/from_csv/2019-01-28.md", output)
+
+    def test_path_takes_precedence_over_expected_output(self) -> None:
+        """Test that path with /synthetic/ returns True even if date is not synthetic."""
+        output = ExpectedParserOutput(
+            exercises=[ExpectedExerciseRecord(name="Bench Press", sets=3)],
+            date="2019-01-28",  # Not 'synthetic'
+        )
+        # Path has /synthetic/, so should return True regardless of date
+        assert is_synthetic("tests/corpus/fitness/entries/synthetic/typo-001.md", output)
+
+    def test_no_expected_output_falls_back_to_path_check(self) -> None:
+        """Test that without expected_output, only path is checked."""
+        assert is_synthetic("tests/corpus/fitness/entries/synthetic/test.md")
+        assert not is_synthetic("tests/corpus/fitness/entries/from_csv/test.md")

@@ -4,6 +4,8 @@ These schemas extend application schemas with set_details for precise
 per-set accuracy testing. NOT part of application code.
 """
 
+from pathlib import Path
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -55,3 +57,26 @@ class ExpectedParserOutput(BaseModel):
     activity_type: str = "workout"
     exercises: list[ExpectedExerciseRecord]
     date: str
+
+
+def is_synthetic(
+    entry_path: Path | str, expected_output: ExpectedParserOutput | None = None
+) -> bool:
+    """Check if an entry is synthetic (for robustness testing, not accuracy metrics).
+
+    Synthetic entries are used to test parser robustness with edge cases,
+    typos, and unusual formatting. They are NOT included in primary accuracy
+    metrics (Story 1.7) because their expected outputs are human-created
+    specifically for testing edge cases.
+
+    Args:
+        entry_path: Path to the entry file.
+        expected_output: Optional parsed expected output to check date field.
+
+    Returns:
+        True if entry is synthetic (path contains '/synthetic/' or date is 'synthetic').
+    """
+    path_str = str(entry_path)
+    if "/synthetic/" in path_str:
+        return True
+    return expected_output is not None and expected_output.date == "synthetic"

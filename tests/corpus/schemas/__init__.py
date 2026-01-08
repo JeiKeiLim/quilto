@@ -8,10 +8,12 @@ from tests.corpus.schemas.expected_output import (
     ExpectedExerciseRecord,
     ExpectedParserOutput,
     ExpectedSetDetail,
+    is_synthetic,
 )
 
 __all__ = [
     "ExpectedSetDetail",
     "ExpectedExerciseRecord",
     "ExpectedParserOutput",
+    "is_synthetic",
 ]

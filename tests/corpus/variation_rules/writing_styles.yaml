@@ -1,0 +1,93 @@
+# Writing style variations for synthetic test entries
+# These styles test parser ability to handle different user writing patterns
+
+rushed:
+  description: "Abbreviated, minimal punctuation, speed-typed entries"
+  characteristics:
+    - No punctuation
+    - Heavy abbreviations
+    - Single line entries
+    - Numbers compressed (e.g., 80x5 instead of 80키로 5개)
+  examples:
+    - "벤치 80키로 5개 3세트"
+    - "데드150x5x3 스쿼트100x8x3"
+    - "풀업10개 행잉레그10개"
+  typical_patterns:
+    exercise_format: "{exercise} {weight}x{reps}x{sets}"
+    separator: " "
+    weight_unit: "omitted or 키로"
+    reps_suffix: "omitted"
+    sets_suffix: "omitted"
+
+detailed:
+  description: "Full narrative with feelings, observations, and reflections"
+  characteristics:
+    - Complete sentences
+    - Feelings and body sensations
+    - Training reflections
+    - Context and observations
+  examples:
+    - "오늘 벤치프레스 80키로로 시작했는데 생각보다 무거웠음. 첫세트 8개 하고 나니까 어깨가 좀 뻐근해서 2세트부터는 75키로로 내려서 진행함."
+    - "데드리프트는 컨디션이 좋아서 150키로까지 끌어올렸음. 총 5세트 진행했고 마지막 세트는 힘들었지만 폼은 무너지지 않았음."
+  typical_patterns:
+    exercise_format: "natural Korean prose"
+    separator: "connectors like 그리고, 그다음"
+    weight_unit: "키로"
+    includes: ["feelings", "reflections", "body_sensations"]
+
+mixed:
+  description: "Some exercises detailed, others minimal"
+  characteristics:
+    - Main lift detailed
+    - Accessory work abbreviated
+    - Varied sentence lengths
+  examples:
+    - "벤치프레스는 80키로에서 시작해서 85까지 올렸는데 마지막 세트가 진짜 힘들었음. 풀업5x3 행잉레그10x3"
+  typical_patterns:
+    main_lift: "detailed narrative"
+    accessory: "abbreviated format"
+
+multilingual:
+  description: "Korean/English mix in various proportions"
+  subcategories:
+    pure_english:
+      description: "Entry entirely in English"
+      examples:
+        - "bench press 80kg 5 reps 3 sets"
+        - "deadlift 150kg 5x3"
+    korean_english_mix:
+      description: "Mixed language in single entry"
+      examples:
+        - "벤치프레스 80kg했는데 heavy했음"
+        - "pull up 5세트 진행함"
+    korean_with_english_units:
+      description: "Korean prose with English units"
+      examples:
+        - "데드리프트 150kg 5reps"
+        - "스쿼트 100kg 8개씩 3sets"
+
+multi_domain:
+  description: "Multiple activity types in single entry"
+  subcategories:
+    strength_cardio:
+      description: "Strength training + cardio"
+      examples:
+        - "벤치 끝나고 러닝 5km 뜀"
+        - "스쿼트 하고 트레드밀 30분"
+    strength_flexibility:
+      description: "Strength + stretching/yoga"
+      examples:
+        - "웨이트 끝나고 스트레칭 20분"
+    multiple_strength_domains:
+      description: "Different strength modalities"
+      examples:
+        - "오늘은 상체 위주로. 벤치, 풀업, 프레스 했음"
+
+# Distribution target for initial 50 entries
+distribution:
+  typo: 10
+  minimal: 10
+  verbose: 10
+  multilingual: 10
+  multi_domain: 10
+  total: 50

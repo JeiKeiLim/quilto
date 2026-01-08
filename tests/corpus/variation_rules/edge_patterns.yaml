@@ -1,0 +1,103 @@
+# Edge case patterns for synthetic test entries
+# These patterns test parser robustness with challenging inputs
+
+typo:
+  description: "Common typos and misspellings in exercise names and units"
+  patterns:
+    korean_vowel_errors:
+      description: "Wrong vowels in Korean exercise names"
+      examples:
+        - wrong: "벤치프래스"  # ㅐ instead of ㅔ
+          correct: "벤치프레스"
+        - wrong: "데드리프드"  # ㄷ instead of ㅌ
+          correct: "데드리프트"
+        - wrong: "스퀏"  # ㅏ instead of ㅗ
+          correct: "스쿼트"
+    korean_consonant_errors:
+      description: "Wrong consonants in Korean exercise names"
+      examples:
+        - wrong: "플업"  # missing ㄹ
+          correct: "풀업"
+        - wrong: "푸시업"  # ㅅ instead of ㅆ
+          correct: "푸쉬업"
+    english_misspellings:
+      description: "English misspellings mixed with Korean"
+      examples:
+        - wrong: "benchpress 80키로"  # no space in benchpress
+          correct: "bench press 80키로"
+        - wrong: "deadlfit"
+          correct: "deadlift"
+    spacing_issues:
+      description: "Missing or extra spaces in exercise names"
+      examples:
+        - wrong: "트랩바데드리프트"  # no spaces
+          correct: "트랩바 데드리프트"
+        - wrong: "인 클 라 인 프레스"  # too many spaces
+          correct: "인클라인 프레스"
+    number_variations:
+      description: "Numbers spelled out instead of digits"
+      examples:
+        - wrong: "팔십키로"  # 80kg spelled out
+          correct: "80키로"
+        - wrong: "오개"  # 5 reps spelled out
+          correct: "5개"
+
+minimal:
+  description: "Extremely short entries with bare minimum info"
+  patterns:
+    single_exercise:
+      description: "Just one exercise mentioned"
+      examples:
+        - "벤치 80x5"
+        - "데드 150"
+    one_set_only:
+      description: "Only one set recorded"
+      examples:
+        - "데드 150키로 1렙"
+        - "스쿼트 100 한세트"
+    no_context:
+      description: "Just exercise and numbers, no prose"
+      examples:
+        - "벤치80 풀업10"
+        - "데드150x3"
+
+verbose:
+  description: "Long narrative entries with multiple details"
+  patterns:
+    detailed_narrative:
+      description: "Full narrative with feelings and reflections"
+      examples:
+        - "오늘 벤치프레스 80키로에서 시작해서... (long narrative)"
+    superset_emom:
+      description: "Complex training methods described"
+      examples:
+        - "슈퍼세트로 진행", "EMOM 10분"
+    multiple_exercises:
+      description: "Many exercises in single entry"
+      notes: "5+ exercises with varying details"
+    previous_workout_refs:
+      description: "References to past workouts"
+      examples:
+        - "저번주보다 5키로 올렸음"
+        - "지난번에는 힘들었는데 오늘은 수월"
+
+malformed:
+  description: "Entries with missing or unclear data"
+  patterns:
+    missing_weight:
+      description: "Exercise mentioned without weight"
+      examples:
+        - "벤치 3세트 했음"  # no weight
+        - "풀업 5세트"  # bodyweight OK but unclear
+    missing_reps:
+      description: "Weight mentioned but no reps"
+      examples:
+        - "데드 150키로"  # no reps
+        - "스쿼트 100키로 여러개"  # unclear reps
+    unclear_sets:
+      description: "Number of sets unclear"
+      examples:
+        - "벤치 80키로 좀 했음"  # "좀" is vague
+        - "스쿼트 여러세트"
+
+target_count: 10  # 10 entries per category

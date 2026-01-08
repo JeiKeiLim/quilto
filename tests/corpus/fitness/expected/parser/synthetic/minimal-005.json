@@ -1,0 +1,16 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Overhead Press (Barbell)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 40.0, "reps": 5},
+        {"set_num": 2, "weight": 40.0, "reps": 5},
+        {"set_num": 3, "weight": 40.0, "reps": 5}
+      ]
+    }
+  ],
+  "date": "synthetic"
+}

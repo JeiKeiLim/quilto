@@ -1,0 +1,28 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "T Bar Row",
+      "sets": 4,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 60.0, "reps": 8},
+        {"set_num": 2, "weight": 60.0, "reps": 8},
+        {"set_num": 3, "weight": 60.0, "reps": 8},
+        {"set_num": 4, "weight": 60.0, "reps": 8}
+      ]
+    },
+    {
+      "name": "Lat Pulldown (Cable)",
+      "sets": 4,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 50.0, "reps": 12},
+        {"set_num": 2, "weight": 50.0, "reps": 12},
+        {"set_num": 3, "weight": 50.0, "reps": 12},
+        {"set_num": 4, "weight": 50.0, "reps": 12}
+      ]
+    }
+  ],
+  "date": "synthetic"
+}

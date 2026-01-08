@@ -1,0 +1,25 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Bench Press (Barbell)",
+      "sets": 12,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 85.0, "reps": 5},
+        {"set_num": 2, "weight": 70.0, "reps": 8},
+        {"set_num": 3, "weight": 60.0, "reps": 10},
+        {"set_num": 4, "weight": 50.0, "reps": 12},
+        {"set_num": 5, "weight": 85.0, "reps": 5},
+        {"set_num": 6, "weight": 70.0, "reps": 8},
+        {"set_num": 7, "weight": 60.0, "reps": 10},
+        {"set_num": 8, "weight": 50.0, "reps": 12},
+        {"set_num": 9, "weight": 85.0, "reps": 5},
+        {"set_num": 10, "weight": 70.0, "reps": 8},
+        {"set_num": 11, "weight": 60.0, "reps": 10},
+        {"set_num": 12, "weight": 50.0, "reps": 12}
+      ]
+    }
+  ],
+  "date": "synthetic"
+}

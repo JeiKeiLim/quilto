@@ -1,0 +1,25 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Deadlift (Barbell)",
+      "sets": 1,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 150.0, "reps": 1}
+      ]
+    },
+    {
+      "name": "Bent Over Row (Dumbbell)",
+      "sets": 4,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 20.0, "reps": 10},
+        {"set_num": 2, "weight": 20.0, "reps": 10},
+        {"set_num": 3, "weight": 20.0, "reps": 10},
+        {"set_num": 4, "weight": 20.0, "reps": 10}
+      ]
+    }
+  ],
+  "date": "synthetic"
+}
