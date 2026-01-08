@@ -1,0 +1,80 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Front Squat (Barbell)",
+      "sets": 6,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 52.0,
+          "reps": 12
+        },
+        {
+          "set_num": 2,
+          "weight": 52.0,
+          "reps": 12
+        },
+        {
+          "set_num": 3,
+          "weight": 52.0,
+          "reps": 12
+        },
+        {
+          "set_num": 4,
+          "weight": 52.0,
+          "reps": 12
+        },
+        {
+          "set_num": 5,
+          "weight": 52.0,
+          "reps": 12
+        },
+        {
+          "set_num": 6,
+          "weight": 52.0,
+          "reps": 12
+        }
+      ]
+    },
+    {
+      "name": "Push Press",
+      "sets": 6,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 41.0,
+          "reps": 12
+        },
+        {
+          "set_num": 2,
+          "weight": 41.0,
+          "reps": 5
+        },
+        {
+          "set_num": 3,
+          "weight": 38.5,
+          "reps": 7
+        },
+        {
+          "set_num": 4,
+          "weight": 35.0,
+          "reps": 12
+        },
+        {
+          "set_num": 5,
+          "weight": 35.0,
+          "reps": 7
+        },
+        {
+          "set_num": 6,
+          "weight": 30.0,
+          "reps": 12
+        }
+      ]
+    }
+  ],
+  "date": "2019-02-18"
+}

@@ -1,0 +1,70 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Front Squat (Barbell)",
+      "sets": 5,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 90.0,
+          "reps": 8
+        },
+        {
+          "set_num": 2,
+          "weight": 90.0,
+          "reps": 5
+        },
+        {
+          "set_num": 3,
+          "weight": 85.0,
+          "reps": 5
+        },
+        {
+          "set_num": 4,
+          "weight": 80.0,
+          "reps": 8
+        },
+        {
+          "set_num": 5,
+          "weight": 80.0,
+          "reps": 8
+        }
+      ]
+    },
+    {
+      "name": "Seated Overhead Press (Barbell)",
+      "sets": 5,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 45.0,
+          "reps": 8
+        },
+        {
+          "set_num": 2,
+          "weight": 45.0,
+          "reps": 5
+        },
+        {
+          "set_num": 3,
+          "weight": 42.0,
+          "reps": 5
+        },
+        {
+          "set_num": 4,
+          "weight": 40.0,
+          "reps": 6
+        },
+        {
+          "set_num": 5,
+          "weight": 40.0,
+          "reps": 6
+        }
+      ]
+    }
+  ],
+  "date": "2019-01-31"
+}

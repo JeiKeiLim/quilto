@@ -1,0 +1,43 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Bench Press (Barbell)",
+      "sets": 6,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 100.0,
+          "reps": 2
+        },
+        {
+          "set_num": 2,
+          "weight": 90.0,
+          "reps": 4
+        },
+        {
+          "set_num": 3,
+          "weight": 80.0,
+          "reps": 6
+        },
+        {
+          "set_num": 4,
+          "weight": 80.0,
+          "reps": 6
+        },
+        {
+          "set_num": 5,
+          "weight": 80.0,
+          "reps": 4
+        },
+        {
+          "set_num": 6,
+          "weight": 70.0,
+          "reps": 7
+        }
+      ]
+    }
+  ],
+  "date": "2019-09-24"
+}

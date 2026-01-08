@@ -1,0 +1,102 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Bicep Curl (Barbell)",
+      "sets": 4,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 18.14,
+          "reps": 10
+        },
+        {
+          "set_num": 2,
+          "weight": 22.68,
+          "reps": 10
+        },
+        {
+          "set_num": 3,
+          "weight": 22.68,
+          "reps": 7
+        },
+        {
+          "set_num": 4,
+          "weight": 18.14,
+          "reps": 7
+        }
+      ]
+    },
+    {
+      "name": "Bent Over One Arm Row (Dumbbell)",
+      "sets": 8,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 30.0,
+          "reps": 5
+        },
+        {
+          "set_num": 2,
+          "weight": 30.0,
+          "reps": 5
+        },
+        {
+          "set_num": 3,
+          "weight": 24.0,
+          "reps": 10
+        },
+        {
+          "set_num": 4,
+          "weight": 24.0,
+          "reps": 10
+        },
+        {
+          "set_num": 5,
+          "weight": 24.0,
+          "reps": 7
+        },
+        {
+          "set_num": 6,
+          "weight": 24.0,
+          "reps": 7
+        },
+        {
+          "set_num": 7,
+          "weight": 20.0,
+          "reps": 9
+        },
+        {
+          "set_num": 8,
+          "weight": 20.0,
+          "reps": 8
+        }
+      ]
+    },
+    {
+      "name": "Arnold Press (Dumbbell)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 40.0,
+          "reps": 8
+        },
+        {
+          "set_num": 2,
+          "weight": 36.0,
+          "reps": 8
+        },
+        {
+          "set_num": 3,
+          "weight": 32.0,
+          "reps": 6
+        }
+      ]
+    }
+  ],
+  "date": "2022-02-07"
+}

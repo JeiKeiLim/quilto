@@ -1,0 +1,48 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Push Up",
+      "sets": 5,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 20.0,
+          "reps": 10
+        },
+        {
+          "set_num": 2,
+          "reps": 6
+        },
+        {
+          "set_num": 3,
+          "weight": 15.0,
+          "reps": 7
+        },
+        {
+          "set_num": 4,
+          "reps": 4
+        },
+        {
+          "set_num": 5,
+          "weight": 10.0,
+          "reps": 5
+        }
+      ]
+    },
+    {
+      "name": "Lateral Raise (Cable)",
+      "sets": 1,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 15.0,
+          "reps": 10
+        }
+      ]
+    }
+  ],
+  "date": "2024-02-13"
+}

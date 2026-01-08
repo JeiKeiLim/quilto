@@ -1,0 +1,70 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Lateral Raise (Dumbbell)",
+      "sets": 5,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 9.0,
+          "reps": 9
+        },
+        {
+          "set_num": 2,
+          "weight": 10.0,
+          "reps": 10
+        },
+        {
+          "set_num": 3,
+          "weight": 12.0,
+          "reps": 8
+        },
+        {
+          "set_num": 4,
+          "weight": 12.0,
+          "reps": 7
+        },
+        {
+          "set_num": 5,
+          "weight": 12.0,
+          "reps": 7
+        }
+      ]
+    },
+    {
+      "name": "Deadlift (Barbell)",
+      "sets": 5,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 80.0,
+          "reps": 7
+        },
+        {
+          "set_num": 2,
+          "weight": 80.0,
+          "reps": 8
+        },
+        {
+          "set_num": 3,
+          "weight": 80.0,
+          "reps": 6
+        },
+        {
+          "set_num": 4,
+          "weight": 80.0,
+          "reps": 8
+        },
+        {
+          "set_num": 5,
+          "weight": 80.0,
+          "reps": 6
+        }
+      ]
+    }
+  ],
+  "date": "2022-02-08"
+}

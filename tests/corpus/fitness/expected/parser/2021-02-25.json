@@ -1,0 +1,70 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Bicep Curl (Dumbbell)",
+      "sets": 5,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 16.0,
+          "reps": 10
+        },
+        {
+          "set_num": 2,
+          "weight": 20.0,
+          "reps": 10
+        },
+        {
+          "set_num": 3,
+          "weight": 24.0,
+          "reps": 3
+        },
+        {
+          "set_num": 4,
+          "weight": 20.0,
+          "reps": 7
+        },
+        {
+          "set_num": 5,
+          "weight": 20.0,
+          "reps": 8
+        }
+      ]
+    },
+    {
+      "name": "Bench Press (Dumbbell)",
+      "sets": 5,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 32.0,
+          "reps": 10
+        },
+        {
+          "set_num": 2,
+          "weight": 36.0,
+          "reps": 8
+        },
+        {
+          "set_num": 3,
+          "weight": 40.0,
+          "reps": 4
+        },
+        {
+          "set_num": 4,
+          "weight": 36.0,
+          "reps": 6
+        },
+        {
+          "set_num": 5,
+          "weight": 36.0,
+          "reps": 8
+        }
+      ]
+    }
+  ],
+  "date": "2021-02-25"
+}

@@ -1,0 +1,38 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Front Squat (Barbell)",
+      "sets": 5,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 50.0,
+          "reps": 13
+        },
+        {
+          "set_num": 2,
+          "weight": 55.0,
+          "reps": 10
+        },
+        {
+          "set_num": 3,
+          "weight": 55.0,
+          "reps": 6
+        },
+        {
+          "set_num": 4,
+          "weight": 55.0,
+          "reps": 8
+        },
+        {
+          "set_num": 5,
+          "weight": 55.0,
+          "reps": 10
+        }
+      ]
+    }
+  ],
+  "date": "2019-07-26"
+}

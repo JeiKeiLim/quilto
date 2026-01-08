@@ -1,0 +1,28 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Squat (Barbell)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {
+          "set_num": 1,
+          "weight": 130.0,
+          "reps": 2
+        },
+        {
+          "set_num": 2,
+          "weight": 150.0,
+          "reps": 1
+        },
+        {
+          "set_num": 3,
+          "weight": 170.0,
+          "reps": 1
+        }
+      ]
+    }
+  ],
+  "date": "2023-08-26"
+}

@@ -1,0 +1,140 @@
+# Exercise name equivalences for semantic comparison
+# Canonical name (from CSV) → list of equivalent forms
+# Used by Story 1.7 accuracy tests for semantic matching
+
+"Trap Bar Deadlift":
+  - "Trap Bar Deadlift"  # canonical
+  - "트랩바 데드리프트"
+
+"Push Press":
+  - "Push Press"  # canonical
+  - "푸쉬프레스"
+
+"Bench Press (Barbell)":
+  - "Bench Press (Barbell)"  # canonical
+  - "바벨 벤치프레스"
+  - "벤치프레스"
+
+"Ab Mat Sit-up":
+  - "Ab Mat Sit-up"  # canonical
+  - "싯업"
+
+"Front Squat (Barbell)":
+  - "Front Squat (Barbell)"  # canonical
+  - "프론트 스쿼트"
+
+"Seated Overhead Press (Barbell)":
+  - "Seated Overhead Press (Barbell)"  # canonical
+  - "시티드 프레스"
+
+"Incline Bench Press (Barbell)":
+  - "Incline Bench Press (Barbell)"  # canonical
+  - "인클라인 벤치프레스"
+
+"T Bar Row":
+  - "T Bar Row"  # canonical
+  - "티바로우"
+
+"Sumo Deadlift (Barbell)":
+  - "Sumo Deadlift (Barbell)"  # canonical
+  - "스모 데드리프트"
+
+"Iso-Lateral Chest Press (Machine)":
+  - "Iso-Lateral Chest Press (Machine)"  # canonical
+  - "머신 체스트프레스"
+
+"Iso-Lateral Row (Machine)":
+  - "Iso-Lateral Row (Machine)"  # canonical
+  - "머신 로우"
+
+"Floor Press (Barbell)":
+  - "Floor Press (Barbell)"  # canonical
+  - "플로어프레스"
+
+"Bent Over One Arm Row (Dumbbell)":
+  - "Bent Over One Arm Row (Dumbbell)"  # canonical
+  - "원암 덤벨로우"
+
+"Deadlift (Barbell)":
+  - "Deadlift (Barbell)"  # canonical
+  - "데드리프트"
+
+"Pull Up":
+  - "Pull Up"  # canonical
+  - "풀업"
+
+"Overhead Press (Barbell)":
+  - "Overhead Press (Barbell)"  # canonical
+  - "오버헤드프레스"
+
+"Lat Pulldown (Cable)":
+  - "Lat Pulldown (Cable)"  # canonical
+  - "랫풀다운"
+
+"Sit Up":
+  - "Sit Up"  # canonical
+  - "싯업"
+
+"Squat (Barbell)":
+  - "Squat (Barbell)"  # canonical
+  - "바벨 스쿼트"
+  - "스쿼트"
+
+"Bicep Curl (Barbell)":
+  - "Bicep Curl (Barbell)"  # canonical
+  - "바벨컬"
+
+"Arnold Press (Dumbbell)":
+  - "Arnold Press (Dumbbell)"  # canonical
+  - "아놀드프레스"
+
+"Lateral Raise (Dumbbell)":
+  - "Lateral Raise (Dumbbell)"  # canonical
+  - "레터럴레이즈"
+
+"Decline Crunch":
+  - "Decline Crunch"  # canonical
+  - "크런치"
+
+"Seated Row (Cable)":
+  - "Seated Row (Cable)"  # canonical
+  - "시티드 로우"
+
+"Incline Bench Press (Dumbbell)":
+  - "Incline Bench Press (Dumbbell)"  # canonical
+  - "인클라인 덤벨프레스"
+
+"Strict Military Press (Barbell)":
+  - "Strict Military Press (Barbell)"  # canonical
+  - "밀리터리프레스"
+
+"Bench Press (Dumbbell)":
+  - "Bench Press (Dumbbell)"  # canonical
+  - "덤벨 벤치프레스"
+
+"Standing Calf Raise (Dumbbell)":
+  - "Standing Calf Raise (Dumbbell)"  # canonical
+  - "카프레이즈"
+
+"Chest Pull Up":
+  - "Chest Pull Up"  # canonical
+
+"Bicep Curl (Dumbbell)":
+  - "Bicep Curl (Dumbbell)"  # canonical
+  - "덤벨컬"
+
+"Bent Over Row (Dumbbell)":
+  - "Bent Over Row (Dumbbell)"  # canonical
+  - "덤벨로우"
+
+"Overhead Squat (Barbell)":
+  - "Overhead Squat (Barbell)"  # canonical
+  - "오버헤드 스쿼트"
+
+"Push Up":
+  - "Push Up"  # canonical
+  - "푸쉬업"
+
+"Lateral Raise (Cable)":
+  - "Lateral Raise (Cable)"  # canonical
+  - "케이블 레터럴레이즈"
