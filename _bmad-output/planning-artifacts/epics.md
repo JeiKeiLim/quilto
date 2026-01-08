@@ -139,6 +139,21 @@ This document provides the complete epic and story breakdown for Swealog, decomp
 
 ---
 
+### Epic 1.5: Test Corpus (Domain-Agnostic Test Data)
+*Comprehensive test data proving Quilto is truly domain-agnostic*
+
+**Added from:** Epic 1 Retrospective (2026-01-09) - identified gap in test coverage
+
+**Quilto:** Generic edge case entries, multilingual test corpus, multi-domain test entries with expected outputs, retrieval and query flow expected outputs
+
+**Non-Fitness Domains:** Journal/diary entries, recipe/cooking logs, study/learning notes, meeting notes - proves framework handles ANY domain
+
+**FRs covered:** NFR-F4 (parsing accuracy validation across domains), FR-F1 (any domain, any format)
+
+**Rationale:** Epic 1 created fitness-only test data. Quilto claims to be domain-agnostic but had zero non-fitness test coverage. This epic ensures the framework is validated against diverse domains before implementation continues.
+
+---
+
 ### Epic 2: Input & Storage
 *Logging flow + Strength and Nutrition domain parsing*
 
@@ -366,6 +381,267 @@ So that **I can run parser accuracy tests locally with semantic exercise name co
 - Full accuracy tests cannot run until Parser agent exists (Story 2.3, Epic 2)
 - Expected sequence: Create fixtures → Epic 2 delivers Parser → Run accuracy tests
 - `storage_fixture` can use a stub implementation initially, replaced with real StorageRepository after Story 2.1
+
+---
+
+## Epic 1.5: Test Corpus (Domain-Agnostic Test Data)
+
+*Comprehensive test data proving Quilto is truly domain-agnostic*
+
+**Origin:** Epic 1 Retrospective (2026-01-09) identified that all test data was fitness-specific, despite Quilto being a domain-agnostic framework. This epic ensures comprehensive test coverage across multiple domains.
+
+**Directory Structure to Populate:**
+```
+tests/corpus/
+├── generic/
+│   ├── edge_cases/          # Story 1.5-1
+│   └── multilingual/        # Story 1.5-2
+├── multi_domain/
+│   ├── entries/             # Story 1.5-3
+│   └── expected/parser/     # Story 1.5-4
+└── fitness/
+    ├── entries/human/       # Story 1.5-7
+    └── expected/
+        ├── retrieval/       # Story 1.5-5
+        └── query/           # Story 1.5-6
+```
+
+### Story 1.5-1: Create Generic Edge Case Test Entries
+
+As a **Quilto developer**,
+I want **generic edge case test entries that are domain-agnostic**,
+So that **Parser robustness is validated across malformed, empty, and unicode inputs**.
+
+**Acceptance Criteria:**
+
+**Given** the `tests/corpus/generic/edge_cases/` directory
+**When** I create edge case entries
+**Then** entries cover: empty input, whitespace-only, unicode edge cases (emoji, RTL, special chars)
+**And** entries cover: extremely long input, extremely short input, malformed markdown
+**And** entries cover: injection attempts (SQL-like, prompt injection patterns)
+**And** each entry has human-validated expected output (may be empty/error for invalid inputs)
+**And** at least 20 edge case entries are created
+
+**Notes:**
+- These are NOT fitness-specific - they test Parser's general robustness
+- Expected outputs may indicate "unparseable" or return empty structure
+- Focus on inputs that could break parsing logic
+
+---
+
+### Story 1.5-2: Create Generic Multilingual Test Corpus
+
+As a **Quilto developer**,
+I want **multilingual test entries beyond Korean/English fitness**,
+So that **Parser handles diverse languages and scripts correctly**.
+
+**Acceptance Criteria:**
+
+**Given** the `tests/corpus/generic/multilingual/` directory
+**When** I create multilingual entries
+**Then** entries cover: pure English, pure Korean, Korean-English mixed
+**And** entries cover: entries with numbers in different formats (1,000 vs 1.000 vs 1000)
+**And** entries cover: date formats (YYYY-MM-DD, MM/DD/YYYY, Korean date format)
+**And** entries are domain-agnostic (not fitness-specific)
+**And** each entry has human-validated expected output
+**And** at least 15 multilingual entries are created
+
+**Notes:**
+- Focus on language/script handling, not domain-specific parsing
+- Test number/date normalization across locales
+- Can include simple journal-style entries
+
+---
+
+### Story 1.5-3: Create Multi-Domain Test Entries
+
+As a **Quilto developer**,
+I want **test entries for non-fitness domains**,
+So that **Quilto proves it handles ANY domain, not just fitness**.
+
+**Acceptance Criteria:**
+
+**Given** the `tests/corpus/multi_domain/entries/` directory
+**When** I create multi-domain entries
+**Then** entries cover at least 3 non-fitness domains:
+  - Personal journal / diary entries (mood, daily reflections)
+  - Recipe / cooking logs (ingredients, cooking time, notes)
+  - Study / learning notes (topics, duration, comprehension)
+**And** each domain has at least 10 entries with varying complexity
+**And** entries include: minimal, verbose, mixed-language variations
+**And** total of at least 30 non-fitness entries are created
+
+**Example Domains:**
+- **Journal:** "Felt anxious today. Meeting with boss went better than expected. Need to remember to breathe."
+- **Cooking:** "Made kimchi jjigae - 300g pork belly, 1 cup aged kimchi, 30 min simmer. Too salty."
+- **Study:** "Studied calculus 2 hours. Integration by parts finally clicked. Review chain rule tomorrow."
+
+---
+
+### Story 1.5-4: Create Multi-Domain Expected Parser Outputs
+
+As a **Quilto developer**,
+I want **expected parser outputs for non-fitness entries**,
+So that **accuracy can be measured for any domain**.
+
+**Acceptance Criteria:**
+
+**Given** the multi-domain entries from Story 1.5-3
+**When** I create expected outputs in `tests/corpus/multi_domain/expected/parser/`
+**Then** each entry has matching expected JSON
+**And** expected outputs are human-validated (not LLM-generated)
+**And** schemas are defined for each test domain (Journal, Cooking, Study)
+**And** schemas are stored in `tests/corpus/schemas/` alongside existing schemas
+
+**Schema Examples:**
+```python
+class JournalEntry(BaseModel):
+    mood: str | None = None
+    topics: list[str] = []
+    date: str | None = None
+
+class CookingEntry(BaseModel):
+    dish_name: str
+    ingredients: list[str] = []
+    cooking_time_minutes: int | None = None
+    notes: str | None = None
+
+class StudyEntry(BaseModel):
+    subject: str
+    duration_minutes: int | None = None
+    topics: list[str] = []
+    notes: str | None = None
+```
+
+---
+
+### Story 1.5-5: Create Retrieval Expected Outputs
+
+As a **Quilto developer**,
+I want **expected outputs for Retriever agent testing**,
+So that **retrieval accuracy can be validated (Epic 3 preparation)**.
+
+**Acceptance Criteria:**
+
+**Given** the `tests/corpus/fitness/expected/retrieval/` directory
+**When** I create retrieval test cases
+**Then** test cases define: input query, date range, expected entries returned
+**And** test cases cover: date-based retrieval, keyword-based retrieval, pattern matching
+**And** test cases use existing fitness entries from `from_csv/` and `synthetic/`
+**And** at least 15 retrieval test cases are created
+**And** format is JSON with `query`, `strategy`, `expected_entry_ids` fields
+
+**Example:**
+```json
+{
+  "query": "bench press workouts last week",
+  "strategy": {
+    "type": "date_range",
+    "start": "2019-01-21",
+    "end": "2019-01-28",
+    "keywords": ["bench press", "벤치프레스"]
+  },
+  "expected_entry_ids": ["2019-01-23", "2019-01-25", "2019-01-28"]
+}
+```
+
+---
+
+### Story 1.5-6: Create Query Flow Expected Outputs
+
+As a **Quilto developer**,
+I want **expected outputs for end-to-end query testing**,
+So that **full query flow accuracy can be validated (Epic 3-4 preparation)**.
+
+**Acceptance Criteria:**
+
+**Given** the `tests/corpus/fitness/expected/query/` directory
+**When** I create query test cases
+**Then** test cases define: input query, expected analysis points, expected response elements
+**And** test cases cover: simple queries, complex multi-part queries, queries with insufficient data
+**And** test cases use existing fitness entries as context
+**And** at least 10 query test cases are created
+**And** format allows fuzzy matching (key points, not exact text)
+
+**Example:**
+```json
+{
+  "query": "How has my bench press progressed?",
+  "context_entries": ["2019-01-23", "2019-02-15", "2019-03-10"],
+  "expected_analysis_points": [
+    "weight_progression_identified",
+    "rep_range_noted",
+    "time_span_mentioned"
+  ],
+  "expected_response_elements": [
+    "mentions_starting_weight",
+    "mentions_current_weight",
+    "provides_trend_assessment"
+  ]
+}
+```
+
+---
+
+### Story 1.5-7: Create Human-Curated Fitness Entries
+
+As a **Swealog developer**,
+I want **human-written fitness entries beyond CSV-derived data**,
+So that **Parser handles natural human writing styles not captured in structured export**.
+
+**Acceptance Criteria:**
+
+**Given** the `tests/corpus/fitness/entries/human/` directory
+**When** I create human-curated entries
+**Then** entries are written naturally (not derived from CSV structure)
+**And** entries cover writing styles not in `from_csv/`: stream-of-consciousness, very casual, highly detailed
+**And** entries include context that CSV lacks: feelings, environment, interruptions
+**And** each entry has human-validated expected output
+**And** at least 15 human-curated fitness entries are created
+
+**Examples:**
+- "Started with bench but shoulder felt off so switched to machines. Did some chest flies 15kg each hand, maybe 4 sets? Lost count. Finished with stretching."
+- "오늘 컨디션 별로였는데 그래도 데드 쳤음. 140으로 시작해서 160까지 올렸다가 마지막에 힘빠져서 140으로 마무리. 총 6세트인가 7세트 한 듯"
+
+---
+
+### Story 1.5-8: Create Non-Fitness Domain Module for Testing
+
+As a **Quilto developer**,
+I want **a simple non-fitness DomainModule for testing**,
+So that **domain-agnostic framework behavior can be validated with real code**.
+
+**Acceptance Criteria:**
+
+**Given** the Quilto framework with DomainModule interface
+**When** I create a test domain module
+**Then** `JournalDomain` module is created in `tests/domains/` (not in packages/)
+**And** module defines: description, log_schema (JournalEntry), vocabulary, expertise
+**And** module is usable by accuracy runner for multi-domain parsing tests
+**And** module demonstrates DomainModule works for non-fitness use cases
+**And** tests verify JournalDomain instantiates correctly and validates entries
+
+**Notes:**
+- This is TEST code, not application code (lives in tests/, not packages/)
+- Proves DomainModule interface is truly domain-agnostic
+- Can be used as template for future domain implementations
+
+**Example:**
+```python
+class JournalDomain(DomainModule):
+    """Test domain for personal journal entries."""
+
+journal_domain = JournalDomain(
+    description="Personal journal and diary entries including mood, reflections, and daily notes.",
+    log_schema=JournalEntry,
+    vocabulary={
+        "felt": "feeling",
+        "stressed": "stress",
+        "happy": "happiness",
+    },
+    expertise="Emotional awareness, daily reflection patterns, mood tracking over time.",
+)
+```
 
 ---
 

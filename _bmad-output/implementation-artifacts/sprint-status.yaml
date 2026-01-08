@@ -41,7 +41,7 @@ story_location: _bmad-output/implementation-artifacts
 
 development_status:
   # Epic 1: Foundation & First Domain
-  epic-1: in-progress
+  epic-1: done
   1-1-initialize-monorepo-structure: done
   1-2-define-domainmodule-interface: done
   1-3-implement-llm-client-abstraction: done
@@ -49,7 +49,20 @@ development_status:
   1-5-generate-expected-parser-outputs-from-ground-truth: done
   1-6-generate-synthetic-test-data-with-variations: done
   1-7-create-test-fixtures-and-accuracy-runner: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
+
+  # Epic 1.5: Test Corpus (Domain-Agnostic Test Data)
+  # Added from Epic 1 Retrospective - comprehensive test data for Quilto framework validation
+  epic-1.5: backlog
+  1.5-1-create-generic-edge-case-test-entries: backlog
+  1.5-2-create-generic-multilingual-test-corpus: backlog
+  1.5-3-create-multi-domain-test-entries: backlog
+  1.5-4-create-multi-domain-expected-parser-outputs: backlog
+  1.5-5-create-retrieval-expected-outputs: backlog
+  1.5-6-create-query-flow-expected-outputs: backlog
+  1.5-7-create-human-curated-fitness-entries: backlog
+  1.5-8-create-non-fitness-domain-module-for-testing: backlog
+  epic-1.5-retrospective: optional
 
   # Epic 2: Input & Storage
   epic-2: backlog
