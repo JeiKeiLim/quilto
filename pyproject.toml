@@ -38,3 +38,7 @@ convention = "google"
 asyncio_mode = "auto"
 testpaths = ["tests", "packages/quilto/tests", "packages/swealog/tests"]
 addopts = "--import-mode=importlib"
+markers = [
+    "accuracy: marks tests as accuracy tests (deselect with '-m \"not accuracy\"')",
+    "integration: marks tests that require real Ollama (run with --use-real-ollama)",
+]
