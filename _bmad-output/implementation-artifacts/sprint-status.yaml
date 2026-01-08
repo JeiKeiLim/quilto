@@ -1,0 +1,110 @@
+# generated: 2026-01-08
+# project: swealog
+# project_key: swealog
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-01-08
+project: swealog
+project_key: swealog
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # Epic 1: Foundation & First Domain
+  epic-1: in-progress
+  1-1-initialize-monorepo-structure: done
+  1-2-define-domainmodule-interface: backlog
+  1-3-implement-llm-client-abstraction: backlog
+  1-4-create-generalfitness-base-domain: backlog
+  1-5-generate-expected-parser-outputs-from-ground-truth: backlog
+  1-6-generate-synthetic-test-data-with-variations: backlog
+  1-7-create-test-fixtures-and-accuracy-runner: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: Input & Storage
+  epic-2: backlog
+  2-1-implement-storagerepository-interface: backlog
+  2-2-implement-router-agent-log-classification: backlog
+  2-3-implement-parser-agent: backlog
+  2-4-create-strength-domain-module: backlog
+  2-5-create-nutrition-domain-module: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: Query & Retrieval
+  epic-3: backlog
+  3-1-extend-router-for-query-both-classification: backlog
+  3-2-implement-planner-agent: backlog
+  3-3-implement-retriever-agent: backlog
+  3-4-create-running-domain-module: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: Analysis & Response
+  epic-4: backlog
+  4-1-implement-analyzer-agent: backlog
+  4-2-implement-synthesizer-agent: backlog
+  4-3-implement-evaluator-agent-with-retry-loop: backlog
+  4-4-add-fitness-expertise-and-evaluation-rules: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: Human-in-the-Loop
+  epic-5: backlog
+  5-1-implement-clarifier-agent: backlog
+  5-2-implement-wait-user-state: backlog
+  5-3-implement-correction-flow: backlog
+  5-4-add-fitness-clarification-patterns: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: Domain Intelligence
+  epic-6: backlog
+  6-1-implement-domain-auto-selection: backlog
+  6-2-implement-multi-domain-combination: backlog
+  6-3-implement-mid-flow-domain-expansion: backlog
+  6-4-create-swimming-domain-module: backlog
+  epic-6-retrospective: optional
+
+  # Epic 7: Learning & Personalization
+  epic-7: backlog
+  7-1-implement-observer-agent: backlog
+  7-2-implement-global-context-storage: backlog
+  7-3-implement-observer-triggers: backlog
+  7-4-add-fitness-context-management: backlog
+  epic-7-retrospective: optional
+
+  # Epic 8: Interface Layer
+  epic-8: backlog
+  8-1-implement-typer-cli-framework: backlog
+  8-2-implement-fastapi-endpoints: backlog
+  8-3-implement-batch-import: backlog
+  8-4-implement-error-cascade: backlog
+  8-5-create-swealog-cli-commands: backlog
+  epic-8-retrospective: optional

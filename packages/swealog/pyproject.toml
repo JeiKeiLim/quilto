@@ -1,0 +1,20 @@
+[project]
+name = "swealog"
+version = "0.1.0"
+description = "Fitness logging application powered by Quilto framework"
+requires-python = ">=3.13"
+dependencies = [
+    "quilto",
+    "typer>=0.15.0",
+    "rich>=13.9.0",
+]
+
+[tool.uv.sources]
+quilto = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["swealog"]

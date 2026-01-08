@@ -1,0 +1,39 @@
+[project]
+name = "swealog-workspace"
+version = "0.1.0"
+description = "Swealog workspace root - agent framework + fitness app"
+requires-python = ">=3.13"
+readme = "README.md"
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+quilto = { workspace = true }
+swealog = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8.0",
+    "pyright>=1.1.390",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "D", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["D104"]
+"tests/**/*.py" = ["D100", "D103"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests", "packages/quilto/tests", "packages/swealog/tests"]

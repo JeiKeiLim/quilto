@@ -1,0 +1,12 @@
+{
+  "include": ["packages/*/"],
+  "exclude": ["**/__pycache__", "**/node_modules", "**/.venv"],
+  "typeCheckingMode": "strict",
+  "pythonVersion": "3.13",
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "reportUnusedImport": true,
+  "reportUnusedVariable": true,
+  "venvPath": ".",
+  "venv": ".venv"
+}
