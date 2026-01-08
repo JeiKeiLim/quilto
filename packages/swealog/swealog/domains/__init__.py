@@ -1,16 +1,13 @@
-"""Swealog - Fitness logging application powered by Quilto framework."""
+"""Domain modules for Swealog fitness application."""
 
-from swealog.domains import (
+from swealog.domains.general_fitness import (
     ExerciseRecord,
     GeneralFitness,
     GeneralFitnessEntry,
     general_fitness,
 )
 
-__version__ = "0.1.0"
-
 __all__ = [
-    "__version__",
     "ExerciseRecord",
     "GeneralFitness",
     "GeneralFitnessEntry",

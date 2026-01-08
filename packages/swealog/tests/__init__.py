@@ -1,1 +1,1 @@
-"""Swealog package tests."""
+"""Tests for Swealog package."""

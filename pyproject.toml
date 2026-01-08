@@ -37,3 +37,4 @@ convention = "google"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests", "packages/quilto/tests", "packages/swealog/tests"]
+addopts = "--import-mode=importlib"
