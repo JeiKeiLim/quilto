@@ -2,7 +2,11 @@
 # project: swealog
 # project_key: swealog
 # tracking_system: file-system
-# story_location: _bmad-output/implementation-artifacts
+# story_location: _bmad-output/implementation-artifacts/epic-{N}/
+#
+# DIRECTORY STRUCTURE:
+# Stories are organized by epic subdirectory. See project-context.md for details.
+# Example: epic-1/1-1-initialize-monorepo-structure.md
 
 # STATUS DEFINITIONS:
 # ==================
