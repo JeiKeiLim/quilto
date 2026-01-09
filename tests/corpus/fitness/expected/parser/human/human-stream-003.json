@@ -1,0 +1,36 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Squat (Barbell)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 60.0, "reps": 10},
+        {"set_num": 2, "weight": 80.0, "reps": 8},
+        {"set_num": 3, "weight": 100.0, "reps": 5}
+      ]
+    },
+    {
+      "name": "Leg Press (Machine)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 120.0, "reps": 15},
+        {"set_num": 2, "weight": 120.0, "reps": 15},
+        {"set_num": 3, "weight": 120.0, "reps": 15}
+      ]
+    },
+    {
+      "name": "Leg Curl (Machine)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 30.0, "reps": 10},
+        {"set_num": 2, "weight": 30.0, "reps": 10},
+        {"set_num": 3, "weight": 30.0, "reps": 10}
+      ]
+    }
+  ],
+  "date": "human"
+}

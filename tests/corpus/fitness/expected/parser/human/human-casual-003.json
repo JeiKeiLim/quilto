@@ -1,0 +1,19 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Deadlift (Barbell)",
+      "sets": 6,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 140.0, "reps": 5},
+        {"set_num": 2, "weight": 140.0, "reps": 5},
+        {"set_num": 3, "weight": 140.0, "reps": 5},
+        {"set_num": 4, "weight": 160.0, "reps": 3},
+        {"set_num": 5, "weight": 160.0, "reps": 3},
+        {"set_num": 6, "weight": 120.0, "reps": 5}
+      ]
+    }
+  ],
+  "date": "human"
+}

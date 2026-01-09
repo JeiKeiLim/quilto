@@ -1,0 +1,48 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Barbell Row",
+      "sets": 5,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 40.0, "reps": 10},
+        {"set_num": 2, "weight": 60.0, "reps": 8},
+        {"set_num": 3, "weight": 60.0, "reps": 8},
+        {"set_num": 4, "weight": 60.0, "reps": 8},
+        {"set_num": 5, "weight": 60.0, "reps": 8}
+      ]
+    },
+    {
+      "name": "Lat Pulldown (Cable)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 50.0, "reps": 12},
+        {"set_num": 2, "weight": 50.0, "reps": 12},
+        {"set_num": 3, "weight": 50.0, "reps": 12}
+      ]
+    },
+    {
+      "name": "Rear Delt Fly (Dumbbell)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 8.0, "reps": 15},
+        {"set_num": 2, "weight": 8.0, "reps": 15},
+        {"set_num": 3, "weight": 8.0, "reps": 15}
+      ]
+    },
+    {
+      "name": "Deadlift (Barbell)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 100.0, "reps": 5},
+        {"set_num": 2, "weight": 100.0, "reps": 5},
+        {"set_num": 3, "weight": 100.0, "reps": 5}
+      ]
+    }
+  ],
+  "date": "human"
+}

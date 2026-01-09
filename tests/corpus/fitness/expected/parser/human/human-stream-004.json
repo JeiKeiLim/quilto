@@ -1,0 +1,37 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Shoulder Press (Dumbbell)",
+      "sets": 4,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 16.0, "reps": 10},
+        {"set_num": 2, "weight": 16.0, "reps": 10},
+        {"set_num": 3, "weight": 16.0, "reps": 10},
+        {"set_num": 4, "weight": 16.0, "reps": 8}
+      ]
+    },
+    {
+      "name": "Lateral Raise (Dumbbell)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 8.0, "reps": 15},
+        {"set_num": 2, "weight": 8.0, "reps": 15},
+        {"set_num": 3, "weight": 8.0, "reps": 15}
+      ]
+    },
+    {
+      "name": "Rear Delt Fly (Machine)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 20.0, "reps": 12},
+        {"set_num": 2, "weight": 20.0, "reps": 12},
+        {"set_num": 3, "weight": 20.0, "reps": 12}
+      ]
+    }
+  ],
+  "date": "human"
+}

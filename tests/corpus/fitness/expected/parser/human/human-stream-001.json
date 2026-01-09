@@ -1,0 +1,36 @@
+{
+  "activity_type": "workout",
+  "exercises": [
+    {
+      "name": "Bench Press (Barbell)",
+      "sets": 2,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 40.0, "reps": 10},
+        {"set_num": 2, "weight": 60.0, "reps": 8}
+      ]
+    },
+    {
+      "name": "Chest Press (Machine)",
+      "sets": 4,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 40.0, "reps": 12},
+        {"set_num": 2, "weight": 40.0, "reps": 12},
+        {"set_num": 3, "weight": 40.0, "reps": 12},
+        {"set_num": 4, "weight": 40.0, "reps": 10}
+      ]
+    },
+    {
+      "name": "Chest Fly (Machine)",
+      "sets": 3,
+      "weight_unit": "kg",
+      "set_details": [
+        {"set_num": 1, "weight": 32.5, "reps": 15},
+        {"set_num": 2, "weight": 32.5, "reps": 15},
+        {"set_num": 3, "weight": 32.5, "reps": 15}
+      ]
+    }
+  ],
+  "date": "human"
+}
