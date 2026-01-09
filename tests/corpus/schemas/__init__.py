@@ -11,11 +11,13 @@ from tests.corpus.schemas.expected_output import (
     ExpectedSetDetail,
     is_synthetic,
 )
+from tests.corpus.schemas.multilingual_schema import MultilingualExpectedOutput
 
 __all__ = [
     "EdgeCaseExpectedOutput",
     "ExpectedSetDetail",
     "ExpectedExerciseRecord",
     "ExpectedParserOutput",
+    "MultilingualExpectedOutput",
     "is_synthetic",
 ]

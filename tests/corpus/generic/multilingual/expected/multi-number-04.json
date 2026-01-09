@@ -1,0 +1,1 @@
+{"language_detected": ["ko"], "extracted_text": "오늘 점심값 15,000원 썼다. 커피는 5,500원. 이번 달 식비로 벌써 50만원 넘게 썼네. 용돈 100만원 중에 절반 이상 나감.", "numbers_detected": [{"original": "15,000원", "normalized": "15000"}, {"original": "5,500원", "normalized": "5500"}, {"original": "50만원", "normalized": "500000"}, {"original": "100만원", "normalized": "1000000"}], "dates_detected": [], "category": "number"}

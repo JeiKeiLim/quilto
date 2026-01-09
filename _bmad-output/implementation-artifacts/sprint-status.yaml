@@ -59,7 +59,7 @@ development_status:
   # Added from Epic 1 Retrospective - comprehensive test data for Quilto framework validation
   epic-1.5: in-progress
   1.5-1-create-generic-edge-case-test-entries: done
-  1.5-2-create-generic-multilingual-test-corpus: backlog
+  1.5-2-create-generic-multilingual-test-corpus: done
   1.5-3-create-multi-domain-test-entries: backlog
   1.5-4-create-multi-domain-expected-parser-outputs: backlog
   1.5-5-create-retrieval-expected-outputs: backlog

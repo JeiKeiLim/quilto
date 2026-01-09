@@ -30,7 +30,9 @@ corpus/
 │   ├── edge_cases/              # Empty, unicode, length, markdown, injection
 │   │   ├── expected/            # EdgeCaseExpectedOutput JSON files
 │   │   └── edge-*.md            # 20+ edge case entries
-│   └── multilingual/            # Korean, English, mixed
+│   └── multilingual/            # Korean, English, mixed, number/date formats
+│       ├── expected/            # MultilingualExpectedOutput JSON files
+│       └── multi-*.md           # 17 multilingual entries
 │
 └── variation_rules/             # Human-provided synthesis instructions
     ├── SYNTHESIS_RULES.md       # Original synthesis documentation
@@ -163,6 +165,39 @@ Edge case expected outputs use `EdgeCaseExpectedOutput` from `tests/corpus/schem
 
 ```bash
 uv run pytest tests/corpus/test_edge_cases.py -v
+```
+
+## Multilingual Test Entries
+
+Domain-agnostic multilingual test entries for validating Parser's handling of language variations, number formats, and date formats. Located in `generic/multilingual/`.
+
+### Categories
+
+| Category | Pattern | Count | Purpose |
+|----------|---------|-------|---------|
+| lang | `multi-lang-*.md` | 4 | Pure single-language entries (English, Korean) |
+| mixed | `multi-mixed-*.md` | 4 | Korean-English code-switching |
+| number | `multi-number-*.md` | 4 | Number format variations (US, European, Korean) |
+| date | `multi-date-*.md` | 5 | Date format variations (ISO, US, European, Korean) |
+
+### Schema
+
+Multilingual expected outputs use `MultilingualExpectedOutput` from `tests/corpus/schemas/multilingual_schema.py`:
+
+```json
+{
+  "language_detected": ["ko", "en"],
+  "extracted_text": "Normalized text content",
+  "numbers_detected": [{"original": "1,000", "normalized": "1000"}],
+  "dates_detected": [{"original": "2026년 1월 9일", "normalized": "2026-01-09"}],
+  "category": "mixed"
+}
+```
+
+### Running Multilingual Tests
+
+```bash
+uv run pytest tests/corpus/test_multilingual.py -v
 ```
 
 ## Adding New Domains

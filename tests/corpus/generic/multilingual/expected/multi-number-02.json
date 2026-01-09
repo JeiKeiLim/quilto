@@ -1,0 +1,1 @@
+{"language_detected": ["en"], "extracted_text": "Spent 1.234,56 euros on groceries today using European number format. That was more than expected. Still have 2.500,00 euros left in the budget.", "numbers_detected": [{"original": "1.234,56", "normalized": "1234.56"}, {"original": "2.500,00", "normalized": "2500"}], "dates_detected": [], "category": "number"}
