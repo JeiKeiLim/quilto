@@ -1,0 +1,7 @@
+{
+  "parseable": true,
+  "reason": null,
+  "extracted_text": "Workout with zero width chars\nBenchpress100kg5sets\nInvisible softhyphenshere\nWordjoiner and wordseparator test\nLeft-to-rightoverride test\nRight-to-leftoverride test\nZerowidthjoiner between letters\nNormal text then  nothing visible",
+  "warnings": ["zero_width_characters_detected"],
+  "category": "unicode"
+}

@@ -1,0 +1,7 @@
+{
+  "parseable": true,
+  "reason": null,
+  "extracted_text": "Zalgo Test combi",
+  "warnings": ["combining_diacritical_marks_detected"],
+  "category": "unicode"
+}

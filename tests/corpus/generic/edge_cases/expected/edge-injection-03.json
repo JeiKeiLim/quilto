@@ -1,0 +1,7 @@
+{
+  "parseable": true,
+  "reason": null,
+  "extracted_text": "<script>alert('XSS')</script>\n<img src=\"x\" onerror=\"alert('XSS')\">\n<svg onload=\"alert('XSS')\">\n<body onload=\"alert('XSS')\">\n<iframe src=\"javascript:alert('XSS')\"></iframe>\n<a href=\"javascript:alert('XSS')\">Click me</a>\n<div style=\"background:url(javascript:alert('XSS'))\">\n<input type=\"text\" value=\"' onfocus='alert(1)\">\n<marquee onstart=\"alert('XSS')\">\n<object data=\"data:text/html,<script>alert('XSS')</script>\">\n&lt;script&gt;alert('XSS')&lt;/script&gt;\n%3Cscript%3Ealert('XSS')%3C/script%3E\n<scr<script>ipt>alert('XSS')</scr</script>ipt>",
+  "warnings": [],
+  "category": "injection"
+}

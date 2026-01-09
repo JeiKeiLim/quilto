@@ -1,0 +1,7 @@
+{
+  "parseable": true,
+  "reason": null,
+  "extracted_text": "مرحبا Hello שלום mixed direction text\nRight-to-left: مرحبا بك في التمرين\nLeft-to-right: Bench press 100kg\nMixed: Did 5 sets of تمرين الصدر\nHebrew numbers: א ב ג ד ה with 123\nالعربية mixed with English words here\n‎Force LTR: ‏Force RTL: mixed directions",
+  "warnings": ["mixed_text_direction"],
+  "category": "unicode"
+}

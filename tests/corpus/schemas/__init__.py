@@ -4,6 +4,7 @@ This module exports Pydantic models for validating expected parser output
 JSON files in the test corpus.
 """
 
+from tests.corpus.schemas.edge_case_schema import EdgeCaseExpectedOutput
 from tests.corpus.schemas.expected_output import (
     ExpectedExerciseRecord,
     ExpectedParserOutput,
@@ -12,6 +13,7 @@ from tests.corpus.schemas.expected_output import (
 )
 
 __all__ = [
+    "EdgeCaseExpectedOutput",
     "ExpectedSetDetail",
     "ExpectedExerciseRecord",
     "ExpectedParserOutput",

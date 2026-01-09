@@ -1,0 +1,7 @@
+{
+  "parseable": true,
+  "reason": null,
+  "extracted_text": "Bold that never closes\nItalic that never closes\nBold italic that never closes\nStrikethrough that never closes\nBlockquote without content\nDeeply nested blockquote\nList items with deep nesting\nTable without proper alignment\nFootnote reference without definition\nHTML elements never closed",
+  "warnings": ["unclosed_formatting", "deeply_nested_content", "malformed_table", "unclosed_html"],
+  "category": "markdown"
+}

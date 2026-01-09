@@ -1,0 +1,7 @@
+{
+  "parseable": true,
+  "reason": null,
+  "extracted_text": "Broken links:\nLink with no URL\nLink with spaces in URL\nUnclosed link\nNo closing bracket\nBroken images:\nImage with no source\nAlt text\nUnclosed image\nMixed broken syntax:\nNested broken\nLink with brackets",
+  "warnings": ["broken_links", "broken_images", "malformed_markdown"],
+  "category": "markdown"
+}

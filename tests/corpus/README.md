@@ -27,7 +27,9 @@ corpus/
 │   └── expected/parser/
 │
 ├── generic/                     # Domain-agnostic tests
-│   ├── edge_cases/              # Typos, minimal, verbose, malformed
+│   ├── edge_cases/              # Empty, unicode, length, markdown, injection
+│   │   ├── expected/            # EdgeCaseExpectedOutput JSON files
+│   │   └── edge-*.md            # 20+ edge case entries
 │   └── multilingual/            # Korean, English, mixed
 │
 └── variation_rules/             # Human-provided synthesis instructions
@@ -128,6 +130,40 @@ uv run scripts/generate_synthetic_entries.py list-unvalidated
 2. **Expected outputs are human-validated** - derived from entry content by human review
 3. **date field is "synthetic"** - distinguishes from real entries with actual dates
 4. **Use `is_synthetic()` function** (from `tests/corpus/schemas/expected_output.py`) to exclude synthetic entries from Story 1.7 primary accuracy metrics
+
+## Edge Case Test Entries
+
+Domain-agnostic edge case entries for validating Quilto Parser robustness. Located in `generic/edge_cases/`.
+
+### Categories
+
+| Category | Pattern | Count | Purpose |
+|----------|---------|-------|---------|
+| empty | `edge-empty-*.md` | 5 | Empty, whitespace, non-breaking spaces |
+| unicode | `edge-unicode-*.md` | 5 | Emoji, RTL, special chars, zero-width |
+| length | `edge-length-*.md` | 4 | Single char to 10,000+ chars |
+| markdown | `edge-markdown-*.md` | 4 | Unclosed blocks, deep nesting, broken links |
+| injection | `edge-injection-*.md` | 4 | SQL-like, prompt injection, HTML, path traversal |
+
+### Schema
+
+Edge case expected outputs use `EdgeCaseExpectedOutput` from `tests/corpus/schemas/edge_case_schema.py`:
+
+```json
+{
+  "parseable": false,
+  "reason": "empty_or_whitespace",
+  "extracted_text": null,
+  "warnings": [],
+  "category": "empty"
+}
+```
+
+### Running Edge Case Tests
+
+```bash
+uv run pytest tests/corpus/test_edge_cases.py -v
+```
 
 ## Adding New Domains
 

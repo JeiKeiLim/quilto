@@ -1,0 +1,7 @@
+{
+  "parseable": true,
+  "reason": null,
+  "extracted_text": "SELECT * FROM users WHERE id = 1; DROP TABLE users;--\nINSERT INTO workouts VALUES ('bench press', 100, 5);\nUPDATE exercises SET weight = 999 WHERE 1=1;\nDELETE FROM logs WHERE date < '2024-01-01';\n'; DROP TABLE exercises; --\nUNION SELECT username, password FROM users--\n1' OR '1'='1\nadmin'--\n' UNION SELECT * FROM information_schema.tables--\n; EXEC xp_cmdshell('dir')--\nWAITFOR DELAY '0:0:5'--",
+  "warnings": [],
+  "category": "injection"
+}

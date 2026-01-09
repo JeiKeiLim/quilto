@@ -1,0 +1,7 @@
+{
+  "parseable": true,
+  "reason": null,
+  "extracted_text": "../../../etc/passwd\n..\\..\\..\\..\\windows\\system32\\config\\sam\n....//....//....//etc/passwd\n/etc/passwd%00.jpg\n..%252f..%252f..%252fetc/passwd\n..%c0%af..%c0%af..%c0%afetc/passwd\n....\\/....\\/....\\/etc/passwd\nfile:///etc/passwd\n\\\\server\\share\\file.txt\n/proc/self/environ\n/var/log/auth.log\n%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd\n..;/..;/..;/etc/passwd",
+  "warnings": [],
+  "category": "injection"
+}

@@ -1,0 +1,7 @@
+{
+  "parseable": true,
+  "reason": null,
+  "extracted_text": null,
+  "warnings": ["input_may_be_truncated", "extremely_long_line"],
+  "category": "length"
+}

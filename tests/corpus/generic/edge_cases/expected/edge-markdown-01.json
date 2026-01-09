@@ -1,0 +1,7 @@
+{
+  "parseable": true,
+  "reason": null,
+  "extracted_text": "Some text before code block\ndef workout():\n    print(\"bench press\")\nMore text that should be inside code block maybe?\nAnother unclosed block:\nconsole.log(\"never closed\");\nAnd inline code without closing\nTriple backticks not on own line\nNested unclosed:\nOuter block\nInner block never closed",
+  "warnings": ["unclosed_code_blocks", "malformed_markdown"],
+  "category": "markdown"
+}
