@@ -1,0 +1,11 @@
+{
+  "query": "overhead press workouts",
+  "strategy": {
+    "type": "keyword",
+    "keywords": ["overhead press", "오버헤드", "OHP", "Overhead Press"]
+  },
+  "expected_entry_ids": [
+    "2019-01-31",
+    "2019-03-04"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "query": "push press sessions",
+  "strategy": {
+    "type": "keyword",
+    "keywords": ["push press", "푸쉬프레스", "Push Press"]
+  },
+  "expected_entry_ids": [
+    "2019-01-28",
+    "2019-02-04",
+    "2019-02-11",
+    "2019-02-18",
+    "2019-09-05",
+    "2022-05-27"
+  ]
+}

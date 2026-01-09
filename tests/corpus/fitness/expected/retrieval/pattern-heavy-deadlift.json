@@ -1,0 +1,9 @@
+{
+  "query": "heavy deadlift days",
+  "strategy": {
+    "type": "pattern",
+    "keywords": ["deadlift", "데드리프트"],
+    "pattern": "Entries with deadlift weight >= 180kg"
+  },
+  "expected_entry_ids": ["2019-01-28", "2019-09-26"]
+}

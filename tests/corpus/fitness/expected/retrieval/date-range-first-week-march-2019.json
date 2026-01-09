@@ -1,0 +1,9 @@
+{
+  "query": "workouts from first week of March 2019",
+  "strategy": {
+    "type": "date_range",
+    "start": "2019-03-01",
+    "end": "2019-03-08"
+  },
+  "expected_entry_ids": ["2019-03-04", "2019-03-05", "2019-03-08"]
+}
