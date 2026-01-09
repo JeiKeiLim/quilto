@@ -1,0 +1,1 @@
+Batch cooked meal prep for the week. Made: chicken thighs with herb marinade (8 pieces), roasted vegetables (2 sheet pans), quinoa (2 cups dry). Took about 2 hours total. Everything stored in glass containers. Should last through Thursday. Friday we'll order takeout as a treat.

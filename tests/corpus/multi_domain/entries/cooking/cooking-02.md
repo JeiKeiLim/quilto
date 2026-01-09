@@ -1,0 +1,1 @@
+Tried making croissants from scratch - 6 hour process. 500g flour, 300ml milk, 280g butter for lamination. Did 3 turns total. They came out a bit dense, didn't get enough layers. Next time need to chill dough longer between folds. Still delicious though, just not bakery-quality.

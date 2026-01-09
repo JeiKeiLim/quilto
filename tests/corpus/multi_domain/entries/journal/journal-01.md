@@ -1,0 +1,1 @@
+Feeling pretty good this morning. Had my coffee and read for about 30 minutes before work. The commute was surprisingly smooth - no traffic at all. Finished two major tasks at work and even had time for a quick walk during lunch. Need to remember to call mom later tonight.

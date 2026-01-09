@@ -1,0 +1,1 @@
+친구 민수 met for dinner at that new Korean BBQ place in Koreatown. 삼겹살이랑 목살 시켰는데 진짜 맛있었다. We talked about his startup idea - sounds promising but risky. 요즘 startup scene이 어려워서 걱정된다 honestly. 그래도 응원해주기로 했다. Good friend 니까. 집 오는 길에 별 보면서 산책했는데 기분이 좋았다.

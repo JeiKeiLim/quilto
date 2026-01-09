@@ -1,0 +1,1 @@
+Rainy afternoon, stayed inside and cleaned the apartment. Found some old photos from college - so many memories. Called Jake and we talked for an hour about nothing in particular. Sometimes those conversations are the best. Made instant ramen for dinner because I was too lazy to cook properly.

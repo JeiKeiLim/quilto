@@ -1,0 +1,1 @@
+Tried making 떡볶이 from scratch today instead of using the instant packets. Made the sauce with 고추장 3 tablespoons, 고춧가루 1 tablespoon, 간장, sugar, minced garlic. 떡이 좀 딱딱했다 - didn't soak long enough probably. Added fish cakes and 삶은 계란. 매워서 물 많이 마셨다 but overall satisfied with the result. 다음엔 치즈 add 해볼까.

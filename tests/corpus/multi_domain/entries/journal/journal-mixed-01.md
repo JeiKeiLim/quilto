@@ -1,0 +1,1 @@
+오늘 정말 힘들었다. Work meeting that went way too long - 3 hours 넘게 회의했는데 결론도 없었음. 점심도 제대로 못 먹고 rushed through everything. Came home feeling exhausted. 한숨만 나온다. Need to find better work-life balance. 내일은 좀 더 나은 하루가 되길.

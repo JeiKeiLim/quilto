@@ -1,0 +1,1 @@
+컴퓨터 공학 과제 finally finished - implementing a hash table from scratch. Open addressing with linear probing 방식으로 했다. Collision handling was tricky but got it working. Load factor 넘으면 resize 하는 부분에서 bug 있었는데 3시간 걸려서 잡았다. The professor wants us to analyze time complexity too - average O(1) for insert/search/delete, worst case O(n). 다음 주 과제는 graphs인데 더 어려울 것 같다.

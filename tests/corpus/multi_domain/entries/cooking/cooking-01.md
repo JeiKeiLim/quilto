@@ -1,0 +1,1 @@
+Made spaghetti carbonara for dinner. Used 200g pasta, 100g pancetta, 2 egg yolks, 50g pecorino. Cooked pasta 8 minutes until al dente. The sauce came together nicely - key is to take pan off heat before adding egg mixture. Turned out creamy, not scrambled. Will make again.

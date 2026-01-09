@@ -1,0 +1,1 @@
+Anxious day today. The presentation didn't go as planned - forgot my notes and had to improvise. Colleagues were supportive though. Came home and took a long shower to decompress. Tomorrow is a new day. Going to prepare better next time and maybe practice in front of the mirror.

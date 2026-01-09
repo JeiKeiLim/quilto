@@ -1,0 +1,1 @@
+오늘 김치찌개 made for the first time without mom's help. 돼지고기 300g, 묵은지 한컵, 두부 반모. Simmered for 30 minutes on medium heat. 좀 싱거웠다 - should have added more 고춧가루 and 된장 next time. 그래도 남편이 맛있다고 했다 so I call it a win.

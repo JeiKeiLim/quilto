@@ -1,0 +1,1 @@
+Study group meeting for organic chemistry. Went over reaction mechanisms for 2 hours - SN1 vs SN2, elimination reactions. Drew about 30 mechanisms on the whiteboard. Finally understand why tertiary carbons favor SN1. Group study is so much more effective than alone.

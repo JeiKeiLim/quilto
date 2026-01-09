@@ -1,0 +1,1 @@
+Disaster in the kitchen today. Tried to make souffle - first one ever. Didn't fold egg whites gently enough, completely deflated. Tasted fine but looked sad and flat. Will watch more technique videos before attempting again. At least the chocolate flavor was good.

@@ -1,0 +1,1 @@
+Great weekend morning. Woke up early without an alarm which is rare. Made pancakes for breakfast and they actually turned out fluffy this time. Spent the afternoon at the bookstore - picked up two new novels. Feeling content and grateful. These quiet days are important.

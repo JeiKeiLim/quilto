@@ -1,0 +1,1 @@
+Made grandma's chicken soup recipe. Whole chicken simmered 3 hours with celery, carrots, onion. Added homemade egg noodles at the end. The broth was so rich and golden. Made enough to freeze half for later. Nothing beats homemade soup when sick or sad.

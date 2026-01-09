@@ -1,0 +1,1 @@
+Frustrated with myself today. Missed the deadline for the report even though I had plenty of time. Got distracted by social media again - need to set better boundaries. Taking a break from Instagram for a week starting tomorrow. Will use the Screen Time app to enforce it.

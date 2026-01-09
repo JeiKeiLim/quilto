@@ -1,0 +1,1 @@
+오늘 토익 공부 2시간 했다. Focused on Part 5 and 6 - grammar section is killing me. 관계대명사 which vs that 구분이 아직 헷갈린다. Did 50 practice questions, got 38 right which is about 76%. Reading comprehension은 괜찮은데 grammar가 문제. Need to review 시제일치 and 가정법 tomorrow. 목표 점수 900점인데 갈 길이 멀다.

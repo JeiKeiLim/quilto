@@ -1,0 +1,1 @@
+Watched 3 lectures from the machine learning course - 1.5 hours total. Today was gradient descent and learning rates. The math is heavy but the visualizations helped. Need to implement gradient descent from scratch as homework. Due Sunday night.

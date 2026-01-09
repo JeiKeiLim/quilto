@@ -1,0 +1,1 @@
+Quick weeknight stir fry. Chicken breast 300g, broccoli, bell peppers, garlic. Made sauce with soy sauce, oyster sauce, bit of honey. Total cooking time 15 minutes. Served over rice. Simple but satisfying. Kids ate all of it which is the real win.

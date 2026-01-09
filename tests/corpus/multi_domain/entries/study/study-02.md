@@ -1,0 +1,1 @@
+Read chapter 4 of the Python book - about 45 pages. Covered list comprehensions and generators. The generator expression syntax is elegant but confusing at first. Wrote a few practice scripts to solidify understanding. Next chapter is about decorators which looks intimidating.

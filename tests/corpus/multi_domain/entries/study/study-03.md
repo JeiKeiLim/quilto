@@ -1,0 +1,1 @@
+Language study session - Japanese N3 grammar. Spent 90 minutes on causative-passive form (~させられる). It's a mouthful but the pattern is logical once you break it down. Did 20 Anki cards for vocab. Listening practice with a podcast - understood maybe 60%. Progress is slow but steady.

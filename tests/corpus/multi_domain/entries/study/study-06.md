@@ -1,0 +1,1 @@
+Practiced piano for 1 hour. Working on Chopin Nocturne Op. 9 No. 2. The left hand accompaniment is getting smoother but the rubato in the melody needs work. Recorded myself and listened back - tempo is too rigid. Teacher said to "breathe" with the phrases. Will try that next session.

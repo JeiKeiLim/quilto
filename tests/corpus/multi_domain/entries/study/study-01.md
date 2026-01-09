@@ -1,0 +1,1 @@
+Studied calculus for 2 hours today. Focused on integration by parts - the LIATE rule finally makes sense. Worked through 15 practice problems, got 12 correct. Need to review u-substitution again, still making sign errors. Quiz on Friday, will practice more tomorrow.

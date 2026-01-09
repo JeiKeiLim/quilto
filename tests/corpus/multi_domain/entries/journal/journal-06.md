@@ -1,0 +1,1 @@
+Met Sarah for coffee after work. She's going through a tough breakup so we talked for almost 3 hours. Reminded me how important it is to be there for friends. Came home late but feeling warm inside. Going to text her tomorrow to check in.
