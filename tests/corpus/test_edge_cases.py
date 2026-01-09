@@ -77,14 +77,8 @@ class TestEdgeCaseCorpusIntegrity:
         """Verify parseable=false has reason, parseable=true has reason=null."""
         expected_files = list(EXPECTED_DIR.glob("*.json"))
         for expected_file in expected_files:
-            output = EdgeCaseExpectedOutput.model_validate_json(
-                expected_file.read_text(encoding="utf-8")
-            )
+            output = EdgeCaseExpectedOutput.model_validate_json(expected_file.read_text(encoding="utf-8"))
             if not output.parseable:
-                assert output.reason is not None, (
-                    f"{expected_file.name}: parseable=false but reason is null"
-                )
+                assert output.reason is not None, f"{expected_file.name}: parseable=false but reason is null"
             else:
-                assert output.reason is None, (
-                    f"{expected_file.name}: parseable=true but reason is not null"
-                )
+                assert output.reason is None, f"{expected_file.name}: parseable=true but reason is not null"

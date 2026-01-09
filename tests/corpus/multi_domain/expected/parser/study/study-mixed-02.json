@@ -1,0 +1,7 @@
+{
+  "subject": "computer science",
+  "duration_minutes": null,
+  "topics": ["hash table", "open addressing", "linear probing", "collision handling", "load factor", "resize", "time complexity"],
+  "comprehension": "hash table implemented successfully, resize bug took 3 hours to fix",
+  "next_steps": "graphs assignment next week"
+}

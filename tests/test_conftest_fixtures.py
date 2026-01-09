@@ -14,16 +14,12 @@ from quilto import DomainModule
 class TestMockLLMFixture:
     """Tests for mock_llm fixture."""
 
-    def test_mock_llm_fixture_exists(
-        self, mock_llm: Callable[[dict[str, str]], None]
-    ) -> None:
+    def test_mock_llm_fixture_exists(self, mock_llm: Callable[[dict[str, str]], None]) -> None:
         """Mock LLM fixture should be available."""
         assert mock_llm is not None
         assert callable(mock_llm)
 
-    def test_mock_llm_returns_canned_response(
-        self, mock_llm: Callable[[dict[str, str]], None]
-    ) -> None:
+    def test_mock_llm_returns_canned_response(self, mock_llm: Callable[[dict[str, str]], None]) -> None:
         """Mock LLM should return configured canned responses."""
         mock_llm({"_default": '{"result": "test"}'})
         # Fixture provides set_responses function
@@ -34,9 +30,7 @@ class TestMockLLMFixture:
 class TestStorageFixture:
     """Tests for storage_fixture."""
 
-    def test_storage_fixture_creates_directory_structure(
-        self, storage_fixture: Path
-    ) -> None:
+    def test_storage_fixture_creates_directory_structure(self, storage_fixture: Path) -> None:
         """Storage fixture should create logs/(raw|parsed)/{YYYY}/{MM}/ structure."""
         assert isinstance(storage_fixture, Path)
         assert (storage_fixture / "logs" / "raw").exists()
@@ -50,9 +44,7 @@ class TestStorageFixture:
         month_dirs = list(year_dir.iterdir())
         assert len(month_dirs) > 0
 
-    def test_storage_fixture_is_isolated(
-        self, storage_fixture: Path, tmp_path: Path
-    ) -> None:
+    def test_storage_fixture_is_isolated(self, storage_fixture: Path, tmp_path: Path) -> None:
         """Storage fixture should use tmp_path for isolation."""
         # storage_fixture should be under pytest's tmp_path
         assert tmp_path in storage_fixture.parents or storage_fixture == tmp_path
@@ -61,15 +53,11 @@ class TestStorageFixture:
 class TestDomainFixture:
     """Tests for domain_fixture."""
 
-    def test_domain_fixture_returns_domain_module(
-        self, domain_fixture: DomainModule
-    ) -> None:
+    def test_domain_fixture_returns_domain_module(self, domain_fixture: DomainModule) -> None:
         """Domain fixture should return a DomainModule instance."""
         assert isinstance(domain_fixture, DomainModule)
 
-    def test_domain_fixture_is_general_fitness(
-        self, domain_fixture: DomainModule
-    ) -> None:
+    def test_domain_fixture_is_general_fitness(self, domain_fixture: DomainModule) -> None:
         """Domain fixture should return general_fitness by default."""
         # Check it has the expected description pattern
         assert "fitness" in domain_fixture.description.lower()

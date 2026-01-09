@@ -169,10 +169,7 @@ class TestGeneralFitness:
         assert len(general_fitness.description) > 50
         # Description should mention fitness-related terms
         desc_lower = general_fitness.description.lower()
-        assert any(
-            term in desc_lower
-            for term in ["fitness", "workout", "exercise", "health", "training"]
-        )
+        assert any(term in desc_lower for term in ["fitness", "workout", "exercise", "health", "training"])
 
     def test_log_schema_is_general_fitness_entry_class(self) -> None:
         """Test log_schema is the GeneralFitnessEntry class."""

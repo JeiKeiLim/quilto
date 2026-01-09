@@ -94,12 +94,8 @@ class AccuracyRunner:
 
     def __init__(self) -> None:
         """Initialize the accuracy runner."""
-        self.corpus_path = (
-            Path(__file__).parent.parent / "corpus" / "fitness" / "expected" / "parser"
-        )
-        self.equivalence_path = (
-            Path(__file__).parent.parent / "corpus" / "exercise_equivalences.yaml"
-        )
+        self.corpus_path = Path(__file__).parent.parent / "corpus" / "fitness" / "expected" / "parser"
+        self.equivalence_path = Path(__file__).parent.parent / "corpus" / "exercise_equivalences.yaml"
         self.checker = ExerciseEquivalenceChecker(self.equivalence_path)
         self.metrics = AccuracyMetrics()
 
@@ -116,9 +112,7 @@ class AccuracyRunner:
             if is_synthetic(json_file):
                 continue
 
-            expected = ExpectedParserOutput.model_validate_json(
-                json_file.read_text(encoding="utf-8")
-            )
+            expected = ExpectedParserOutput.model_validate_json(json_file.read_text(encoding="utf-8"))
 
             # Double-check it's not synthetic by date
             if is_synthetic(json_file, expected):
@@ -263,15 +257,10 @@ class AccuracyRunner:
         ]
 
         for field_name, field_acc in self.metrics.field_metrics.items():
-            lines.append(
-                f"  {field_name}: {field_acc.accuracy:.1f}% "
-                f"({field_acc.correct}/{field_acc.total})"
-            )
+            lines.append(f"  {field_name}: {field_acc.accuracy:.1f}% ({field_acc.correct}/{field_acc.total})")
 
         lines.append("")
-        lines.append(
-            "Note: Parser not implemented - accuracy tests will pass once Story 2.3 is complete."
-        )
+        lines.append("Note: Parser not implemented - accuracy tests will pass once Story 2.3 is complete.")
 
         return "\n".join(lines)
 

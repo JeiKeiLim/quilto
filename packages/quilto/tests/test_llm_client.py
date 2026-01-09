@@ -195,9 +195,7 @@ class TestResolveModel:
         )
         client = LLMClient(config)
 
-        with pytest.raises(
-            ValueError, match=r"No model configured for provider 'ollama'.*anthropic"
-        ):
+        with pytest.raises(ValueError, match=r"No model configured for provider 'ollama'.*anthropic"):
             client.resolve_model("test")
 
 
@@ -292,11 +290,7 @@ class TestCompleteStructured:
         client = LLMClient(config)
 
         mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(
-                message=MagicMock(content='{"message": "Hello", "score": 95}')
-            )
-        ]
+        mock_response.choices = [MagicMock(message=MagicMock(content='{"message": "Hello", "score": 95}'))]
 
         with patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
             mock_acompletion.return_value = mock_response
@@ -318,11 +312,7 @@ class TestCompleteStructured:
         client = LLMClient(config)
 
         mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(
-                message=MagicMock(content='{"message": "Hi", "score": 1}')
-            )
-        ]
+        mock_response.choices = [MagicMock(message=MagicMock(content='{"message": "Hi", "score": 1}'))]
 
         with patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
             mock_acompletion.return_value = mock_response
@@ -343,9 +333,7 @@ class TestCompleteStructured:
         client = LLMClient(config)
 
         mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(message=MagicMock(content="not valid json"))
-        ]
+        mock_response.choices = [MagicMock(message=MagicMock(content="not valid json"))]
 
         with patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
             mock_acompletion.return_value = mock_response
@@ -364,9 +352,7 @@ class TestCompleteStructured:
         client = LLMClient(config)
 
         mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(message=MagicMock(content='{"wrong_field": "value"}'))
-        ]
+        mock_response.choices = [MagicMock(message=MagicMock(content='{"wrong_field": "value"}'))]
 
         with patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
             mock_acompletion.return_value = mock_response

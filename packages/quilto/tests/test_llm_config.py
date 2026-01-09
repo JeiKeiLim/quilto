@@ -26,9 +26,7 @@ class TestInterpolateEnvVars:
         result = interpolate_env_vars("${TEST_KEY}")
         assert result == "secret123"
 
-    def test_interpolates_multiple_vars(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_interpolates_multiple_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Multiple environment variables are interpolated."""
         monkeypatch.setenv("VAR1", "hello")
         monkeypatch.setenv("VAR2", "world")
@@ -303,9 +301,7 @@ llm:
         with pytest.raises(FileNotFoundError):
             load_llm_config(tmp_path / "nonexistent.yaml")
 
-    def test_interpolates_env_vars_in_yaml(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_interpolates_env_vars_in_yaml(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Environment variables in YAML are interpolated."""
         monkeypatch.setenv("TEST_ANTHROPIC_KEY", "secret_from_env")
         yaml_content = """

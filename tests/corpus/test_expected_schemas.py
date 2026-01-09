@@ -63,9 +63,7 @@ class TestExpectedExerciseRecord:
             ExpectedSetDetail(set_num=1, weight=100.0, reps=8),
             ExpectedSetDetail(set_num=2, weight=100.0, reps=6),
         ]
-        record = ExpectedExerciseRecord(
-            name="Bench Press", sets=2, set_details=details
-        )
+        record = ExpectedExerciseRecord(name="Bench Press", sets=2, set_details=details)
         assert len(record.set_details) == 2
         assert record.set_details[0].weight == 100.0
 
@@ -127,19 +125,11 @@ class TestGeneratedJsonValidation:
         for json_file in json_files:
             data = json.loads(json_file.read_text())
             output = ExpectedParserOutput.model_validate(data)
-            assert output.date == json_file.stem, (
-                f"Date mismatch in {json_file.name}"
-            )
+            assert output.date == json_file.stem, f"Date mismatch in {json_file.name}"
 
     def test_spot_check_2019_01_28(self) -> None:
         """Spot check: 2019-01-28 should have 2 exercises."""
-        json_path = (
-            Path(__file__).parent
-            / "fitness"
-            / "expected"
-            / "parser"
-            / "2019-01-28.json"
-        )
+        json_path = Path(__file__).parent / "fitness" / "expected" / "parser" / "2019-01-28.json"
         data = json.loads(json_path.read_text())
         output = ExpectedParserOutput.model_validate(data)
 

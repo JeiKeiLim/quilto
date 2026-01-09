@@ -321,9 +321,7 @@ def write_equivalences_file(exercises: list[str], output_path: Path, dry_run: bo
 
 def main() -> None:
     """Main entry point for generating expected outputs."""
-    parser = argparse.ArgumentParser(
-        description="Generate expected parser outputs from Strong CSV ground truth."
-    )
+    parser = argparse.ArgumentParser(description="Generate expected parser outputs from Strong CSV ground truth.")
     parser.add_argument(
         "--dry-run",
         action="store_true",

@@ -1,0 +1,7 @@
+{
+  "subject": "machine learning",
+  "duration_minutes": 90,
+  "topics": ["gradient descent", "learning rates"],
+  "comprehension": "math is heavy but visualizations helped",
+  "next_steps": "implement gradient descent from scratch, due Sunday night"
+}

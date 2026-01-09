@@ -100,9 +100,7 @@ def validate_entry(entry_path: Path, verbose: bool = False) -> list[str]:
     if "validated_by" not in frontmatter:
         errors.append("Missing 'validated_by' field in frontmatter")
     elif frontmatter.get("validated_by") != "human":
-        errors.append(
-            f"'validated_by' must be 'human', got '{frontmatter.get('validated_by')}'"
-        )
+        errors.append(f"'validated_by' must be 'human', got '{frontmatter.get('validated_by')}'")
 
     if "category" not in frontmatter:
         errors.append("Missing 'category' field in frontmatter")
@@ -129,9 +127,7 @@ def validate_entry(entry_path: Path, verbose: bool = False) -> list[str]:
 
     # Check date is "synthetic"
     if expected_output.date != "synthetic":
-        errors.append(
-            f"Expected output 'date' must be 'synthetic', got '{expected_output.date}'"
-        )
+        errors.append(f"Expected output 'date' must be 'synthetic', got '{expected_output.date}'")
 
     if verbose and not errors:
         print(f"  OK: {entry_path.name}")
@@ -155,9 +151,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
         return 1
 
     if args.category:
-        entry_files = [
-            f for f in entry_files if f.stem.startswith(args.category + "-")
-        ]
+        entry_files = [f for f in entry_files if f.stem.startswith(args.category + "-")]
 
     total = len(entry_files)
     failed = 0
@@ -276,33 +270,21 @@ def main() -> int:
     Returns:
         Exit code.
     """
-    parser = argparse.ArgumentParser(
-        description="Validate synthetic test entries for parser testing."
-    )
+    parser = argparse.ArgumentParser(description="Validate synthetic test entries for parser testing.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # validate command
-    validate_parser = subparsers.add_parser(
-        "validate", help="Validate all synthetic entries"
-    )
-    validate_parser.add_argument(
-        "--category", help="Filter by category (e.g., typo, minimal)"
-    )
-    validate_parser.add_argument(
-        "--verbose", "-v", action="store_true", help="Show detailed output"
-    )
+    validate_parser = subparsers.add_parser("validate", help="Validate all synthetic entries")
+    validate_parser.add_argument("--category", help="Filter by category (e.g., typo, minimal)")
+    validate_parser.add_argument("--verbose", "-v", action="store_true", help="Show detailed output")
     validate_parser.set_defaults(func=cmd_validate)
 
     # stats command
-    stats_parser = subparsers.add_parser(
-        "stats", help="Show entry distribution statistics"
-    )
+    stats_parser = subparsers.add_parser("stats", help="Show entry distribution statistics")
     stats_parser.set_defaults(func=cmd_stats)
 
     # list-unvalidated command
-    list_parser = subparsers.add_parser(
-        "list-unvalidated", help="List entries missing human validation"
-    )
+    list_parser = subparsers.add_parser("list-unvalidated", help="List entries missing human validation")
     list_parser.set_defaults(func=cmd_list_unvalidated)
 
     args = parser.parse_args()

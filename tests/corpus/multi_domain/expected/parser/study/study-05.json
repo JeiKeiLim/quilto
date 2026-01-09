@@ -1,0 +1,7 @@
+{
+  "subject": "organic chemistry",
+  "duration_minutes": 120,
+  "topics": ["reaction mechanisms", "SN1", "SN2", "elimination reactions"],
+  "comprehension": "finally understand why tertiary carbons favor SN1",
+  "next_steps": null
+}

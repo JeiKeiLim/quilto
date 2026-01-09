@@ -1,0 +1,6 @@
+{
+  "dish_name": "rice and kimchi",
+  "ingredients": ["rice", "kimchi"],
+  "cooking_time_minutes": null,
+  "notes": "Simple dinner"
+}

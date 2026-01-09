@@ -1,0 +1,7 @@
+{
+  "subject": "calculus",
+  "duration_minutes": 120,
+  "topics": ["integration by parts", "LIATE rule", "u-substitution"],
+  "comprehension": "integration by parts understood, u-substitution needs review due to sign errors",
+  "next_steps": "practice more before Friday quiz"
+}

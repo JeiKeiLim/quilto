@@ -76,9 +76,7 @@ class LLMClient:
         # anthropic and openai use model name directly
         return model
 
-    def resolve_model(
-        self, agent: str, force_cloud: bool = False
-    ) -> ModelResolution:
+    def resolve_model(self, agent: str, force_cloud: bool = False) -> ModelResolution:
         """Resolve provider and model for an agent.
 
         Determines which provider and model to use based on the agent's
@@ -108,14 +106,14 @@ class LLMClient:
         tier_models = self.config.tiers.get(agent_config.tier)
         if tier_models is None:
             raise ValueError(
-                f"Tier '{agent_config.tier}' not configured. "
-                f"Available tiers: {list(self.config.tiers.keys())}"
+                f"Tier '{agent_config.tier}' not configured. Available tiers: {list(self.config.tiers.keys())}"
             )
 
         model = getattr(tier_models, provider, None)
         if model is None:
             configured_providers = [
-                p for p in ["ollama", "anthropic", "openai", "azure", "openrouter"]
+                p
+                for p in ["ollama", "anthropic", "openai", "azure", "openrouter"]
                 if getattr(tier_models, p, None) is not None
             ]
             raise ValueError(
@@ -215,15 +213,12 @@ class LLMClient:
             return response_model.model_validate_json(response)
         except Exception as e:
             logger.error(
-                "Failed to parse structured response for agent '%s'. "
-                "Expected schema: %s. Raw response: %s",
+                "Failed to parse structured response for agent '%s'. Expected schema: %s. Raw response: %s",
                 agent,
                 response_model.__name__,
                 response[:500] if len(response) > 500 else response,
             )
-            raise ValueError(
-                f"LLM response failed schema validation for {response_model.__name__}: {e}"
-            ) from e
+            raise ValueError(f"LLM response failed schema validation for {response_model.__name__}: {e}") from e
 
     async def complete_with_fallback(
         self,
@@ -251,10 +246,6 @@ class LLMClient:
             return await self.complete(agent, messages, **kwargs)
         except Exception as e:
             if self.config.fallback_provider:
-                logger.warning(
-                    "Primary provider failed, falling back: %s", str(e)
-                )
-                return await self.complete(
-                    agent, messages, force_cloud=True, **kwargs
-                )
+                logger.warning("Primary provider failed, falling back: %s", str(e))
+                return await self.complete(agent, messages, force_cloud=True, **kwargs)
             raise

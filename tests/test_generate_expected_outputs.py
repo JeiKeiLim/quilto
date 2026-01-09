@@ -91,40 +91,24 @@ class TestScriptIntegration:
 
     def test_csv_path_exists(self) -> None:
         """Verify the CSV source file exists."""
-        csv_path = (
-            Path(__file__).parent
-            / "corpus"
-            / "fitness"
-            / "ground_truth"
-            / "strong_workouts.csv"
-        )
+        csv_path = Path(__file__).parent / "corpus" / "fitness" / "ground_truth" / "strong_workouts.csv"
         assert csv_path.exists(), f"CSV not found at {csv_path}"
 
     def test_output_dir_exists(self) -> None:
         """Verify output directory was created."""
-        output_dir = (
-            Path(__file__).parent / "corpus" / "fitness" / "expected" / "parser"
-        )
+        output_dir = Path(__file__).parent / "corpus" / "fitness" / "expected" / "parser"
         assert output_dir.exists(), f"Output dir not found at {output_dir}"
         assert output_dir.is_dir()
 
     def test_equivalences_file_exists(self) -> None:
         """Verify equivalences file was created."""
-        equivalences_path = (
-            Path(__file__).parent / "corpus" / "exercise_equivalences.yaml"
-        )
-        assert equivalences_path.exists(), (
-            f"Equivalences not found at {equivalences_path}"
-        )
+        equivalences_path = Path(__file__).parent / "corpus" / "exercise_equivalences.yaml"
+        assert equivalences_path.exists(), f"Equivalences not found at {equivalences_path}"
 
     def test_expected_output_count_matches_entries(self) -> None:
         """Verify 93 expected outputs match 93 from_csv entries."""
-        expected_dir = (
-            Path(__file__).parent / "corpus" / "fitness" / "expected" / "parser"
-        )
-        entries_dir = (
-            Path(__file__).parent / "corpus" / "fitness" / "entries" / "from_csv"
-        )
+        expected_dir = Path(__file__).parent / "corpus" / "fitness" / "expected" / "parser"
+        entries_dir = Path(__file__).parent / "corpus" / "fitness" / "entries" / "from_csv"
 
         expected_count = len(list(expected_dir.glob("*.json")))
         entries_count = len(list(entries_dir.glob("*.md")))

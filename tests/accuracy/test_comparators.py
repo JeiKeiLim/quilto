@@ -21,27 +21,19 @@ class TestExerciseEquivalenceChecker:
     @pytest.fixture
     def checker(self) -> ExerciseEquivalenceChecker:
         """Create checker with test corpus equivalences."""
-        yaml_path = (
-            Path(__file__).parent.parent / "corpus" / "exercise_equivalences.yaml"
-        )
+        yaml_path = Path(__file__).parent.parent / "corpus" / "exercise_equivalences.yaml"
         return ExerciseEquivalenceChecker(yaml_path)
 
-    def test_exact_match_canonical(
-        self, checker: ExerciseEquivalenceChecker
-    ) -> None:
+    def test_exact_match_canonical(self, checker: ExerciseEquivalenceChecker) -> None:
         """Canonical name should match itself."""
         assert checker.is_equivalent("Bench Press (Barbell)", "Bench Press (Barbell)")
 
-    def test_korean_to_english_equivalent(
-        self, checker: ExerciseEquivalenceChecker
-    ) -> None:
+    def test_korean_to_english_equivalent(self, checker: ExerciseEquivalenceChecker) -> None:
         """Korean variant should match English canonical."""
         assert checker.is_equivalent("벤치프레스", "Bench Press (Barbell)")
         assert checker.is_equivalent("바벨 벤치프레스", "Bench Press (Barbell)")
 
-    def test_english_to_korean_equivalent(
-        self, checker: ExerciseEquivalenceChecker
-    ) -> None:
+    def test_english_to_korean_equivalent(self, checker: ExerciseEquivalenceChecker) -> None:
         """English canonical should match Korean variant."""
         assert checker.is_equivalent("Bench Press (Barbell)", "벤치프레스")
 
@@ -50,24 +42,18 @@ class TestExerciseEquivalenceChecker:
         assert checker.is_equivalent("bench press (barbell)", "BENCH PRESS (BARBELL)")
         assert checker.is_equivalent("PULL UP", "풀업")
 
-    def test_non_equivalent_exercises(
-        self, checker: ExerciseEquivalenceChecker
-    ) -> None:
+    def test_non_equivalent_exercises(self, checker: ExerciseEquivalenceChecker) -> None:
         """Different exercises should not match."""
         assert not checker.is_equivalent("Bench Press (Barbell)", "Pull Up")
         assert not checker.is_equivalent("벤치프레스", "풀업")
 
-    def test_unknown_exercise_returns_false(
-        self, checker: ExerciseEquivalenceChecker
-    ) -> None:
+    def test_unknown_exercise_returns_false(self, checker: ExerciseEquivalenceChecker) -> None:
         """Unknown exercise should return False, not raise error."""
         assert not checker.is_equivalent("Unknown Exercise", "Bench Press (Barbell)")
         assert not checker.is_equivalent("Bench Press (Barbell)", "Unknown Exercise")
         assert not checker.is_equivalent("Unknown 1", "Unknown 2")
 
-    def test_empty_string_returns_false(
-        self, checker: ExerciseEquivalenceChecker
-    ) -> None:
+    def test_empty_string_returns_false(self, checker: ExerciseEquivalenceChecker) -> None:
         """Empty strings should return False."""
         assert not checker.is_equivalent("", "Bench Press (Barbell)")
         assert not checker.is_equivalent("Bench Press (Barbell)", "")

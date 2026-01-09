@@ -221,4 +221,3 @@ class TestDomainModuleVocabularyValidation:
                 vocabulary={"one": 1, "two": 2},  # type: ignore[dict-item]
             )
         assert "string" in str(exc_info.value).lower()
-

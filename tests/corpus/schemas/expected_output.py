@@ -59,9 +59,7 @@ class ExpectedParserOutput(BaseModel):
     date: str
 
 
-def is_synthetic(
-    entry_path: Path | str, expected_output: ExpectedParserOutput | None = None
-) -> bool:
+def is_synthetic(entry_path: Path | str, expected_output: ExpectedParserOutput | None = None) -> bool:
     """Check if an entry is synthetic (for robustness testing, not accuracy metrics).
 
     Synthetic entries are used to test parser robustness with edge cases,

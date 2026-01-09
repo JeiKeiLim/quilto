@@ -1,0 +1,7 @@
+{
+  "subject": "python",
+  "duration_minutes": null,
+  "topics": ["list comprehensions", "generators", "generator expressions"],
+  "comprehension": "list comprehensions and generators understood, syntax initially confusing",
+  "next_steps": "next chapter is about decorators"
+}
