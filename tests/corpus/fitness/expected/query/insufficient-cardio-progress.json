@@ -1,0 +1,16 @@
+{
+  "query": "How is my cardio improving?",
+  "context_entries": [
+    "2019-01-28",
+    "2019-01-29",
+    "2019-02-01",
+    "2019-02-04"
+  ],
+  "expected_analysis_points": [
+    "data_gap_identified"
+  ],
+  "expected_response_elements": [
+    "acknowledges_data_limitation",
+    "suggests_next_steps"
+  ]
+}

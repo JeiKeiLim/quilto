@@ -1,7 +1,8 @@
 """Test schemas for expected outputs.
 
 This module exports Pydantic models for validating expected output
-JSON files in the test corpus, including parser outputs and retrieval test cases.
+JSON files in the test corpus, including parser outputs, retrieval test cases,
+and query flow test cases.
 """
 
 from tests.corpus.schemas.cooking_schema import CookingEntry
@@ -14,6 +15,11 @@ from tests.corpus.schemas.expected_output import (
 )
 from tests.corpus.schemas.journal_schema import JournalEntry
 from tests.corpus.schemas.multilingual_schema import MultilingualExpectedOutput
+from tests.corpus.schemas.query_test_case import (
+    AnalysisPointType,
+    QueryTestCase,
+    ResponseElementType,
+)
 from tests.corpus.schemas.retrieval_test_case import (
     RetrievalStrategy,
     RetrievalTestCase,
@@ -22,6 +28,7 @@ from tests.corpus.schemas.retrieval_test_case import (
 from tests.corpus.schemas.study_schema import StudyEntry
 
 __all__ = [
+    "AnalysisPointType",
     "CookingEntry",
     "EdgeCaseExpectedOutput",
     "ExpectedSetDetail",
@@ -29,6 +36,8 @@ __all__ = [
     "ExpectedParserOutput",
     "JournalEntry",
     "MultilingualExpectedOutput",
+    "QueryTestCase",
+    "ResponseElementType",
     "StudyEntry",
     "RetrievalStrategy",
     "RetrievalTestCase",

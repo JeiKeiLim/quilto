@@ -1,0 +1,16 @@
+{
+  "query": "Compare my bench press to last year",
+  "context_entries": [
+    "2019-01-29",
+    "2019-02-01",
+    "2019-02-27"
+  ],
+  "expected_analysis_points": [
+    "data_gap_identified",
+    "time_span_mentioned"
+  ],
+  "expected_response_elements": [
+    "acknowledges_data_limitation",
+    "provides_trend_assessment"
+  ]
+}

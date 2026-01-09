@@ -1,0 +1,17 @@
+{
+  "query": "What's my recovery pattern?",
+  "context_entries": [
+    "2019-09-02",
+    "2019-09-03",
+    "2019-09-05",
+    "2019-09-06"
+  ],
+  "expected_analysis_points": [
+    "data_gap_identified",
+    "frequency_pattern"
+  ],
+  "expected_response_elements": [
+    "acknowledges_data_limitation",
+    "suggests_next_steps"
+  ]
+}

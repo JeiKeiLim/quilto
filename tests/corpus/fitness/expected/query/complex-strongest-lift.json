@@ -1,0 +1,20 @@
+{
+  "query": "What's my strongest lift and how has it improved?",
+  "context_entries": [
+    "2019-01-28",
+    "2019-01-29",
+    "2019-01-31",
+    "2019-02-01",
+    "2019-02-04"
+  ],
+  "expected_analysis_points": [
+    "peak_performance_found",
+    "weight_progression_identified",
+    "strength_comparison"
+  ],
+  "expected_response_elements": [
+    "mentions_current_weight",
+    "compares_exercises",
+    "quantifies_improvement"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "query": "How do my push exercises compare to pull exercises?",
+  "context_entries": [
+    "2019-01-29",
+    "2019-02-01",
+    "2019-03-12",
+    "2019-01-28",
+    "2019-02-04",
+    "2019-02-25"
+  ],
+  "expected_analysis_points": [
+    "strength_comparison",
+    "exercise_variation_noted",
+    "volume_analysis"
+  ],
+  "expected_response_elements": [
+    "compares_exercises",
+    "provides_trend_assessment"
+  ]
+}

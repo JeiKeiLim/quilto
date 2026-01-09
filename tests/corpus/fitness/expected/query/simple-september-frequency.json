@@ -1,0 +1,29 @@
+{
+  "query": "Show my workout frequency in September 2019",
+  "context_entries": [
+    "2019-09-02",
+    "2019-09-03",
+    "2019-09-05",
+    "2019-09-06",
+    "2019-09-09",
+    "2019-09-10",
+    "2019-09-16",
+    "2019-09-17",
+    "2019-09-18",
+    "2019-09-19",
+    "2019-09-21",
+    "2019-09-23",
+    "2019-09-24",
+    "2019-09-26",
+    "2019-09-27",
+    "2019-09-30"
+  ],
+  "expected_analysis_points": [
+    "frequency_pattern",
+    "time_span_mentioned"
+  ],
+  "expected_response_elements": [
+    "mentions_consistency",
+    "includes_specific_dates"
+  ]
+}

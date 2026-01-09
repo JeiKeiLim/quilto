@@ -1,0 +1,14 @@
+{
+  "query": "Compare my deadlift to squat progression",
+  "context_entries": ["2019-04-09", "2019-04-17"],
+  "expected_analysis_points": [
+    "weight_progression_identified",
+    "strength_comparison",
+    "exercise_variation_noted"
+  ],
+  "expected_response_elements": [
+    "compares_exercises",
+    "provides_trend_assessment",
+    "quantifies_improvement"
+  ]
+}

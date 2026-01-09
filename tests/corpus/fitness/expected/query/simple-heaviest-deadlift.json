@@ -1,0 +1,12 @@
+{
+  "query": "What was my heaviest deadlift?",
+  "context_entries": ["2019-01-28"],
+  "expected_analysis_points": [
+    "peak_performance_found",
+    "exercise_variation_noted"
+  ],
+  "expected_response_elements": [
+    "mentions_current_weight",
+    "includes_specific_dates"
+  ]
+}

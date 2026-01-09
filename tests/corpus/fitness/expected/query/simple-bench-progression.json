@@ -1,0 +1,14 @@
+{
+  "query": "How has my bench press progressed?",
+  "context_entries": ["2019-01-29", "2019-02-01", "2019-03-12"],
+  "expected_analysis_points": [
+    "weight_progression_identified",
+    "rep_range_noted",
+    "time_span_mentioned"
+  ],
+  "expected_response_elements": [
+    "mentions_starting_weight",
+    "mentions_current_weight",
+    "provides_trend_assessment"
+  ]
+}

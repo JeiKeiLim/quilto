@@ -63,7 +63,7 @@ development_status:
   1.5-3-create-multi-domain-test-entries: done
   1.5-4-create-multi-domain-expected-parser-outputs: done
   1.5-5-create-retrieval-expected-outputs: done
-  1.5-6-create-query-flow-expected-outputs: backlog
+  1.5-6-create-query-flow-expected-outputs: done
   1.5-7-create-human-curated-fitness-entries: backlog
   1.5-8-create-non-fitness-domain-module-for-testing: backlog
   epic-1.5-retrospective: optional
