@@ -65,7 +65,7 @@ development_status:
   1.5-5-create-retrieval-expected-outputs: done
   1.5-6-create-query-flow-expected-outputs: done
   1.5-7-create-human-curated-fitness-entries: done
-  1.5-8-create-non-fitness-domain-module-for-testing: backlog
+  1.5-8-create-non-fitness-domain-module-for-testing: done
   epic-1.5-retrospective: optional
 
   # Epic 2: Input & Storage
