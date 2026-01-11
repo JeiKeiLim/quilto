@@ -59,7 +59,7 @@ Run `make help` to see all available commands.
 ### Testing Rules (MANDATORY)
 
 1. **Unit tests**: Run `make validate` during development
-2. **Integration tests**: Run `make test-ollama` at END of implementation
+2. **Integration tests**: Run `make test-ollama` at END of implementation AND during code review
    - Requires Ollama running locally (`ollama serve`)
    - Tests actual LLM behavior, not mocks
    - **Must pass before story is complete**
@@ -71,6 +71,9 @@ make validate       # Full: lint + format + typecheck + unit tests
 
 # Before marking story done (REQUIRED)
 make test-ollama    # Integration tests with real Ollama
+
+# Code review (REQUIRED)
+make test-ollama    # Must run and pass during code review
 ```
 
 ### Pre-Review Checklist
@@ -82,6 +85,14 @@ Before requesting code review:
 - [ ] All new classes exported in `__init__.py`
 - [ ] Unit tests cover new functionality
 - [ ] `py.typed` marker exists for typed packages
+
+### Code Review Checklist
+
+During code review (before marking story done):
+- [ ] `make validate` passes
+- [ ] `make test-ollama` passes (REQUIRED - verifies real LLM behavior)
+- [ ] All acceptance criteria verified against implementation
+- [ ] File list in story matches actual changed files
 
 ---
 
