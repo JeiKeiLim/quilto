@@ -41,21 +41,43 @@ This workspace contains **TWO packages** - do not conflate them:
 
 ### Validate Frequently
 
-Run these commands **constantly during development**, not just before review:
+Use `make` commands for consistent validation:
 
 ```bash
-# Quick validation (run often)
-uv run ruff check . --fix && uv run pyright
+# Quick validation (run often during development)
+make check        # lint + typecheck
 
 # Full validation (before commits)
-uv run ruff check . && uv run ruff format . && uv run pyright && uv run pytest
+make validate     # lint + format + typecheck + test
+
+# Test with real Ollama (requires running Ollama instance)
+make test-ollama
+```
+
+Run `make help` to see all available commands.
+
+### Testing Rules (MANDATORY)
+
+1. **Unit tests**: Run `make validate` during development
+2. **Integration tests**: Run `make test-ollama` at END of implementation
+   - Requires Ollama running locally (`ollama serve`)
+   - Tests actual LLM behavior, not mocks
+   - **Must pass before story is complete**
+
+```bash
+# Development cycle
+make check          # Quick: lint + typecheck
+make validate       # Full: lint + format + typecheck + unit tests
+
+# Before marking story done (REQUIRED)
+make test-ollama    # Integration tests with real Ollama
 ```
 
 ### Pre-Review Checklist
 
 Before requesting code review:
-- [ ] `uv run ruff check .` passes
-- [ ] `uv run pyright` passes (0 errors)
+- [ ] `make check` passes (lint + typecheck)
+- [ ] `make test-ollama` passes (integration tests)
 - [ ] All new functions have Google-style docstrings
 - [ ] All new classes exported in `__init__.py`
 - [ ] Unit tests cover new functionality
