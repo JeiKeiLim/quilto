@@ -1001,19 +1001,18 @@ class TestFormatRecentEntries:
         assert "unknown" in result
 
 
-@pytest.mark.skip(reason="Integration tests require --use-real-ollama flag")
 class TestParserIntegration:
     """Integration tests with real LLM (skipped by default).
 
     Run with: pytest --use-real-ollama -k TestParserIntegration
-
-    Note: These tests are skipped by default. Remove the @pytest.mark.skip
-    decorator and run with pytest --use-real-ollama to execute them.
     """
 
     @pytest.mark.asyncio
-    async def test_real_fitness_extraction(self) -> None:
+    async def test_real_fitness_extraction(self, use_real_ollama: bool) -> None:
         """Test fitness extraction with real LLM."""
+        if not use_real_ollama:
+            pytest.skip("Requires --use-real-ollama flag")
+
         from quilto.agents import ParserAgent
 
         config = create_test_config()
@@ -1034,8 +1033,11 @@ class TestParserIntegration:
         assert result.raw_content == "Bench pressed 185 pounds for 5 reps, 3 sets today"
 
     @pytest.mark.asyncio
-    async def test_real_multi_domain_extraction(self) -> None:
+    async def test_real_multi_domain_extraction(self, use_real_ollama: bool) -> None:
         """Test multi-domain extraction with real LLM."""
+        if not use_real_ollama:
+            pytest.skip("Requires --use-real-ollama flag")
+
         from quilto.agents import ParserAgent
 
         config = create_test_config()

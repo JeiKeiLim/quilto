@@ -1,10 +1,11 @@
 """Shared pytest fixtures for Swealog tests.
 
-This module provides core fixtures for testing the Swealog application:
+This module provides fixtures specific to Swealog application tests:
 - mock_llm: Mocked LLM completions for unit tests
 - storage_fixture: Isolated file storage per test
 - domain_fixture: Test domain module instances
-- use_real_ollama: Boolean flag for integration tests
+
+Note: use_real_ollama fixture is defined in the root conftest.py.
 """
 
 from collections.abc import Callable, Generator
@@ -16,20 +17,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from quilto import DomainModule
 from swealog.domains.general_fitness import general_fitness
-
-
-def pytest_addoption(parser: pytest.Parser) -> None:
-    """Add custom pytest CLI options.
-
-    Args:
-        parser: pytest argument parser.
-    """
-    parser.addoption(
-        "--use-real-ollama",
-        action="store_true",
-        default=False,
-        help="Run integration tests with real Ollama instead of mocks",
-    )
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -162,19 +149,6 @@ def domain_fixture() -> DomainModule:
         The general_fitness domain module instance.
     """
     return general_fitness
-
-
-@pytest.fixture
-def use_real_ollama(request: pytest.FixtureRequest) -> bool:
-    """Return True if --use-real-ollama flag was passed.
-
-    Args:
-        request: pytest fixture request object.
-
-    Returns:
-        True if running with real Ollama, False otherwise.
-    """
-    return bool(request.config.getoption("--use-real-ollama", default=False))
 
 
 @pytest.fixture
