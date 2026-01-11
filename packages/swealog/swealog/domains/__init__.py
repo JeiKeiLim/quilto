@@ -6,6 +6,13 @@ from swealog.domains.general_fitness import (
     GeneralFitnessEntry,
     general_fitness,
 )
+from swealog.domains.nutrition import (
+    FoodItem,
+    Macros,
+    Nutrition,
+    NutritionEntry,
+    nutrition,
+)
 from swealog.domains.strength import (
     Strength,
     StrengthEntry,
@@ -16,12 +23,17 @@ from swealog.domains.strength import (
 
 __all__ = [
     "ExerciseRecord",
+    "FoodItem",
     "GeneralFitness",
     "GeneralFitnessEntry",
-    "general_fitness",
+    "Macros",
+    "Nutrition",
+    "NutritionEntry",
     "Strength",
     "StrengthEntry",
     "StrengthExercise",
     "StrengthSet",
+    "general_fitness",
+    "nutrition",
     "strength",
 ]
