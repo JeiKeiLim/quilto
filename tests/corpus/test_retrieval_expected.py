@@ -120,9 +120,7 @@ class TestRetrievalTestCaseValidation:
     def test_minimum_test_cases_exist(self) -> None:
         """Verify at least 15 test cases exist per AC requirements."""
         json_files = list(RETRIEVAL_DIR.glob("*.json"))
-        assert len(json_files) >= 15, (
-            f"Expected at least 15 test cases, found {len(json_files)}"
-        )
+        assert len(json_files) >= 15, f"Expected at least 15 test cases, found {len(json_files)}"
 
     def test_all_json_files_validate_against_schema(self) -> None:
         """Verify all JSON files parse correctly against RetrievalTestCase schema."""
@@ -133,9 +131,7 @@ class TestRetrievalTestCaseValidation:
             test_case = RetrievalTestCase.model_validate(data)
             assert test_case.query, f"Empty query in {json_file.name}"
             assert test_case.strategy, f"Missing strategy in {json_file.name}"
-            assert test_case.expected_entry_ids, (
-                f"Empty expected_entry_ids in {json_file.name}"
-            )
+            assert test_case.expected_entry_ids, f"Empty expected_entry_ids in {json_file.name}"
 
     def test_all_expected_entry_ids_exist(self) -> None:
         """Verify all expected_entry_ids reference existing entries."""
@@ -148,11 +144,7 @@ class TestRetrievalTestCaseValidation:
             data = json.loads(json_file.read_text())
             test_case = RetrievalTestCase.model_validate(data)
 
-            missing = [
-                entry_id
-                for entry_id in test_case.expected_entry_ids
-                if entry_id not in valid_entry_ids
-            ]
+            missing = [entry_id for entry_id in test_case.expected_entry_ids if entry_id not in valid_entry_ids]
 
             if missing:
                 missing_entries[json_file.name] = missing
@@ -184,12 +176,8 @@ class TestRetrievalTestCaseValidation:
             test_case = RetrievalTestCase.model_validate(data)
 
             if test_case.strategy.type == "date_range":
-                assert test_case.strategy.start, (
-                    f"date_range missing start in {json_file.name}"
-                )
-                assert test_case.strategy.end, (
-                    f"date_range missing end in {json_file.name}"
-                )
+                assert test_case.strategy.start, f"date_range missing start in {json_file.name}"
+                assert test_case.strategy.end, f"date_range missing end in {json_file.name}"
 
     def test_keyword_strategies_have_keywords(self) -> None:
         """Verify keyword strategies have keywords list."""
@@ -200,9 +188,7 @@ class TestRetrievalTestCaseValidation:
             test_case = RetrievalTestCase.model_validate(data)
 
             if test_case.strategy.type == "keyword":
-                assert test_case.strategy.keywords, (
-                    f"keyword strategy missing keywords in {json_file.name}"
-                )
+                assert test_case.strategy.keywords, f"keyword strategy missing keywords in {json_file.name}"
 
     def test_pattern_strategies_have_pattern(self) -> None:
         """Verify pattern strategies have pattern description."""
@@ -213,9 +199,7 @@ class TestRetrievalTestCaseValidation:
             test_case = RetrievalTestCase.model_validate(data)
 
             if test_case.strategy.type == "pattern":
-                assert test_case.strategy.pattern, (
-                    f"pattern strategy missing pattern in {json_file.name}"
-                )
+                assert test_case.strategy.pattern, f"pattern strategy missing pattern in {json_file.name}"
 
 
 class TestRetrievalTestCaseRobustness:
@@ -238,20 +222,14 @@ class TestRetrievalTestCaseCoverage:
     def test_date_range_test_cases_exist(self) -> None:
         """Verify date-based retrieval test cases exist."""
         json_files = list(RETRIEVAL_DIR.glob("date-range-*.json"))
-        assert len(json_files) >= 3, (
-            f"Expected at least 3 date-range test cases, found {len(json_files)}"
-        )
+        assert len(json_files) >= 3, f"Expected at least 3 date-range test cases, found {len(json_files)}"
 
     def test_keyword_test_cases_exist(self) -> None:
         """Verify keyword-based retrieval test cases exist."""
         json_files = list(RETRIEVAL_DIR.glob("keyword-*.json"))
-        assert len(json_files) >= 3, (
-            f"Expected at least 3 keyword test cases, found {len(json_files)}"
-        )
+        assert len(json_files) >= 3, f"Expected at least 3 keyword test cases, found {len(json_files)}"
 
     def test_pattern_test_cases_exist(self) -> None:
         """Verify pattern matching test cases exist."""
         json_files = list(RETRIEVAL_DIR.glob("pattern-*.json"))
-        assert len(json_files) >= 3, (
-            f"Expected at least 3 pattern test cases, found {len(json_files)}"
-        )
+        assert len(json_files) >= 3, f"Expected at least 3 pattern test cases, found {len(json_files)}"

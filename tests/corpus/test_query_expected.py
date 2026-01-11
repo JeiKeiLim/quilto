@@ -81,9 +81,7 @@ class TestQueryTestCaseValidation:
     def test_minimum_test_cases_exist(self) -> None:
         """Verify at least 10 test cases exist per AC requirements."""
         json_files = list(QUERY_DIR.glob("*.json"))
-        assert len(json_files) >= 10, (
-            f"Expected at least 10 test cases, found {len(json_files)}"
-        )
+        assert len(json_files) >= 10, f"Expected at least 10 test cases, found {len(json_files)}"
 
     def test_all_json_files_validate_against_schema(self) -> None:
         """Verify all JSON files parse correctly against QueryTestCase schema."""
@@ -93,15 +91,9 @@ class TestQueryTestCaseValidation:
             data = json.loads(json_file.read_text())
             test_case = QueryTestCase.model_validate(data)
             assert test_case.query, f"Empty query in {json_file.name}"
-            assert test_case.context_entries, (
-                f"Empty context_entries in {json_file.name}"
-            )
-            assert test_case.expected_analysis_points, (
-                f"Empty expected_analysis_points in {json_file.name}"
-            )
-            assert test_case.expected_response_elements, (
-                f"Empty expected_response_elements in {json_file.name}"
-            )
+            assert test_case.context_entries, f"Empty context_entries in {json_file.name}"
+            assert test_case.expected_analysis_points, f"Empty expected_analysis_points in {json_file.name}"
+            assert test_case.expected_response_elements, f"Empty expected_response_elements in {json_file.name}"
 
     def test_all_context_entries_exist(self) -> None:
         """Verify all context_entries reference existing entries."""
@@ -114,11 +106,7 @@ class TestQueryTestCaseValidation:
             data = json.loads(json_file.read_text())
             test_case = QueryTestCase.model_validate(data)
 
-            missing = [
-                entry_id
-                for entry_id in test_case.context_entries
-                if entry_id not in valid_entry_ids
-            ]
+            missing = [entry_id for entry_id in test_case.context_entries if entry_id not in valid_entry_ids]
 
             if missing:
                 missing_entries[json_file.name] = missing
@@ -166,17 +154,13 @@ class TestQueryTestCaseCoverage:
         """Verify simple query test cases exist."""
         json_files = list(QUERY_DIR.glob("simple-*.json"))
         file_names = [f.name for f in json_files]
-        assert len(json_files) >= 3, (
-            f"Expected at least 3 simple test cases, found {len(json_files)}: {file_names}"
-        )
+        assert len(json_files) >= 3, f"Expected at least 3 simple test cases, found {len(json_files)}: {file_names}"
 
     def test_complex_query_test_cases_exist(self) -> None:
         """Verify complex multi-part query test cases exist."""
         json_files = list(QUERY_DIR.glob("complex-*.json"))
         file_names = [f.name for f in json_files]
-        assert len(json_files) >= 4, (
-            f"Expected at least 4 complex test cases, found {len(json_files)}: {file_names}"
-        )
+        assert len(json_files) >= 4, f"Expected at least 4 complex test cases, found {len(json_files)}: {file_names}"
 
     def test_insufficient_data_test_cases_exist(self) -> None:
         """Verify insufficient data query test cases exist."""

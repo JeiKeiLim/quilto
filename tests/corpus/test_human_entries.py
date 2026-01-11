@@ -40,9 +40,7 @@ class TestHumanEntriesCorpusIntegrity:
     def test_category_coverage(self, category: str, min_count: int) -> None:
         """Verify each category has minimum required entries (AC #4, #5, #6)."""
         entries = list(HUMAN_ENTRIES_DIR.glob(f"human-{category}-*.md"))
-        assert (
-            len(entries) >= min_count
-        ), f"Expected >= {min_count} {category} entries, found {len(entries)}"
+        assert len(entries) >= min_count, f"Expected >= {min_count} {category} entries, found {len(entries)}"
 
     def test_all_entries_have_expected_outputs(self) -> None:
         """Verify every entry has a matching expected output (AC #8)."""
@@ -55,21 +53,15 @@ class TestHumanEntriesCorpusIntegrity:
         """Verify all expected outputs match ExpectedParserOutput schema (AC #8)."""
         expected_files = list(HUMAN_EXPECTED_DIR.glob("*.json"))
         for expected_file in expected_files:
-            output = ExpectedParserOutput.model_validate_json(
-                expected_file.read_text(encoding="utf-8")
-            )
-            assert (
-                output.date == "human"
-            ), f"{expected_file.name}: date should be 'human'"
+            output = ExpectedParserOutput.model_validate_json(expected_file.read_text(encoding="utf-8"))
+            assert output.date == "human", f"{expected_file.name}: date should be 'human'"
 
     def test_no_orphan_expected_outputs(self) -> None:
         """Verify all expected outputs have matching entries."""
         expected_files = list(HUMAN_EXPECTED_DIR.glob("*.json"))
         for expected_file in expected_files:
             entry_path = HUMAN_ENTRIES_DIR / f"{expected_file.stem}.md"
-            assert (
-                entry_path.exists()
-            ), f"Orphan expected output: {expected_file.name} has no entry"
+            assert entry_path.exists(), f"Orphan expected output: {expected_file.name} has no entry"
 
     def test_entries_are_readable(self) -> None:
         """Verify all entries can be read as UTF-8."""

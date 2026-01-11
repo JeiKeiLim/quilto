@@ -14,12 +14,7 @@ from tests.corpus.schemas import JournalEntry
 from tests.domains import JournalDomain, journal_domain
 
 JOURNAL_EXPECTED_DIR: Path = (
-    Path(__file__).parent.parent
-    / "corpus"
-    / "multi_domain"
-    / "expected"
-    / "parser"
-    / "journal"
+    Path(__file__).parent.parent / "corpus" / "multi_domain" / "expected" / "parser" / "journal"
 )
 
 
