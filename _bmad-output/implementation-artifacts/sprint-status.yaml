@@ -79,7 +79,7 @@ development_status:
   2-1-implement-storagerepository-interface: done
   2-2-implement-router-agent-log-classification: done
   2-3-implement-parser-agent: done
-  2-4-create-strength-domain-module: backlog
+  2-4-create-strength-domain-module: done
   2-5-create-nutrition-domain-module: backlog
   epic-2-retrospective: optional
 
