@@ -57,7 +57,7 @@ development_status:
 
   # Epic 1.5: Test Corpus (Domain-Agnostic Test Data)
   # Added from Epic 1 Retrospective - comprehensive test data for Quilto framework validation
-  epic-1.5: in-progress
+  epic-1.5: done
   1.5-1-create-generic-edge-case-test-entries: done
   1.5-2-create-generic-multilingual-test-corpus: done
   1.5-3-create-multi-domain-test-entries: done
@@ -66,7 +66,7 @@ development_status:
   1.5-6-create-query-flow-expected-outputs: done
   1.5-7-create-human-curated-fitness-entries: done
   1.5-8-create-non-fitness-domain-module-for-testing: done
-  epic-1.5-retrospective: optional
+  epic-1.5-retrospective: done
 
   # Epic 2: Input & Storage
   epic-2: backlog
