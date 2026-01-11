@@ -4,6 +4,12 @@
 # tracking_system: file-system
 # story_location: _bmad-output/implementation-artifacts/epic-{N}/
 #
+# LLM CONFIGURATION:
+# Sample config at: llm-config.yaml (project root)
+# - Ollama URL: http://localhost:11434
+# - Models: qwen2.5:3b (low tier), qwen2.5:7b (medium/high tier)
+# - Qwen2.5 chosen for structured JSON output support
+#
 # DIRECTORY STRUCTURE:
 # Stories are organized by epic subdirectory. See project-context.md for details.
 # Example: epic-1/1-1-initialize-monorepo-structure.md
@@ -71,7 +77,7 @@ development_status:
   # Epic 2: Input & Storage
   epic-2: in-progress
   2-1-implement-storagerepository-interface: done
-  2-2-implement-router-agent-log-classification: backlog
+  2-2-implement-router-agent-log-classification: done
   2-3-implement-parser-agent: backlog
   2-4-create-strength-domain-module: backlog
   2-5-create-nutrition-domain-module: backlog

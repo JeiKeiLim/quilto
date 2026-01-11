@@ -1,5 +1,12 @@
 """Quilto - Domain-agnostic agent framework for note processing."""
 
+from quilto.agents import (
+    DomainInfo,
+    InputType,
+    RouterAgent,
+    RouterInput,
+    RouterOutput,
+)
 from quilto.domain import DomainModule
 from quilto.llm import (
     AgentConfig,
@@ -18,13 +25,18 @@ __version__ = "0.1.0"
 __all__ = [
     "AgentConfig",
     "DateRange",
+    "DomainInfo",
     "DomainModule",
     "Entry",
+    "InputType",
     "LLMClient",
     "LLMConfig",
     "ModelResolution",
     "ParserOutput",
     "ProviderConfig",
+    "RouterAgent",
+    "RouterInput",
+    "RouterOutput",
     "StorageRepository",
     "TierModels",
     "__version__",
