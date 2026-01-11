@@ -3,9 +3,38 @@
 import json
 from datetime import date, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
-from quilto.storage import DateRange, Entry, ParserOutput, StorageRepository
+from quilto.agents.models import ParserOutput
+from quilto.storage import DateRange, Entry, StorageRepository
+
+
+def create_parser_output(
+    is_correction: bool = False,
+    target_entry_id: str | None = None,
+    correction_delta: dict[str, Any] | None = None,
+) -> ParserOutput:
+    """Create a valid ParserOutput for testing correction flows.
+
+    Args:
+        is_correction: Whether this is a correction output.
+        target_entry_id: ID of entry being corrected.
+        correction_delta: Fields that changed.
+
+    Returns:
+        Valid ParserOutput instance.
+    """
+    return ParserOutput(
+        date=date(2026, 1, 1),
+        timestamp=datetime(2026, 1, 1, 10, 30, 0),
+        domain_data={},
+        raw_content="test content",
+        confidence=0.9,
+        is_correction=is_correction,
+        target_entry_id=target_entry_id,
+        correction_delta=correction_delta,
+    )
 
 
 class TestStorageRepositoryInit:
@@ -77,24 +106,25 @@ class TestDateRangeModel:
 
 
 class TestParserOutputModel:
-    """Tests for ParserOutput stub model."""
+    """Tests for ParserOutput model (full version from agents)."""
 
-    def test_default_values(self) -> None:
-        """Test ParserOutput default values."""
-        output = ParserOutput()
+    def test_default_correction_values(self) -> None:
+        """Test ParserOutput default correction values."""
+        output = create_parser_output()
         assert output.is_correction is False
         assert output.target_entry_id is None
         assert output.correction_delta is None
 
     def test_correction_output(self) -> None:
         """Test ParserOutput with correction data."""
-        output = ParserOutput(
+        output = create_parser_output(
             is_correction=True,
             target_entry_id="2026-01-01_10-30-00",
             correction_delta={"weight": 185},
         )
         assert output.is_correction is True
         assert output.target_entry_id == "2026-01-01_10-30-00"
+        assert output.correction_delta == {"weight": 185}
 
 
 class TestGetEntriesByDateRange:
@@ -388,7 +418,7 @@ class TestCorrections:
             timestamp=datetime(2026, 1, 1, 10, 45),
             raw_content="Correction: bench weight was 185, not 85",
         )
-        correction = ParserOutput(
+        correction = create_parser_output(
             is_correction=True,
             target_entry_id="2026-01-01_10-30-00",
             correction_delta={"weight": 185},
@@ -421,7 +451,7 @@ class TestCorrections:
             timestamp=datetime(2026, 1, 1, 10, 45),
             raw_content="Correction note",
         )
-        correction = ParserOutput(
+        correction = create_parser_output(
             is_correction=True,
             target_entry_id="2026-01-01_10-30-00",
             correction_delta={"weight": 185},

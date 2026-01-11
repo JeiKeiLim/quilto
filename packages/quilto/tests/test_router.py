@@ -668,28 +668,21 @@ class TestRouterAgentPrompt:
         assert "(No session context)" in prompt
 
 
+@pytest.mark.skip(reason="Integration tests require --use-real-ollama flag")
 class TestRouterAgentIntegration:
     """Integration tests with real LLM (skipped by default).
 
     Run with: pytest --use-real-ollama -k TestRouterAgentIntegration
+
+    Note: These tests are skipped by default. Remove the @pytest.mark.skip
+    decorator and run with pytest --use-real-ollama to execute them.
     """
 
-    @pytest.fixture
-    def real_llm_client(self) -> LLMClient:
-        """Create a real LLMClient for integration tests."""
-        config = create_test_config()
-        return LLMClient(config)
-
     @pytest.mark.asyncio
-    async def test_real_log_classification(
-        self,
-        real_llm_client: LLMClient,
-        use_real_ollama: bool,
-    ) -> None:
+    async def test_real_log_classification(self) -> None:
         """Test LOG classification with real LLM."""
-        if not use_real_ollama:
-            pytest.skip("Requires --use-real-ollama flag and running Ollama instance")
-
+        config = create_test_config()
+        real_llm_client = LLMClient(config)
         router = RouterAgent(real_llm_client)
 
         result = await router.classify(
@@ -704,15 +697,10 @@ class TestRouterAgentIntegration:
         assert "strength" in result.selected_domains
 
     @pytest.mark.asyncio
-    async def test_real_query_classification(
-        self,
-        real_llm_client: LLMClient,
-        use_real_ollama: bool,
-    ) -> None:
+    async def test_real_query_classification(self) -> None:
         """Test QUERY classification with real LLM."""
-        if not use_real_ollama:
-            pytest.skip("Requires --use-real-ollama flag and running Ollama instance")
-
+        config = create_test_config()
+        real_llm_client = LLMClient(config)
         router = RouterAgent(real_llm_client)
 
         result = await router.classify(

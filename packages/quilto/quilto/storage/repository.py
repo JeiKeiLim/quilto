@@ -7,7 +7,8 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 
-from quilto.storage.models import DateRange, Entry, ParserOutput
+from quilto.agents.models import ParserOutput
+from quilto.storage.models import DateRange, Entry
 
 logger = logging.getLogger(__name__)
 

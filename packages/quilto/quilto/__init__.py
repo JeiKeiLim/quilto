@@ -3,6 +3,9 @@
 from quilto.agents import (
     DomainInfo,
     InputType,
+    ParserAgent,
+    ParserInput,
+    ParserOutput,
     RouterAgent,
     RouterInput,
     RouterOutput,
@@ -18,7 +21,7 @@ from quilto.llm import (
     load_llm_config,
     load_llm_config_from_dict,
 )
-from quilto.storage import DateRange, Entry, ParserOutput, StorageRepository
+from quilto.storage import DateRange, Entry, StorageRepository
 
 __version__ = "0.1.0"
 
@@ -32,6 +35,8 @@ __all__ = [
     "LLMClient",
     "LLMConfig",
     "ModelResolution",
+    "ParserAgent",
+    "ParserInput",
     "ParserOutput",
     "ProviderConfig",
     "RouterAgent",
