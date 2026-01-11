@@ -29,7 +29,7 @@ def create_test_config() -> LLMConfig:
         },
         tiers={
             "low": TierModels(ollama="qwen2.5:7b"),
-            "medium": TierModels(ollama="qwen2.5:14b"),
+            "medium": TierModels(ollama="qwen2.5:7b"),
         },
         agents={
             "parser": AgentConfig(tier="medium"),

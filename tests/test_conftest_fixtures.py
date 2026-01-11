@@ -70,9 +70,13 @@ class TestUseRealOllamaOption:
         """use_real_ollama fixture should be available."""
         assert isinstance(use_real_ollama, bool)
 
-    def test_use_real_ollama_default_is_false(self, use_real_ollama: bool) -> None:
-        """use_real_ollama should default to False."""
-        # When running without --use-real-ollama flag
+    def test_use_real_ollama_default_is_false(
+        self, use_real_ollama: bool, request: pytest.FixtureRequest
+    ) -> None:
+        """use_real_ollama should default to False when flag not passed."""
+        # Skip this test when --use-real-ollama is actually passed
+        if request.config.getoption("--use-real-ollama", default=False):
+            pytest.skip("This test validates default behavior without the flag")
         assert use_real_ollama is False
 
 
