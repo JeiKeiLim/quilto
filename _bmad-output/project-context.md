@@ -171,6 +171,32 @@ Before requesting code review:
 - Use fixtures from `tests/conftest.py`
 - Test corpus should include multiple domains (not just fitness)
 
+### Common Mistakes to Avoid (Learned from Epic 1-2)
+
+These mistakes recurred across multiple stories. Proactively check for them:
+
+| Mistake | Correct Pattern | Source |
+|---------|-----------------|--------|
+| Required string field without length check | `name: str = Field(min_length=1)` | Story 2-4 |
+| Redundant `@field_validator` for range | Use `Field(ge=0, le=10)` instead | Story 2-4 |
+| Missing boundary value tests | Always test exact boundaries (0.0, 1.0, 10.0) | Story 2-1, 2-2 |
+| Missing `py.typed` marker | Add `py.typed` file in package root for PEP 561 | Story 2-2 |
+| Empty string not tested separately from None | Test both `None` and `""` cases | Story 2-2 |
+| Missing `__all__` in `__init__.py` | Export all public classes in `__all__` list | Story 1.5-8 |
+| Both `Field()` AND `@field_validator` | Use only `Field(ge=, le=)` for range validation | Story 2-4 |
+
+### Pre-Review Validation Checklist
+
+Before requesting code review, verify:
+
+- [ ] All required string fields use `Field(min_length=1)`
+- [ ] Range validation uses `Field(ge=, le=)` not redundant validators
+- [ ] Boundary value tests exist (test exact 0, 1, 10, etc.)
+- [ ] `py.typed` marker exists in new typed packages
+- [ ] All public classes are in `__all__`
+- [ ] Tests cover both `None` and `""` for optional string fields
+- [ ] `make test-ollama` passes (integration tests with real Ollama)
+
 ---
 
 ## Key Documents
