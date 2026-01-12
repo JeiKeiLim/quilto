@@ -402,3 +402,71 @@ class PlannerOutput(BaseModel):
     next_action: Literal["retrieve", "expand_domain", "clarify", "synthesize"]
 
     reasoning: str
+
+
+# =============================================================================
+# Retriever Models
+# =============================================================================
+
+
+class RetrievalAttempt(BaseModel):
+    """Record of a single retrieval attempt.
+
+    Attributes:
+        attempt_number: Sequential number of this attempt (1-based).
+        strategy: The strategy used ("date_range", "keyword", "topical").
+        params: Strategy-specific parameters used.
+        entries_found: Number of entries returned.
+        summary: Brief human-readable description of the attempt.
+        expanded_terms: Terms after vocabulary expansion (for keyword/topical).
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    attempt_number: int = Field(ge=1)
+    strategy: str = Field(min_length=1)
+    params: dict[str, Any]
+    entries_found: int = Field(ge=0)
+    summary: str = Field(min_length=1)
+    expanded_terms: list[str] = Field(default_factory=list)
+
+
+class RetrieverInput(BaseModel):
+    """Input to Retriever agent.
+
+    Attributes:
+        instructions: Retrieval instructions from Planner's retrieval_instructions.
+            Structure: [{"strategy": str, "params": dict, "sub_query_id": int}, ...]
+        vocabulary: Term normalization mapping for vocabulary expansion.
+        max_entries: Maximum entries to return (safety limit).
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    instructions: list[dict[str, Any]]
+    vocabulary: dict[str, str] = Field(default_factory=dict)
+    max_entries: int = Field(default=100, ge=1)
+
+
+class RetrieverOutput(BaseModel):
+    """Output from Retriever agent.
+
+    Attributes:
+        entries: Retrieved entries (deduplicated, up to max_entries).
+        retrieval_summary: Record of each retrieval attempt.
+        total_entries_found: Total entries before deduplication and truncation.
+        date_range_covered: Actual date range of returned entries.
+        warnings: List of warning messages (empty results, truncation, errors).
+        truncated: True if results were limited by max_entries.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    # Note: Using Any to avoid circular import (storage.repository imports agents.models)
+    # At runtime, entries contains list[Entry] and date_range_covered is DateRange | None
+    entries: list[Any]
+    retrieval_summary: list[RetrievalAttempt]
+    total_entries_found: int = Field(ge=0)
+    date_range_covered: Any | None = None
+    warnings: list[str] = Field(default_factory=list)
+    truncated: bool = False
