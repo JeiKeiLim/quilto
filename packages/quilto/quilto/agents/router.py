@@ -89,6 +89,23 @@ Available domains:
 
 Select ALL domains that are relevant to the input. When uncertain, prefer broader selection.
 
+=== MULTI-DOMAIN SELECTION ===
+
+For complex queries that span multiple topics:
+- Select ALL domains that are relevant, not just the primary one
+- Example: "Compare my running pace with my lifting progress" → ["running", "strength"]
+- Example: "How does my diet affect my workouts?" → ["nutrition", "strength"]
+- When uncertain, include more domains rather than fewer
+
+For BOTH input type:
+- Select domains relevant to BOTH the log and query portions
+- Log portion may reference different domains than query portion
+
+IMPORTANT for domain_selection_reasoning:
+- Explain why EACH selected domain was chosen
+- If multiple domains are selected, mention each one specifically
+- If no domains match, explain why none of the available domains apply
+
 === INPUT ===
 {router_input.raw_input}
 

@@ -33,7 +33,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "packages" / "quilto"))
 sys.path.insert(0, str(PROJECT_ROOT / "packages" / "swealog"))
 
-from quilto import (
+from quilto import (  # noqa: E402
     DomainInfo,
     InputType,
     LLMClient,
@@ -43,7 +43,7 @@ from quilto import (
     RouterInput,
     load_llm_config,
 )
-from swealog.domains import (
+from swealog.domains import (  # noqa: E402
     GeneralFitnessEntry,
     NutritionEntry,
     StrengthEntry,
