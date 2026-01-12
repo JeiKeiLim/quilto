@@ -6,7 +6,7 @@ including input types, domain information, router, and parser models.
 
 from datetime import date, datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -25,6 +25,70 @@ class InputType(str, Enum):
     QUERY = "QUERY"
     BOTH = "BOTH"
     CORRECTION = "CORRECTION"
+
+
+class QueryType(str, Enum):
+    """Classification of query intent.
+
+    Attributes:
+        SIMPLE: Direct retrieval ("show me X").
+        INSIGHT: Why/pattern questions.
+        RECOMMENDATION: What should I do.
+        COMPARISON: Compare X vs Y.
+        CORRECTION: Fix previous data.
+    """
+
+    SIMPLE = "simple"
+    INSIGHT = "insight"
+    RECOMMENDATION = "recommendation"
+    COMPARISON = "comparison"
+    CORRECTION = "correction"
+
+
+class DependencyType(str, Enum):
+    """Multi-question dependency classification.
+
+    Attributes:
+        INDEPENDENT: Can run in parallel.
+        DEPENDENT: Sequential, later needs earlier.
+        COUPLED: Really one question.
+    """
+
+    INDEPENDENT = "independent"
+    DEPENDENT = "dependent"
+    COUPLED = "coupled"
+
+
+class GapType(str, Enum):
+    """Classification of missing information.
+
+    Attributes:
+        TEMPORAL: Need different time range.
+        TOPICAL: Need different subject matter.
+        CONTEXTUAL: Need related context.
+        SUBJECTIVE: Only user knows (current state).
+        CLARIFICATION: Query itself is ambiguous.
+    """
+
+    TEMPORAL = "temporal"
+    TOPICAL = "topical"
+    CONTEXTUAL = "contextual"
+    SUBJECTIVE = "subjective"
+    CLARIFICATION = "clarification"
+
+
+class RetrievalStrategy(str, Enum):
+    """Retrieval strategy for sub-queries.
+
+    Attributes:
+        DATE_RANGE: When query mentions time periods.
+        KEYWORD: When query mentions specific activities/items.
+        TOPICAL: When query is about patterns/progress.
+    """
+
+    DATE_RANGE = "date_range"
+    KEYWORD = "keyword"
+    TOPICAL = "topical"
 
 
 class DomainInfo(BaseModel):
@@ -180,3 +244,161 @@ class ParserOutput(BaseModel):
         if not self.raw_content or not self.raw_content.strip():
             raise ValueError("raw_content cannot be empty")
         return self
+
+
+# =============================================================================
+# Planner Models
+# =============================================================================
+
+
+class Gap(BaseModel):
+    """An identified gap in available information.
+
+    Attributes:
+        description: Description of the missing information.
+        gap_type: Classification of the gap type.
+        severity: How critical the gap is (critical or nice_to_have).
+        searched: Whether this gap has been searched for.
+        found: Whether the information was found.
+        outside_current_expertise: Whether the gap is outside current domains.
+        suspected_domain: Domain that might contain this information.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    description: str
+    gap_type: GapType
+    severity: Literal["critical", "nice_to_have"]
+    searched: bool = False
+    found: bool = False
+    outside_current_expertise: bool = False
+    suspected_domain: str | None = None
+
+
+class EvaluationFeedback(BaseModel):
+    """Specific feedback from evaluation failure.
+
+    Attributes:
+        issue: Description of the issue found.
+        suggestion: Suggested fix or improvement.
+        affected_claim: The specific claim that was affected.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    issue: str
+    suggestion: str
+    affected_claim: str | None = None
+
+
+class SubQuery(BaseModel):
+    """A decomposed sub-query.
+
+    Attributes:
+        id: Unique identifier for the sub-query.
+        question: The extracted question text.
+        retrieval_strategy: Strategy to use for retrieval (date_range, keyword, topical).
+        retrieval_params: Strategy-specific parameters.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    id: int
+    question: str = Field(min_length=1)
+    retrieval_strategy: str
+    retrieval_params: dict[str, Any]
+
+
+class ActiveDomainContext(BaseModel):
+    """Combined context from base + selected domains.
+
+    NOTE: This is a stub for Planner story. Full implementation
+    will come with domain combination feature.
+
+    Attributes:
+        domains_loaded: List of domain names currently loaded.
+        vocabulary: Term normalization mapping.
+        expertise: Description of combined expertise.
+        evaluation_rules: List of domain-specific evaluation rules.
+        context_guidance: Guidance for context usage.
+        available_domains: List of all available domains.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    domains_loaded: list[str]
+    vocabulary: dict[str, str]
+    expertise: str
+    evaluation_rules: list[str] = []
+    context_guidance: str = ""
+    available_domains: list[DomainInfo] = []
+
+
+class PlannerInput(BaseModel):
+    """Input to Planner agent.
+
+    Attributes:
+        query: The query to plan for.
+        query_type: Optional pre-classified query type.
+        domain_context: Combined domain context for planning.
+        retrieval_history: History of previous retrieval attempts.
+        gaps_from_analyzer: Gaps identified by Analyzer agent.
+        evaluation_feedback: Feedback from evaluation failure.
+        global_context_summary: Summary of global context.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    query: str = Field(min_length=1)
+    query_type: QueryType | None = None
+
+    domain_context: ActiveDomainContext
+
+    retrieval_history: list[dict[str, Any]] = []
+    gaps_from_analyzer: list[Gap] = []
+    evaluation_feedback: EvaluationFeedback | None = None
+
+    global_context_summary: str | None = None
+
+
+class PlannerOutput(BaseModel):
+    """Output from Planner agent.
+
+    Attributes:
+        original_query: The original query being planned.
+        query_type: Classified query type.
+        sub_queries: Decomposed sub-queries.
+        dependencies: Dependencies between sub-queries.
+        execution_strategy: How to execute sub-queries.
+        execution_order: Order of sub-query IDs for execution.
+        retrieval_instructions: Instructions for Retriever agent.
+        gaps_status: Status of known gaps.
+        domain_expansion_request: Suggested domains to expand to.
+        expansion_reasoning: Why expansion is needed.
+        clarify_questions: Questions to ask user for clarification.
+        next_action: What action should be taken next.
+        reasoning: Explanation of planning decisions.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    original_query: str
+    query_type: QueryType
+
+    sub_queries: list[SubQuery]
+    dependencies: list[dict[str, Any]]
+    execution_strategy: DependencyType
+    execution_order: list[int]
+
+    retrieval_instructions: list[dict[str, Any]]
+
+    gaps_status: dict[str, dict[str, Any]]
+
+    domain_expansion_request: list[str] | None = None
+    expansion_reasoning: str | None = None
+
+    clarify_questions: list[str] | None = None
+
+    next_action: Literal["retrieve", "expand_domain", "clarify", "synthesize"]
+
+    reasoning: str

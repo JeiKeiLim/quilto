@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """Manual validation script for Quilto/Swealog components.
 
-This script allows hands-on testing of the Router and Parser agents
+This script allows hands-on testing of the Router, Parser, and Planner agents
 with Swealog domain modules (GeneralFitness, Strength, Nutrition).
 
 Usage:
     # Single input mode
     python scripts/manual_test.py "bench 185x5 felt heavy"
     python scripts/manual_test.py "점심: 닭가슴살 샐러드 500칼로리"
+    python scripts/manual_test.py "How has my bench press progressed?"
 
     # Interactive mode
     python scripts/manual_test.py
 
-    # Skip parser (router only)
+    # Skip parser/planner (router only)
     python scripts/manual_test.py --router-only "bench 185x5"
 
 Requirements:
@@ -42,6 +43,11 @@ from quilto import (  # noqa: E402
     RouterAgent,
     RouterInput,
     load_llm_config,
+)
+from quilto.agents import (  # noqa: E402
+    ActiveDomainContext,
+    PlannerAgent,
+    PlannerInput,
 )
 from swealog.domains import (  # noqa: E402
     GeneralFitnessEntry,
@@ -101,6 +107,39 @@ def get_merged_vocabulary(selected_domains: list[str]) -> dict[str, str]:
         if name in domain_modules:
             vocabulary.update(domain_modules[name].vocabulary)
     return vocabulary
+
+
+def build_active_domain_context(selected_domains: list[str]) -> ActiveDomainContext:
+    """Build ActiveDomainContext from selected domains."""
+    domain_modules = {
+        general_fitness.name: general_fitness,
+        strength.name: strength,
+        nutrition.name: nutrition,
+    }
+
+    # Merge vocabulary and expertise from selected domains
+    vocabulary: dict[str, str] = {}
+    expertise_parts: list[str] = []
+
+    for name in selected_domains:
+        if name in domain_modules:
+            module = domain_modules[name]
+            vocabulary.update(module.vocabulary)
+            expertise_parts.append(module.expertise)
+
+    # Get available domains (those not selected)
+    available = [
+        DomainInfo(name=m.name, description=m.description)
+        for m in domain_modules.values()
+        if m.name not in selected_domains
+    ]
+
+    return ActiveDomainContext(
+        domains_loaded=selected_domains,
+        vocabulary=vocabulary,
+        expertise=" | ".join(expertise_parts) if expertise_parts else "General fitness tracking",
+        available_domains=available,
+    )
 
 
 async def run_router(client: LLMClient, raw_input: str) -> dict[str, Any]:
@@ -174,12 +213,64 @@ async def run_parser(
     }
 
 
+async def run_planner(
+    client: LLMClient,
+    query: str,
+    selected_domains: list[str],
+) -> dict[str, Any]:
+    """Run Planner agent and return results."""
+    planner = PlannerAgent(client)
+
+    domain_context = build_active_domain_context(selected_domains)
+
+    planner_input = PlannerInput(
+        query=query,
+        domain_context=domain_context,
+    )
+
+    print_section("Planner Input")
+    print(f"Query: {query}")
+    print(f"Domains loaded: {domain_context.domains_loaded}")
+    print(f"Available for expansion: {[d.name for d in domain_context.available_domains]}")
+
+    print_section("Running Planner...")
+    output = await planner.plan(planner_input)
+
+    result: dict[str, Any] = {
+        "original_query": output.original_query,
+        "query_type": output.query_type.value,
+        "execution_strategy": output.execution_strategy.value,
+        "sub_queries": [
+            {
+                "id": sq.id,
+                "question": sq.question,
+                "retrieval_strategy": sq.retrieval_strategy,
+                "retrieval_params": sq.retrieval_params,
+            }
+            for sq in output.sub_queries
+        ],
+        "execution_order": output.execution_order,
+        "next_action": output.next_action,
+        "reasoning": output.reasoning,
+    }
+
+    if output.dependencies:
+        result["dependencies"] = output.dependencies
+    if output.domain_expansion_request:
+        result["domain_expansion_request"] = output.domain_expansion_request
+        result["expansion_reasoning"] = output.expansion_reasoning
+    if output.clarify_questions:
+        result["clarify_questions"] = output.clarify_questions
+
+    return result
+
+
 async def process_input(
     client: LLMClient,
     raw_input: str,
     router_only: bool = False,
 ) -> None:
-    """Process a single input through Router and optionally Parser."""
+    """Process a single input through Router, Parser, and/or Planner."""
     print_header(f"Processing: {raw_input[:50]}{'...' if len(raw_input) > 50 else ''}")
 
     # Run Router
@@ -191,32 +282,69 @@ async def process_input(
         print(f"\nRouter ERROR: {e}")
         return
 
-    # Skip parser if router-only mode
+    # Skip further processing if router-only mode
     if router_only:
-        print("\n(--router-only: skipping Parser)")
+        print("\n(--router-only: skipping Parser and Planner)")
         return
 
-    # Skip parser for pure QUERY
     input_type = InputType(router_result["input_type"])
-    if input_type == InputType.QUERY:
-        print("\n(Input classified as QUERY - skipping Parser)")
-        return
-
-    # Run Parser for LOG, BOTH, CORRECTION
     selected_domains = router_result["selected_domains"]
+
     if not selected_domains:
-        print("\n(No domains selected - skipping Parser)")
+        print("\n(No domains selected - skipping Parser and Planner)")
         return
 
-    # For BOTH, use log_portion; otherwise use full input
-    parser_input_text = router_result.get("log_portion", raw_input)
+    # Handle based on input type
+    if input_type == InputType.LOG:
+        # LOG: Run Parser only
+        try:
+            parser_result = await run_parser(client, raw_input, selected_domains)
+            print_section("Parser Output")
+            print_json(parser_result)
+        except Exception as e:
+            print(f"\nParser ERROR: {e}")
 
-    try:
-        parser_result = await run_parser(client, parser_input_text, selected_domains)
-        print_section("Parser Output")
-        print_json(parser_result)
-    except Exception as e:
-        print(f"\nParser ERROR: {e}")
+    elif input_type == InputType.QUERY:
+        # QUERY: Run Planner only
+        try:
+            planner_result = await run_planner(client, raw_input, selected_domains)
+            print_section("Planner Output")
+            print_json(planner_result)
+        except Exception as e:
+            print(f"\nPlanner ERROR: {e}")
+
+    elif input_type == InputType.BOTH:
+        # BOTH: Run Parser on log_portion, Planner on query_portion
+        log_portion = router_result.get("log_portion", raw_input)
+        query_portion = router_result.get("query_portion", "")
+
+        # Run Parser on log portion
+        try:
+            parser_result = await run_parser(client, log_portion, selected_domains)
+            print_section("Parser Output (log portion)")
+            print_json(parser_result)
+        except Exception as e:
+            print(f"\nParser ERROR: {e}")
+
+        # Run Planner on query portion
+        if query_portion:
+            try:
+                planner_result = await run_planner(client, query_portion, selected_domains)
+                print_section("Planner Output (query portion)")
+                print_json(planner_result)
+            except Exception as e:
+                print(f"\nPlanner ERROR: {e}")
+        else:
+            print("\n(No query_portion found for Planner)")
+
+    elif input_type == InputType.CORRECTION:
+        # CORRECTION: Run Parser with correction mode
+        try:
+            parser_result = await run_parser(client, raw_input, selected_domains)
+            print_section("Parser Output (correction)")
+            print_json(parser_result)
+        except Exception as e:
+            print(f"\nParser ERROR: {e}")
 
 
 async def interactive_mode(client: LLMClient, router_only: bool = False) -> None:

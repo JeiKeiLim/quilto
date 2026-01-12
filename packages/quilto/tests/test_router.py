@@ -5,11 +5,13 @@ RouterOutput validation, and input validation edge cases.
 """
 
 import json
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import BaseModel, ValidationError
+from quilto import load_llm_config
 from quilto.agents import DomainInfo, InputType, RouterAgent, RouterInput, RouterOutput
 from quilto.llm.client import LLMClient
 from quilto.llm.config import AgentConfig, LLMConfig, ProviderConfig, TierModels
@@ -672,15 +674,17 @@ class TestRouterAgentIntegration:
     """Integration tests with real LLM (skipped by default).
 
     Run with: pytest --use-real-ollama -k TestRouterAgentIntegration
+
+    Uses llm-config.yaml from project root to match production config.
     """
 
     @pytest.mark.asyncio
-    async def test_real_log_classification(self, use_real_ollama: bool) -> None:
+    async def test_real_log_classification(self, use_real_ollama: bool, integration_llm_config_path: Path) -> None:
         """Test LOG classification with real LLM."""
         if not use_real_ollama:
             pytest.skip("Requires --use-real-ollama flag")
 
-        config = create_test_config()
+        config = load_llm_config(integration_llm_config_path)
         real_llm_client = LLMClient(config)
         router = RouterAgent(real_llm_client)
 
@@ -696,12 +700,12 @@ class TestRouterAgentIntegration:
         assert "strength" in result.selected_domains
 
     @pytest.mark.asyncio
-    async def test_real_query_classification(self, use_real_ollama: bool) -> None:
+    async def test_real_query_classification(self, use_real_ollama: bool, integration_llm_config_path: Path) -> None:
         """Test QUERY classification with real LLM."""
         if not use_real_ollama:
             pytest.skip("Requires --use-real-ollama flag")
 
-        config = create_test_config()
+        config = load_llm_config(integration_llm_config_path)
         real_llm_client = LLMClient(config)
         router = RouterAgent(real_llm_client)
 
@@ -1281,15 +1285,17 @@ class TestRouterQueryIntegration:
 
     Run with: pytest --use-real-ollama -k TestRouterQueryIntegration
     Or via: make test-ollama
+
+    Uses llm-config.yaml from project root to match production config.
     """
 
     @pytest.mark.asyncio
-    async def test_real_query_single_domain(self, use_real_ollama: bool) -> None:
+    async def test_real_query_single_domain(self, use_real_ollama: bool, integration_llm_config_path: Path) -> None:
         """Test QUERY classification with single domain using real Ollama."""
         if not use_real_ollama:
             pytest.skip("Requires --use-real-ollama flag")
 
-        config = create_test_config()
+        config = load_llm_config(integration_llm_config_path)
         real_llm_client = LLMClient(config)
         router = RouterAgent(real_llm_client)
 
@@ -1305,12 +1311,12 @@ class TestRouterQueryIntegration:
         assert "strength" in result.selected_domains
 
     @pytest.mark.asyncio
-    async def test_real_query_multi_domain(self, use_real_ollama: bool) -> None:
+    async def test_real_query_multi_domain(self, use_real_ollama: bool, integration_llm_config_path: Path) -> None:
         """Test QUERY classification with multiple domains using real Ollama."""
         if not use_real_ollama:
             pytest.skip("Requires --use-real-ollama flag")
 
-        config = create_test_config()
+        config = load_llm_config(integration_llm_config_path)
         real_llm_client = LLMClient(config)
         router = RouterAgent(real_llm_client)
 
@@ -1329,12 +1335,12 @@ class TestRouterQueryIntegration:
         assert "strength" in result.selected_domains, "Expected 'strength' domain for comparison query"
 
     @pytest.mark.asyncio
-    async def test_real_both_classification(self, use_real_ollama: bool) -> None:
+    async def test_real_both_classification(self, use_real_ollama: bool, integration_llm_config_path: Path) -> None:
         """Test BOTH classification with portion extraction using real Ollama."""
         if not use_real_ollama:
             pytest.skip("Requires --use-real-ollama flag")
 
-        config = create_test_config()
+        config = load_llm_config(integration_llm_config_path)
         real_llm_client = LLMClient(config)
         router = RouterAgent(real_llm_client)
 
@@ -1351,12 +1357,14 @@ class TestRouterQueryIntegration:
         assert "running" in result.selected_domains
 
     @pytest.mark.asyncio
-    async def test_real_multi_domain_query_selection(self, use_real_ollama: bool) -> None:
+    async def test_real_multi_domain_query_selection(
+        self, use_real_ollama: bool, integration_llm_config_path: Path
+    ) -> None:
         """Test multi-domain query selection using real Ollama."""
         if not use_real_ollama:
             pytest.skip("Requires --use-real-ollama flag")
 
-        config = create_test_config()
+        config = load_llm_config(integration_llm_config_path)
         real_llm_client = LLMClient(config)
         router = RouterAgent(real_llm_client)
 

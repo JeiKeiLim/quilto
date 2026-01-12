@@ -6,11 +6,13 @@ uncertainty handling, correction mode, and validation.
 
 import json
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import BaseModel, ValidationError
+from quilto import load_llm_config
 from quilto.agents.models import ParserInput, ParserOutput
 from quilto.llm.client import LLMClient
 from quilto.llm.config import AgentConfig, LLMConfig, ProviderConfig, TierModels
@@ -1005,17 +1007,19 @@ class TestParserIntegration:
     """Integration tests with real LLM (skipped by default).
 
     Run with: pytest --use-real-ollama -k TestParserIntegration
+
+    Uses llm-config.yaml from project root to match production config.
     """
 
     @pytest.mark.asyncio
-    async def test_real_fitness_extraction(self, use_real_ollama: bool) -> None:
+    async def test_real_fitness_extraction(self, use_real_ollama: bool, integration_llm_config_path: Path) -> None:
         """Test fitness extraction with real LLM."""
         if not use_real_ollama:
             pytest.skip("Requires --use-real-ollama flag")
 
         from quilto.agents import ParserAgent
 
-        config = create_test_config()
+        config = load_llm_config(integration_llm_config_path)
         real_llm_client = LLMClient(config)
         parser = ParserAgent(real_llm_client)
 
@@ -1033,14 +1037,14 @@ class TestParserIntegration:
         assert result.raw_content == "Bench pressed 185 pounds for 5 reps, 3 sets today"
 
     @pytest.mark.asyncio
-    async def test_real_multi_domain_extraction(self, use_real_ollama: bool) -> None:
+    async def test_real_multi_domain_extraction(self, use_real_ollama: bool, integration_llm_config_path: Path) -> None:
         """Test multi-domain extraction with real LLM."""
         if not use_real_ollama:
             pytest.skip("Requires --use-real-ollama flag")
 
         from quilto.agents import ParserAgent
 
-        config = create_test_config()
+        config = load_llm_config(integration_llm_config_path)
         real_llm_client = LLMClient(config)
         parser = ParserAgent(real_llm_client)
 
