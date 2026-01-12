@@ -13,6 +13,13 @@ from swealog.domains.nutrition import (
     NutritionEntry,
     nutrition,
 )
+from swealog.domains.running import (
+    Running,
+    RunningEntry,
+    RunningInterval,
+    RunningSplit,
+    running,
+)
 from swealog.domains.strength import (
     Strength,
     StrengthEntry,
@@ -29,11 +36,16 @@ __all__ = [
     "Macros",
     "Nutrition",
     "NutritionEntry",
+    "Running",
+    "RunningEntry",
+    "RunningInterval",
+    "RunningSplit",
     "Strength",
     "StrengthEntry",
     "StrengthExercise",
     "StrengthSet",
     "general_fitness",
     "nutrition",
+    "running",
     "strength",
 ]

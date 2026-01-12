@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Manual validation script for Quilto/Swealog components.
 
-This script allows hands-on testing of the Router, Parser, and Planner agents
-with Swealog domain modules (GeneralFitness, Strength, Nutrition).
+This script allows hands-on testing of the Router, Parser, Planner, and Retriever
+agents with Swealog domain modules (GeneralFitness, Strength, Nutrition).
 
 Usage:
     # Single input mode
@@ -13,8 +13,11 @@ Usage:
     # Interactive mode
     python scripts/manual_test.py
 
-    # Skip parser/planner (router only)
+    # Skip parser/planner/retriever (router only)
     python scripts/manual_test.py --router-only "bench 185x5"
+
+    # Specify storage directory for retrieval
+    python scripts/manual_test.py --storage-dir ./data "How has my bench progressed?"
 
 Requirements:
     - Ollama running locally (ollama serve)
@@ -48,13 +51,19 @@ from quilto.agents import (  # noqa: E402
     ActiveDomainContext,
     PlannerAgent,
     PlannerInput,
+    PlannerOutput,
+    RetrieverAgent,
+    RetrieverInput,
 )
+from quilto.storage import StorageRepository  # noqa: E402
 from swealog.domains import (  # noqa: E402
     GeneralFitnessEntry,
     NutritionEntry,
+    RunningEntry,
     StrengthEntry,
     general_fitness,
     nutrition,
+    running,
     strength,
 )
 
@@ -82,6 +91,7 @@ def get_available_domains() -> list[DomainInfo]:
         DomainInfo(name=general_fitness.name, description=general_fitness.description),
         DomainInfo(name=strength.name, description=strength.description),
         DomainInfo(name=nutrition.name, description=nutrition.description),
+        DomainInfo(name=running.name, description=running.description),
     ]
 
 
@@ -91,6 +101,7 @@ def get_domain_schemas(selected_domains: list[str]) -> dict[str, type]:
         general_fitness.name: GeneralFitnessEntry,
         strength.name: StrengthEntry,
         nutrition.name: NutritionEntry,
+        running.name: RunningEntry,
     }
     return {name: domain_map[name] for name in selected_domains if name in domain_map}
 
@@ -101,6 +112,7 @@ def get_merged_vocabulary(selected_domains: list[str]) -> dict[str, str]:
         general_fitness.name: general_fitness,
         strength.name: strength,
         nutrition.name: nutrition,
+        running.name: running,
     }
     vocabulary: dict[str, str] = {}
     for name in selected_domains:
@@ -115,6 +127,7 @@ def build_active_domain_context(selected_domains: list[str]) -> ActiveDomainCont
         general_fitness.name: general_fitness,
         strength.name: strength,
         nutrition.name: nutrition,
+        running.name: running,
     }
 
     # Merge vocabulary and expertise from selected domains
@@ -217,7 +230,7 @@ async def run_planner(
     client: LLMClient,
     query: str,
     selected_domains: list[str],
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], PlannerOutput]:
     """Run Planner agent and return results."""
     planner = PlannerAgent(client)
 
@@ -262,6 +275,79 @@ async def run_planner(
     if output.clarify_questions:
         result["clarify_questions"] = output.clarify_questions
 
+    return result, output
+
+
+async def run_retriever(
+    storage: StorageRepository,
+    planner_output: PlannerOutput,
+    vocabulary: dict[str, str],
+) -> dict[str, Any]:
+    """Run Retriever agent and return results."""
+    retriever = RetrieverAgent(storage)
+
+    # Build retrieval instructions from planner output
+    instructions = [
+        {
+            "strategy": sq.retrieval_strategy,
+            "params": sq.retrieval_params,
+            "sub_query_id": sq.id,
+        }
+        for sq in planner_output.sub_queries
+    ]
+
+    retriever_input = RetrieverInput(
+        instructions=instructions,
+        vocabulary=vocabulary,
+        max_entries=100,
+    )
+
+    print_section("Retriever Input")
+    print(f"Instructions: {len(instructions)}")
+    for i, inst in enumerate(instructions, 1):
+        print(f"  {i}. Strategy: {inst['strategy']}, Params: {inst['params']}")
+    print(f"Vocabulary terms: {len(vocabulary)}")
+
+    print_section("Running Retriever...")
+    output = await retriever.retrieve(retriever_input)
+
+    result: dict[str, Any] = {
+        "total_entries_found": output.total_entries_found,
+        "entries_returned": len(output.entries),
+        "truncated": output.truncated,
+        "warnings": output.warnings,
+        "retrieval_summary": [
+            {
+                "attempt": attempt.attempt_number,
+                "strategy": attempt.strategy,
+                "entries_found": attempt.entries_found,
+                "summary": attempt.summary,
+                "expanded_terms": attempt.expanded_terms,
+            }
+            for attempt in output.retrieval_summary
+        ],
+    }
+
+    if output.date_range_covered:
+        result["date_range_covered"] = {
+            "start": str(output.date_range_covered.start),
+            "end": str(output.date_range_covered.end),
+        }
+
+    if output.entries:
+        result["entries_preview"] = [
+            {
+                "id": entry.id,
+                "date": str(entry.date),
+                "content_preview": (
+                    entry.raw_content[:100] + "..." if len(entry.raw_content) > 100 else entry.raw_content
+                ),
+            }
+            for entry in output.entries[:5]  # Show first 5
+        ]
+        if len(output.entries) > 5:
+            result["entries_preview"].append({"...": f"and {len(output.entries) - 5} more entries"})
+
     return result
 
 
@@ -269,8 +355,9 @@ async def process_input(
     client: LLMClient,
     raw_input: str,
     router_only: bool = False,
+    storage: StorageRepository | None = None,
 ) -> None:
-    """Process a single input through Router, Parser, and/or Planner."""
+    """Process a single input through Router, Parser, Planner, and/or Retriever."""
     print_header(f"Processing: {raw_input[:50]}{'...' if len(raw_input) > 50 else ''}")
 
     # Run Router
@@ -305,16 +392,29 @@ async def process_input(
             print(f"\nParser ERROR: {e}")
 
     elif input_type == InputType.QUERY:
-        # QUERY: Run Planner only
+        # QUERY: Run Planner, then Retriever
+        planner_output: PlannerOutput | None = None
         try:
-            planner_result = await run_planner(client, raw_input, selected_domains)
+            planner_result, planner_output = await run_planner(client, raw_input, selected_domains)
             print_section("Planner Output")
             print_json(planner_result)
         except Exception as e:
             print(f"\nPlanner ERROR: {e}")
 
+        # Run Retriever if storage is available and planner succeeded
+        if storage and planner_output is not None and planner_output.sub_queries:
+            try:
+                vocabulary = get_merged_vocabulary(selected_domains)
+                retriever_result = await run_retriever(storage, planner_output, vocabulary)
+                print_section("Retriever Output")
+                print_json(retriever_result)
+            except Exception as e:
+                print(f"\nRetriever ERROR: {e}")
+        elif not storage:
+            print("\n(No --storage-dir specified, skipping Retriever)")
+
     elif input_type == InputType.BOTH:
-        # BOTH: Run Parser on log_portion, Planner on query_portion
+        # BOTH: Run Parser on log_portion, Planner + Retriever on query_portion
         log_portion = router_result.get("log_portion", raw_input)
         query_portion = router_result.get("query_portion", "")
 
@@ -326,14 +426,27 @@ async def process_input(
         except Exception as e:
             print(f"\nParser ERROR: {e}")
 
-        # Run Planner on query portion
+        # Run Planner + Retriever on query portion
+        planner_output: PlannerOutput | None = None
         if query_portion:
             try:
-                planner_result = await run_planner(client, query_portion, selected_domains)
+                planner_result, planner_output = await run_planner(client, query_portion, selected_domains)
                 print_section("Planner Output (query portion)")
                 print_json(planner_result)
             except Exception as e:
                 print(f"\nPlanner ERROR: {e}")
+
+            # Run Retriever if storage is available and planner succeeded
+            if storage and planner_output is not None and planner_output.sub_queries:
+                try:
+                    vocabulary = get_merged_vocabulary(selected_domains)
+                    retriever_result = await run_retriever(storage, planner_output, vocabulary)
+                    print_section("Retriever Output (query portion)")
+                    print_json(retriever_result)
+                except Exception as e:
+                    print(f"\nRetriever ERROR: {e}")
+            elif not storage:
+                print("\n(No --storage-dir specified, skipping Retriever)")
         else:
             print("\n(No query_portion found for Planner)")
 
@@ -347,12 +460,21 @@ async def process_input(
             print(f"\nParser ERROR: {e}")
 
 
-async def interactive_mode(client: LLMClient, router_only: bool = False) -> None:
+async def interactive_mode(
+    client: LLMClient,
+    router_only: bool = False,
+    storage: StorageRepository | None = None,
+) -> None:
     """Run in interactive mode, accepting inputs until 'quit'."""
     print_header("Quilto/Swealog Manual Validation")
     print("\nAvailable domains:")
-    for domain in [general_fitness, strength, nutrition]:
+    for domain in [general_fitness, strength, nutrition, running]:
         print(f"  - {domain.name}: {domain.description[:60]}...")
+
+    if storage:
+        print(f"\nStorage: {storage.base_path}")
+    else:
+        print("\nStorage: Not configured (use --storage-dir for retrieval)")
 
     print("\nEnter text to process (or 'quit' to exit):")
     print("Examples:")
@@ -372,7 +494,7 @@ async def interactive_mode(client: LLMClient, router_only: bool = False) -> None
                 print("Goodbye!")
                 break
 
-            await process_input(client, raw_input, router_only)
+            await process_input(client, raw_input, router_only, storage)
 
         except KeyboardInterrupt:
             print("\nGoodbye!")
@@ -392,6 +514,7 @@ Examples:
   python scripts/manual_test.py "bench 185x5 felt heavy"
   python scripts/manual_test.py "점심: 닭가슴살 샐러드"
   python scripts/manual_test.py --router-only "bench 185x5"
+  python scripts/manual_test.py --storage-dir ./data "How has my bench progressed?"
   python scripts/manual_test.py  # interactive mode
         """,
     )
@@ -403,7 +526,12 @@ Examples:
     parser.add_argument(
         "--router-only",
         action="store_true",
-        help="Only run Router, skip Parser",
+        help="Only run Router, skip Parser/Planner/Retriever",
+    )
+    parser.add_argument(
+        "--storage-dir",
+        type=Path,
+        help="Path to storage directory for Retriever (enables retrieval)",
     )
     parser.add_argument(
         "--config",
@@ -431,12 +559,22 @@ Examples:
         if ollama_config:
             print(f"Ollama API base: {ollama_config.api_base}")
 
+    # Initialize storage if specified
+    storage: StorageRepository | None = None
+    if args.storage_dir:
+        if not args.storage_dir.exists():
+            print(f"WARNING: Storage directory does not exist: {args.storage_dir}")
+            print("Retriever will be skipped.")
+        else:
+            storage = StorageRepository(args.storage_dir)
+            print(f"Storage directory: {args.storage_dir}")
+
     if args.input:
         # Single input mode
-        await process_input(client, args.input, args.router_only)
+        await process_input(client, args.input, args.router_only, storage)
     else:
         # Interactive mode
-        await interactive_mode(client, args.router_only)
+        await interactive_mode(client, args.router_only, storage)
 
 
 if __name__ == "__main__":
