@@ -470,3 +470,148 @@ class RetrieverOutput(BaseModel):
     date_range_covered: Any | None = None
     warnings: list[str] = Field(default_factory=list)
     truncated: bool = False
+
+
+# =============================================================================
+# Analyzer Models
+# =============================================================================
+
+
+class Verdict(str, Enum):
+    """Sufficiency verdict from Analyzer agent.
+
+    Attributes:
+        SUFFICIENT: Enough evidence to answer confidently (no critical gaps).
+        INSUFFICIENT: Critical gaps prevent meaningful answer.
+        PARTIAL: Can answer with noted limitations (only nice_to_have gaps).
+    """
+
+    SUFFICIENT = "sufficient"
+    INSUFFICIENT = "insufficient"
+    PARTIAL = "partial"
+
+
+class Finding(BaseModel):
+    """A pattern or insight discovered by the Analyzer.
+
+    Attributes:
+        claim: The insight or finding text.
+        evidence: References to specific entries/dates supporting the claim.
+        confidence: Confidence level in this finding (high, medium, low).
+
+    Example:
+        >>> finding = Finding(
+        ...     claim="Progressive overload on bench press",
+        ...     evidence=["2026-01-10: bench 185x5", "2026-01-03: bench 180x5"],
+        ...     confidence="high"
+        ... )
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    claim: str = Field(min_length=1)
+    evidence: list[str]
+    confidence: Literal["high", "medium", "low"]
+
+
+class SufficiencyEvaluation(BaseModel):
+    """Structured assessment of information sufficiency.
+
+    Attributes:
+        critical_gaps: Gaps that block answering (severity="critical").
+        nice_to_have_gaps: Gaps that would improve answer (severity="nice_to_have").
+        evidence_check_passed: True if every claim has supporting data.
+        speculation_risk: Level of claims beyond available data.
+
+    Example:
+        >>> evaluation = SufficiencyEvaluation(
+        ...     critical_gaps=[],
+        ...     nice_to_have_gaps=[Gap(
+        ...         description="Historical comparison data",
+        ...         gap_type=GapType.TEMPORAL,
+        ...         severity="nice_to_have"
+        ...     )],
+        ...     evidence_check_passed=True,
+        ...     speculation_risk="low"
+        ... )
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    critical_gaps: list[Gap]
+    nice_to_have_gaps: list[Gap]
+    evidence_check_passed: bool
+    speculation_risk: Literal["none", "low", "high"]
+
+
+class AnalyzerInput(BaseModel):
+    """Input to Analyzer agent.
+
+    Attributes:
+        query: The query being analyzed.
+        query_type: Classification from Planner.
+        sub_query_id: Optional sub-query ID for multi-part queries.
+        entries: Retrieved entries for analysis (Any to avoid circular import).
+        retrieval_summary: Record of retrieval attempts.
+        domain_context: Combined domain context with expertise.
+        global_context_summary: Optional user patterns from Observer.
+
+    Example:
+        >>> analyzer_input = AnalyzerInput(
+        ...     query="How has my bench press progressed?",
+        ...     query_type=QueryType.INSIGHT,
+        ...     entries=[entry1, entry2],
+        ...     retrieval_summary=[attempt],
+        ...     domain_context=domain_ctx
+        ... )
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    query: str = Field(min_length=1)
+    query_type: QueryType
+    sub_query_id: int | None = None
+
+    # Using Any to avoid circular import with storage.repository
+    entries: list[Any]
+    retrieval_summary: list[RetrievalAttempt]
+
+    domain_context: ActiveDomainContext
+    global_context_summary: str | None = None
+
+
+class AnalyzerOutput(BaseModel):
+    """Output from Analyzer agent.
+
+    Attributes:
+        query_intent: Interpreted meaning of the query.
+        findings: Patterns and insights discovered.
+        patterns_identified: High-level patterns observed.
+        sufficiency_evaluation: Structured gap and evidence assessment.
+        verdict_reasoning: Explanation of assessment BEFORE verdict.
+        verdict: Final sufficiency verdict (generated LAST by prompt instruction).
+
+    Example:
+        >>> output = AnalyzerOutput(
+        ...     query_intent="User wants to know bench press progression",
+        ...     findings=[finding1, finding2],
+        ...     patterns_identified=["progressive overload"],
+        ...     sufficiency_evaluation=evaluation,
+        ...     verdict_reasoning="Found 5 entries showing clear progression...",
+        ...     verdict=Verdict.SUFFICIENT
+        ... )
+
+    Note:
+        The LLM prompt instructs verdict to be generated LAST to prevent
+        premature commitment bias. Field order in Pydantic doesn't affect
+        LLM output order - the prompt enforces this.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    query_intent: str = Field(min_length=1)
+    findings: list[Finding]
+    patterns_identified: list[str]
+    sufficiency_evaluation: SufficiencyEvaluation
+    verdict_reasoning: str = Field(min_length=1)
+    verdict: Verdict

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Manual validation script for Quilto/Swealog components.
 
-This script allows hands-on testing of the Router, Parser, Planner, and Retriever
-agents with Swealog domain modules (GeneralFitness, Strength, Nutrition, Running).
+This script allows hands-on testing of the Router, Parser, Planner, Retriever,
+and Analyzer agents with Swealog domain modules (GeneralFitness, Strength,
+Nutrition, Running).
 
 Usage:
     # Single input mode - LOG entries
@@ -56,11 +57,15 @@ from quilto import (  # noqa: E402
 )
 from quilto.agents import (  # noqa: E402
     ActiveDomainContext,
+    AnalyzerAgent,
+    AnalyzerInput,
+    AnalyzerOutput,
     PlannerAgent,
     PlannerInput,
     PlannerOutput,
     RetrieverAgent,
     RetrieverInput,
+    RetrieverOutput,
 )
 from quilto.storage import StorageRepository  # noqa: E402
 from swealog.domains import (  # noqa: E402
@@ -289,7 +294,7 @@ async def run_retriever(
     storage: StorageRepository,
     planner_output: PlannerOutput,
     vocabulary: dict[str, str],
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], RetrieverOutput]:
     """Run Retriever agent and return results."""
     retriever = RetrieverAgent(storage)
 
@@ -355,7 +360,66 @@ async def run_retriever(
         if len(output.entries) > 5:
             result["entries_preview"].append({"...": f"and {len(output.entries) - 5} more entries"})
 
-    return result
+    return result, output
+
+
+async def run_analyzer(
+    client: LLMClient,
+    query: str,
+    retriever_output: RetrieverOutput,
+    planner_output: PlannerOutput,
+    domain_context: ActiveDomainContext,
+) -> tuple[dict[str, Any], AnalyzerOutput]:
+    """Run Analyzer agent and return results."""
+    analyzer = AnalyzerAgent(client)
+
+    analyzer_input = AnalyzerInput(
+        query=query,
+        query_type=planner_output.query_type,
+        entries=retriever_output.entries,
+        retrieval_summary=retriever_output.retrieval_summary,
+        domain_context=domain_context,
+    )
+
+    print_section("Analyzer Input")
+    print(f"Query: {query}")
+    print(f"Query type: {planner_output.query_type.value}")
+    print(f"Entries to analyze: {len(retriever_output.entries)}")
+
+    print_section("Running Analyzer...")
+    output = await analyzer.analyze(analyzer_input)
+
+    result: dict[str, Any] = {
+        "query_intent": output.query_intent,
+        "verdict": output.verdict.value,
+        "verdict_reasoning": output.verdict_reasoning,
+        "patterns_identified": output.patterns_identified,
+        "findings": [
+            {
+                "claim": f.claim,
+                "evidence": f.evidence,
+                "confidence": f.confidence,
+            }
+            for f in output.findings
+        ],
+        "sufficiency_evaluation": {
+            "critical_gaps": [g.description for g in output.sufficiency_evaluation.critical_gaps],
+            "nice_to_have_gaps": [g.description for g in output.sufficiency_evaluation.nice_to_have_gaps],
+            "evidence_check_passed": output.sufficiency_evaluation.evidence_check_passed,
+            "speculation_risk": output.sufficiency_evaluation.speculation_risk,
+        },
+    }
+
+    # Add expansion hint if needed
+    if analyzer.needs_domain_expansion(output.sufficiency_evaluation):
+        expansion_gaps = [
+            g for g in analyzer.get_all_gaps(output.sufficiency_evaluation) if g.outside_current_expertise
+        ]
+        result["domain_expansion_hints"] = [
+            {"description": g.description, "suspected_domain": g.suspected_domain} for g in expansion_gaps
+        ]
+
+    return result, output
 
 
 async def process_input(
@@ -399,8 +463,9 @@ async def process_input(
             print(f"\nParser ERROR: {e}")
 
     elif input_type == InputType.QUERY:
-        # QUERY: Run Planner, then Retriever
+        # QUERY: Run Planner, then Retriever, then Analyzer
         planner_output: PlannerOutput | None = None
+        retriever_output: RetrieverOutput | None = None
         try:
             planner_result, planner_output = await run_planner(client, raw_input, selected_domains)
             print_section("Planner Output")
@@ -412,16 +477,28 @@ async def process_input(
         if storage and planner_output is not None and planner_output.sub_queries:
             try:
                 vocabulary = get_merged_vocabulary(selected_domains)
-                retriever_result = await run_retriever(storage, planner_output, vocabulary)
+                retriever_result, retriever_output = await run_retriever(storage, planner_output, vocabulary)
                 print_section("Retriever Output")
                 print_json(retriever_result)
             except Exception as e:
                 print(f"\nRetriever ERROR: {e}")
+
+            # Run Analyzer if retriever succeeded
+            if retriever_output is not None:
+                try:
+                    domain_context = build_active_domain_context(selected_domains)
+                    analyzer_result, _ = await run_analyzer(
+                        client, raw_input, retriever_output, planner_output, domain_context
+                    )
+                    print_section("Analyzer Output")
+                    print_json(analyzer_result)
+                except Exception as e:
+                    print(f"\nAnalyzer ERROR: {e}")
         elif not storage:
-            print("\n(No --storage-dir specified, skipping Retriever)")
+            print("\n(No --storage-dir specified, skipping Retriever and Analyzer)")
 
     elif input_type == InputType.BOTH:
-        # BOTH: Run Parser on log_portion, Planner + Retriever on query_portion
+        # BOTH: Run Parser on log_portion, Planner + Retriever + Analyzer on query_portion
         log_portion = router_result.get("log_portion", raw_input)
         query_portion = router_result.get("query_portion", "")
 
@@ -433,8 +510,9 @@ async def process_input(
         except Exception as e:
             print(f"\nParser ERROR: {e}")
 
-        # Run Planner + Retriever on query portion
+        # Run Planner + Retriever + Analyzer on query portion
         planner_output: PlannerOutput | None = None
+        retriever_output: RetrieverOutput | None = None
         if query_portion:
             try:
                 planner_result, planner_output = await run_planner(client, query_portion, selected_domains)
@@ -447,13 +525,25 @@ async def process_input(
             if storage and planner_output is not None and planner_output.sub_queries:
                 try:
                     vocabulary = get_merged_vocabulary(selected_domains)
-                    retriever_result = await run_retriever(storage, planner_output, vocabulary)
+                    retriever_result, retriever_output = await run_retriever(storage, planner_output, vocabulary)
                     print_section("Retriever Output (query portion)")
                     print_json(retriever_result)
                 except Exception as e:
                     print(f"\nRetriever ERROR: {e}")
+
+                # Run Analyzer if retriever succeeded
+                if retriever_output is not None:
+                    try:
+                        domain_context = build_active_domain_context(selected_domains)
+                        analyzer_result, _ = await run_analyzer(
+                            client, query_portion, retriever_output, planner_output, domain_context
+                        )
+                        print_section("Analyzer Output (query portion)")
+                        print_json(analyzer_result)
+                    except Exception as e:
+                        print(f"\nAnalyzer ERROR: {e}")
             elif not storage:
-                print("\n(No --storage-dir specified, skipping Retriever)")
+                print("\n(No --storage-dir specified, skipping Retriever and Analyzer)")
         else:
             print("\n(No query_portion found for Planner)")
 
