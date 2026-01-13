@@ -615,3 +615,76 @@ class AnalyzerOutput(BaseModel):
     sufficiency_evaluation: SufficiencyEvaluation
     verdict_reasoning: str = Field(min_length=1)
     verdict: Verdict
+
+
+# =============================================================================
+# Synthesizer Models
+# =============================================================================
+
+
+class SynthesizerInput(BaseModel):
+    """Input to Synthesizer agent.
+
+    Attributes:
+        query: The original query from the user.
+        query_type: Classification from Planner.
+        analysis: The AnalyzerOutput with findings and patterns.
+        vocabulary: Domain vocabulary for proper terminology.
+        is_partial: True when retry limit exceeded and providing partial answer.
+        unanswered_gaps: Gaps that couldn't be filled (when is_partial=True).
+        response_style: "concise" for brief answers, "detailed" for full context.
+
+    Example:
+        >>> synthesizer_input = SynthesizerInput(
+        ...     query="How has my bench press progressed?",
+        ...     query_type=QueryType.INSIGHT,
+        ...     analysis=analyzer_output,
+        ...     vocabulary={"pr": "personal record", "1rm": "one rep max"},
+        ...     response_style="concise"
+        ... )
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    query: str = Field(min_length=1)
+    query_type: QueryType
+
+    analysis: AnalyzerOutput
+
+    vocabulary: dict[str, str]
+
+    is_partial: bool = False
+    unanswered_gaps: list[Gap] = []
+
+    response_style: Literal["concise", "detailed"] = "concise"
+
+
+class SynthesizerOutput(BaseModel):
+    """Output from Synthesizer agent.
+
+    Attributes:
+        response: The user-facing natural language answer.
+        key_points: Main takeaways (2-5 points typically).
+        evidence_cited: Dates/entries referenced (e.g., "2026-01-10 bench entry").
+        gaps_disclosed: Gaps mentioned to user (when is_partial=True).
+        confidence: Confidence level based on analyzer verdict.
+
+    Example:
+        >>> output = SynthesizerOutput(
+        ...     response="Your bench press has improved by 10 lbs...",
+        ...     key_points=["10 lb increase", "Consistent progression"],
+        ...     evidence_cited=["2026-01-03: bench 175x5", "2026-01-10: bench 185x5"],
+        ...     confidence="high"
+        ... )
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    response: str = Field(min_length=1)
+
+    key_points: list[str]
+    evidence_cited: list[str]
+
+    gaps_disclosed: list[str] = []
+
+    confidence: Literal["high", "medium", "low"]

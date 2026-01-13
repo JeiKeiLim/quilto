@@ -38,7 +38,7 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 # Add project root to path for imports
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -66,6 +66,9 @@ from quilto.agents import (  # noqa: E402
     RetrieverAgent,
     RetrieverInput,
     RetrieverOutput,
+    SynthesizerAgent,
+    SynthesizerInput,
+    SynthesizerOutput,
 )
 from quilto.storage import StorageRepository  # noqa: E402
 from swealog.domains import (  # noqa: E402
@@ -422,6 +425,48 @@ async def run_analyzer(
     return result, output
 
 
+async def run_synthesizer(
+    client: LLMClient,
+    query: str,
+    analyzer_output: AnalyzerOutput,
+    planner_output: PlannerOutput,
+    vocabulary: dict[str, str],
+    response_style: Literal["concise", "detailed"] = "concise",
+) -> tuple[dict[str, Any], SynthesizerOutput]:
+    """Run Synthesizer agent and return results."""
+    synthesizer = SynthesizerAgent(client)
+
+    synthesizer_input = SynthesizerInput(
+        query=query,
+        query_type=planner_output.query_type,
+        analysis=analyzer_output,
+        vocabulary=vocabulary,
+        is_partial=False,
+        response_style=response_style,
+    )
+
+    print_section("Synthesizer Input")
+    print(f"Query: {query}")
+    print(f"Query type: {planner_output.query_type.value}")
+    print(f"Response style: {response_style}")
+    print(f"Analyzer verdict: {analyzer_output.verdict.value}")
+
+    print_section("Running Synthesizer...")
+    output = await synthesizer.synthesize(synthesizer_input)
+
+    result: dict[str, Any] = {
+        "response": output.response,
+        "key_points": output.key_points,
+        "evidence_cited": output.evidence_cited,
+        "confidence": output.confidence,
+    }
+
+    if output.gaps_disclosed:
+        result["gaps_disclosed"] = output.gaps_disclosed
+
+    return result, output
+
+
 async def process_input(
     client: LLMClient,
     raw_input: str,
@@ -484,16 +529,29 @@ async def process_input(
                 print(f"\nRetriever ERROR: {e}")
 
             # Run Analyzer if retriever succeeded
+            analyzer_output: AnalyzerOutput | None = None
             if retriever_output is not None:
                 try:
                     domain_context = build_active_domain_context(selected_domains)
-                    analyzer_result, _ = await run_analyzer(
+                    analyzer_result, analyzer_output = await run_analyzer(
                         client, raw_input, retriever_output, planner_output, domain_context
                     )
                     print_section("Analyzer Output")
                     print_json(analyzer_result)
                 except Exception as e:
                     print(f"\nAnalyzer ERROR: {e}")
+
+                # Run Synthesizer if analyzer succeeded
+                if analyzer_output is not None and planner_output is not None:
+                    try:
+                        vocabulary = get_merged_vocabulary(selected_domains)
+                        synthesizer_result, _ = await run_synthesizer(
+                            client, raw_input, analyzer_output, planner_output, vocabulary
+                        )
+                        print_section("Synthesizer Output")
+                        print_json(synthesizer_result)
+                    except Exception as e:
+                        print(f"\nSynthesizer ERROR: {e}")
         elif not storage:
             print("\n(No --storage-dir specified, skipping Retriever and Analyzer)")
 
@@ -532,16 +590,29 @@ async def process_input(
                     print(f"\nRetriever ERROR: {e}")
 
                 # Run Analyzer if retriever succeeded
+                analyzer_output: AnalyzerOutput | None = None
                 if retriever_output is not None:
                     try:
                         domain_context = build_active_domain_context(selected_domains)
-                        analyzer_result, _ = await run_analyzer(
+                        analyzer_result, analyzer_output = await run_analyzer(
                             client, query_portion, retriever_output, planner_output, domain_context
                         )
                         print_section("Analyzer Output (query portion)")
                         print_json(analyzer_result)
                     except Exception as e:
                         print(f"\nAnalyzer ERROR: {e}")
+
+                    # Run Synthesizer if analyzer succeeded
+                    if analyzer_output is not None and planner_output is not None:
+                        try:
+                            vocabulary = get_merged_vocabulary(selected_domains)
+                            synthesizer_result, _ = await run_synthesizer(
+                                client, query_portion, analyzer_output, planner_output, vocabulary
+                            )
+                            print_section("Synthesizer Output (query portion)")
+                            print_json(synthesizer_result)
+                        except Exception as e:
+                            print(f"\nSynthesizer ERROR: {e}")
             elif not storage:
                 print("\n(No --storage-dir specified, skipping Retriever and Analyzer)")
         else:
