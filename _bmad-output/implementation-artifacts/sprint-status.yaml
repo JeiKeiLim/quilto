@@ -84,7 +84,7 @@ development_status:
   epic-2-retrospective: done
 
   # Epic 3: Query & Retrieval
-  epic-3: in-progress
+  epic-3: done
   3-1-extend-router-for-query-both-classification: done
   3-2-implement-planner-agent: done
   3-3-implement-retriever-agent: done
