@@ -2,13 +2,20 @@
 """Manual validation script for Quilto/Swealog components.
 
 This script allows hands-on testing of the Router, Parser, Planner, and Retriever
-agents with Swealog domain modules (GeneralFitness, Strength, Nutrition).
+agents with Swealog domain modules (GeneralFitness, Strength, Nutrition, Running).
 
 Usage:
-    # Single input mode
+    # Single input mode - LOG entries
     python scripts/manual_test.py "bench 185x5 felt heavy"
     python scripts/manual_test.py "점심: 닭가슴살 샐러드 500칼로리"
+    python scripts/manual_test.py "ran 5k in 25:30, felt good"
+
+    # Single input mode - QUERY
     python scripts/manual_test.py "How has my bench press progressed?"
+    python scripts/manual_test.py "What's my average running pace this month?"
+
+    # Single input mode - BOTH (log + query)
+    python scripts/manual_test.py "ran 5k in 25 minutes, how's my pace?"
 
     # Interactive mode
     python scripts/manual_test.py
@@ -511,8 +518,19 @@ async def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python scripts/manual_test.py "bench 185x5 felt heavy"
-  python scripts/manual_test.py "점심: 닭가슴살 샐러드"
+  # LOG inputs (different domains)
+  python scripts/manual_test.py "bench 185x5 felt heavy"        # Strength
+  python scripts/manual_test.py "점심: 닭가슴살 샐러드"              # Nutrition
+  python scripts/manual_test.py "ran 5k in 25:30"               # Running
+
+  # QUERY inputs
+  python scripts/manual_test.py "How has my bench progressed?"
+  python scripts/manual_test.py "What's my average running pace?"
+
+  # BOTH (log + query)
+  python scripts/manual_test.py "ran 5k in 25 minutes, how's my pace?"
+
+  # Options
   python scripts/manual_test.py --router-only "bench 185x5"
   python scripts/manual_test.py --storage-dir ./data "How has my bench progressed?"
   python scripts/manual_test.py  # interactive mode
