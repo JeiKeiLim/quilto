@@ -89,7 +89,7 @@ development_status:
   3-2-implement-planner-agent: done
   3-3-implement-retriever-agent: done
   3-4-create-running-domain-module: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
 
   # Epic 4: Analysis & Response
   epic-4: backlog
