@@ -8,7 +8,7 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class InputType(str, Enum):
@@ -688,3 +688,105 @@ class SynthesizerOutput(BaseModel):
     gaps_disclosed: list[str] = []
 
     confidence: Literal["high", "medium", "low"]
+
+
+# =============================================================================
+# Evaluator Models
+# =============================================================================
+
+
+class EvaluationDimension(BaseModel):
+    """Evaluation on a single dimension.
+
+    Attributes:
+        dimension: The evaluation dimension being assessed.
+        verdict: SUFFICIENT (pass) or INSUFFICIENT (fail).
+        reasoning: Explanation for the verdict.
+        issues: List of specific issues found (if any).
+
+    Example:
+        >>> dimension = EvaluationDimension(
+        ...     dimension="accuracy",
+        ...     verdict=Verdict.SUFFICIENT,
+        ...     reasoning="All claims supported by evidence",
+        ...     issues=[]
+        ... )
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    dimension: Literal["accuracy", "relevance", "safety", "completeness"]
+    verdict: Verdict
+    reasoning: str = Field(min_length=1)
+    issues: list[str] = Field(default_factory=list)
+
+    @field_validator("verdict")
+    @classmethod
+    def verdict_must_be_sufficient_or_insufficient(cls, v: Verdict) -> Verdict:
+        """Validate that dimension verdict is SUFFICIENT or INSUFFICIENT only.
+
+        PARTIAL is not valid for dimension-level verdicts per story spec.
+        """
+        if v == Verdict.PARTIAL:
+            raise ValueError("Dimension verdict must be SUFFICIENT or INSUFFICIENT, not PARTIAL")
+        return v
+
+
+class EvaluatorInput(BaseModel):
+    """Input to Evaluator agent.
+
+    Attributes:
+        query: The original query from the user.
+        response: The synthesized response to evaluate.
+        analysis: AnalyzerOutput with findings and patterns.
+        entries_summary: Summary of retrieved entries for fact-checking.
+        evaluation_rules: Domain-specific evaluation rules.
+        attempt_number: Current attempt number (1-based).
+        previous_feedback: Feedback from previous evaluation attempts.
+
+    Example:
+        >>> evaluator_input = EvaluatorInput(
+        ...     query="How has my bench press progressed?",
+        ...     response="Your bench press increased by 10 lbs",
+        ...     analysis=analyzer_output,
+        ...     entries_summary="5 bench entries: Jan 3 175x5, Jan 10 185x5...",
+        ...     evaluation_rules=["Do not speculate beyond data"],
+        ...     attempt_number=1
+        ... )
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    query: str = Field(min_length=1)
+    response: str = Field(min_length=1)
+    analysis: AnalyzerOutput
+    entries_summary: str = Field(min_length=1)
+    evaluation_rules: list[str]
+    attempt_number: int = Field(default=1, ge=1)
+    previous_feedback: list[EvaluationFeedback] = Field(default_factory=list)  # pyright: ignore[reportUnknownVariableType]
+
+
+class EvaluatorOutput(BaseModel):
+    """Output from Evaluator agent.
+
+    Attributes:
+        dimensions: Evaluation results for each dimension.
+        overall_verdict: SUFFICIENT if all pass, INSUFFICIENT if any fail.
+        feedback: Specific feedback for retry (if FAIL).
+        recommendation: What action to take next.
+
+    Example:
+        >>> output = EvaluatorOutput(
+        ...     dimensions=[dim1, dim2, dim3, dim4],
+        ...     overall_verdict=Verdict.SUFFICIENT,
+        ...     feedback=[],
+        ...     recommendation="accept"
+        ... )
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    dimensions: list[EvaluationDimension]
+    overall_verdict: Verdict
+    feedback: list[EvaluationFeedback] = Field(default_factory=list)  # pyright: ignore[reportUnknownVariableType]
+    recommendation: Literal["accept", "retry_with_feedback", "retry_with_more_context", "give_partial"]

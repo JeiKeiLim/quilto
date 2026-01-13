@@ -2,8 +2,8 @@
 """Manual validation script for Quilto/Swealog components.
 
 This script allows hands-on testing of the Router, Parser, Planner, Retriever,
-and Analyzer agents with Swealog domain modules (GeneralFitness, Strength,
-Nutrition, Running).
+Analyzer, Synthesizer, and Evaluator agents with Swealog domain modules
+(GeneralFitness, Strength, Nutrition, Running).
 
 Usage:
     # Single input mode - LOG entries
@@ -60,6 +60,10 @@ from quilto.agents import (  # noqa: E402
     AnalyzerAgent,
     AnalyzerInput,
     AnalyzerOutput,
+    EvaluationFeedback,
+    EvaluatorAgent,
+    EvaluatorInput,
+    EvaluatorOutput,
     PlannerAgent,
     PlannerInput,
     PlannerOutput,
@@ -467,6 +471,245 @@ async def run_synthesizer(
     return result, output
 
 
+# Default evaluation rules for testing
+DEFAULT_EVALUATION_RULES = [
+    "Do not make claims without supporting data",
+    "Acknowledge uncertainty when evidence is limited",
+    "Never provide medical, legal, or financial advice without disclaimers",
+]
+
+
+def get_evaluation_rules(selected_domains: list[str]) -> list[str]:
+    """Get merged evaluation rules from selected domains.
+
+    Args:
+        selected_domains: List of selected domain names.
+
+    Returns:
+        List of evaluation rules (defaults if domains have none).
+    """
+    domain_modules = {
+        general_fitness.name: general_fitness,
+        strength.name: strength,
+        nutrition.name: nutrition,
+        running.name: running,
+    }
+
+    rules: list[str] = []
+    for name in selected_domains:
+        if name in domain_modules:
+            module = domain_modules[name]
+            # Check if module has evaluation_rules attribute
+            if hasattr(module, "evaluation_rules"):
+                rules.extend(module.evaluation_rules)
+
+    return rules if rules else DEFAULT_EVALUATION_RULES
+
+
+def build_entries_summary(entries: list[Any]) -> str:
+    """Build a summary of retrieved entries for evaluator context.
+
+    Args:
+        entries: List of Entry objects.
+
+    Returns:
+        Summary string of entries.
+    """
+    if not entries:
+        return "(No entries available)"
+
+    lines: list[str] = []
+    lines.append(f"{len(entries)} entries found:")
+
+    for entry in entries[:10]:  # Limit to first 10 for summary
+        date_str = str(entry.date) if hasattr(entry, "date") else "unknown"
+        content = entry.raw_content if hasattr(entry, "raw_content") else str(entry)
+        # Truncate content if too long
+        if len(content) > 100:
+            content = content[:100] + "..."
+        lines.append(f"- {date_str}: {content}")
+
+    if len(entries) > 10:
+        lines.append(f"... and {len(entries) - 10} more entries")
+
+    return "\n".join(lines)
+
+
+async def run_evaluator(
+    client: LLMClient,
+    query: str,
+    response: str,
+    analyzer_output: AnalyzerOutput,
+    entries_summary: str,
+    evaluation_rules: list[str],
+    attempt_number: int = 1,
+    previous_feedback: list[EvaluationFeedback] | None = None,
+) -> tuple[dict[str, Any], EvaluatorOutput]:
+    """Run Evaluator agent and return results.
+
+    Args:
+        client: LLM client.
+        query: Original query.
+        response: Synthesized response to evaluate.
+        analyzer_output: AnalyzerOutput with findings.
+        entries_summary: Summary of retrieved entries.
+        evaluation_rules: Domain-specific rules.
+        attempt_number: Current attempt number.
+        previous_feedback: Feedback from previous attempts.
+
+    Returns:
+        Tuple of result dict and EvaluatorOutput.
+    """
+    evaluator = EvaluatorAgent(client)
+
+    evaluator_input = EvaluatorInput(
+        query=query,
+        response=response,
+        analysis=analyzer_output,
+        entries_summary=entries_summary,
+        evaluation_rules=evaluation_rules,
+        attempt_number=attempt_number,
+        previous_feedback=previous_feedback or [],
+    )
+
+    print_section("Evaluator Input")
+    print(f"Query: {query}")
+    print(f"Response length: {len(response)} chars")
+    print(f"Attempt: {attempt_number}")
+    print(f"Evaluation rules: {len(evaluation_rules)} rules")
+
+    print_section("Running Evaluator...")
+    output = await evaluator.evaluate(evaluator_input)
+
+    result: dict[str, Any] = {
+        "overall_verdict": output.overall_verdict.value,
+        "recommendation": output.recommendation,
+        "dimensions": [
+            {
+                "dimension": d.dimension,
+                "verdict": d.verdict.value,
+                "reasoning": d.reasoning[:100] + "..." if len(d.reasoning) > 100 else d.reasoning,
+                "issues": d.issues,
+            }
+            for d in output.dimensions
+        ],
+    }
+
+    if output.feedback:
+        result["feedback"] = [{"issue": f.issue, "suggestion": f.suggestion} for f in output.feedback]
+
+    # Add helper method results
+    result["is_passed"] = evaluator.is_passed(output)
+    failed_dims = evaluator.get_failed_dimensions(output)
+    if failed_dims:
+        result["failed_dimensions"] = [d.dimension for d in failed_dims]
+        result["all_issues"] = evaluator.get_all_issues(output)
+    result["should_retry"] = evaluator.should_retry(output, attempt_number)
+
+    return result, output
+
+
+async def run_retry_loop(
+    client: LLMClient,
+    query: str,
+    planner_output: PlannerOutput,
+    analyzer_output: AnalyzerOutput,
+    vocabulary: dict[str, str],
+    entries_summary: str,
+    evaluation_rules: list[str],
+    max_retries: int = 2,
+) -> tuple[dict[str, Any], SynthesizerOutput, EvaluatorOutput]:
+    """Run synthesis + evaluation loop with retry on FAIL.
+
+    Args:
+        client: LLM client.
+        query: Original query.
+        planner_output: PlannerOutput from planner.
+        analyzer_output: AnalyzerOutput from analyzer.
+        vocabulary: Domain vocabulary.
+        entries_summary: Summary of retrieved entries.
+        evaluation_rules: Domain-specific rules.
+        max_retries: Maximum retry attempts.
+
+    Returns:
+        Tuple of result dict, final SynthesizerOutput, final EvaluatorOutput.
+    """
+    synthesizer = SynthesizerAgent(client)
+    evaluator = EvaluatorAgent(client)
+
+    attempt_number = 1
+    previous_feedback: list[EvaluationFeedback] = []
+    synth_output: SynthesizerOutput | None = None
+    eval_output: EvaluatorOutput | None = None
+
+    while attempt_number <= max_retries + 1:  # +1 for initial attempt
+        print_section(f"Retry Loop - Attempt {attempt_number}/{max_retries + 1}")
+
+        # Generate response
+        synthesizer_input = SynthesizerInput(
+            query=query,
+            query_type=planner_output.query_type,
+            analysis=analyzer_output,
+            vocabulary=vocabulary,
+            is_partial=False,
+            response_style="concise",
+        )
+
+        print_section("Running Synthesizer...")
+        synth_output = await synthesizer.synthesize(synthesizer_input)
+        response_text = synth_output.response
+        response_preview = response_text[:200] + "..." if len(response_text) > 200 else response_text
+        print(f"Response: {response_preview}")
+
+        # Evaluate response
+        evaluator_input = EvaluatorInput(
+            query=query,
+            response=synth_output.response,
+            analysis=analyzer_output,
+            entries_summary=entries_summary,
+            evaluation_rules=evaluation_rules,
+            attempt_number=attempt_number,
+            previous_feedback=previous_feedback,
+        )
+
+        print_section("Running Evaluator...")
+        eval_output = await evaluator.evaluate(evaluator_input)
+
+        print(f"Verdict: {eval_output.overall_verdict.value}")
+        print(f"Recommendation: {eval_output.recommendation}")
+
+        # Check result
+        if evaluator.is_passed(eval_output):
+            print("\n** PASSED - Returning response **")
+            break
+
+        # Collect feedback for next attempt
+        previous_feedback.extend(eval_output.feedback)
+        print(f"Failed dimensions: {[d.dimension for d in evaluator.get_failed_dimensions(eval_output)]}")
+        print(f"Collected {len(previous_feedback)} feedback items for retry")
+
+        attempt_number += 1
+
+    assert synth_output is not None
+    assert eval_output is not None
+
+    # Compile result
+    result: dict[str, Any] = {
+        "total_attempts": attempt_number,
+        "final_verdict": eval_output.overall_verdict.value,
+        "final_recommendation": eval_output.recommendation,
+        "response": synth_output.response,
+        "key_points": synth_output.key_points,
+        "confidence": synth_output.confidence,
+    }
+
+    if not evaluator.is_passed(eval_output):
+        result["note"] = "Retry limit exceeded - returning best available response"
+        result["remaining_issues"] = evaluator.get_all_issues(eval_output)
+
+    return result, synth_output, eval_output
+
+
 async def process_input(
     client: LLMClient,
     raw_input: str,
@@ -541,15 +784,32 @@ async def process_input(
                 except Exception as e:
                     print(f"\nAnalyzer ERROR: {e}")
 
-                # Run Synthesizer if analyzer succeeded
+                # Run Synthesizer + Evaluator if analyzer succeeded
                 if analyzer_output is not None and planner_output is not None:
                     try:
                         vocabulary = get_merged_vocabulary(selected_domains)
-                        synthesizer_result, _ = await run_synthesizer(
+                        synthesizer_result, synthesizer_output = await run_synthesizer(
                             client, raw_input, analyzer_output, planner_output, vocabulary
                         )
                         print_section("Synthesizer Output")
                         print_json(synthesizer_result)
+
+                        # Run Evaluator after Synthesizer
+                        try:
+                            entries_summary = build_entries_summary(retriever_output.entries)
+                            evaluation_rules = get_evaluation_rules(selected_domains)
+                            evaluator_result, _ = await run_evaluator(
+                                client,
+                                raw_input,
+                                synthesizer_output.response,
+                                analyzer_output,
+                                entries_summary,
+                                evaluation_rules,
+                            )
+                            print_section("Evaluator Output")
+                            print_json(evaluator_result)
+                        except Exception as e:
+                            print(f"\nEvaluator ERROR: {e}")
                     except Exception as e:
                         print(f"\nSynthesizer ERROR: {e}")
         elif not storage:
@@ -602,15 +862,32 @@ async def process_input(
                     except Exception as e:
                         print(f"\nAnalyzer ERROR: {e}")
 
-                    # Run Synthesizer if analyzer succeeded
+                    # Run Synthesizer + Evaluator if analyzer succeeded
                     if analyzer_output is not None and planner_output is not None:
                         try:
                             vocabulary = get_merged_vocabulary(selected_domains)
-                            synthesizer_result, _ = await run_synthesizer(
+                            synthesizer_result, synthesizer_output = await run_synthesizer(
                                 client, query_portion, analyzer_output, planner_output, vocabulary
                             )
                             print_section("Synthesizer Output (query portion)")
                             print_json(synthesizer_result)
+
+                            # Run Evaluator after Synthesizer
+                            try:
+                                entries_summary = build_entries_summary(retriever_output.entries)
+                                evaluation_rules = get_evaluation_rules(selected_domains)
+                                evaluator_result, _ = await run_evaluator(
+                                    client,
+                                    query_portion,
+                                    synthesizer_output.response,
+                                    analyzer_output,
+                                    entries_summary,
+                                    evaluation_rules,
+                                )
+                                print_section("Evaluator Output (query portion)")
+                                print_json(evaluator_result)
+                            except Exception as e:
+                                print(f"\nEvaluator ERROR: {e}")
                         except Exception as e:
                             print(f"\nSynthesizer ERROR: {e}")
             elif not storage:
