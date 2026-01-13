@@ -157,7 +157,8 @@ def build_active_domain_context(selected_domains: list[str]) -> ActiveDomainCont
         if name in domain_modules:
             module = domain_modules[name]
             vocabulary.update(module.vocabulary)
-            expertise_parts.append(module.expertise)
+            # Add domain label for multi-domain queries
+            expertise_parts.append(f"[{module.name}] {module.expertise}")
 
     # Get available domains (those not selected)
     available = [
@@ -499,9 +500,9 @@ def get_evaluation_rules(selected_domains: list[str]) -> list[str]:
     for name in selected_domains:
         if name in domain_modules:
             module = domain_modules[name]
-            # Check if module has evaluation_rules attribute
-            if hasattr(module, "evaluation_rules"):
-                rules.extend(module.evaluation_rules)
+            # Check if module has response_evaluation_rules attribute
+            if hasattr(module, "response_evaluation_rules"):
+                rules.extend(module.response_evaluation_rules)
 
     return rules if rules else DEFAULT_EVALUATION_RULES
 
