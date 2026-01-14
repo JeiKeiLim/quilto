@@ -528,6 +528,101 @@ async def run_clarifier(
     return result, output
 
 
+def collect_clarification_answers(clarifier_output: ClarifierOutput) -> dict[str, str]:
+    """Interactively collect user answers to clarification questions.
+
+    Args:
+        clarifier_output: Output from Clarifier with questions.
+
+    Returns:
+        Dict mapping question text to user's answer.
+    """
+    answers: dict[str, str] = {}
+
+    if not clarifier_output.questions:
+        return answers
+
+    print_section("Clarification Needed")
+    print(f"\n{clarifier_output.context_explanation}\n")
+
+    for i, q in enumerate(clarifier_output.questions, 1):
+        print(f"\nQuestion {i}/{len(clarifier_output.questions)}:")
+        print(f"  {q.question}")
+        if q.gap_addressed:
+            print(f"  (Addresses: {q.gap_addressed})")
+
+        if q.options:
+            print("\n  Options:")
+            for j, opt in enumerate(q.options, 1):
+                print(f"    {j}. {opt}")
+            print(f"    {len(q.options) + 1}. (Other - type your answer)")
+
+            while True:
+                try:
+                    choice = input(f"\n  Select option (1-{len(q.options) + 1}) or type answer: ").strip()
+                    if choice.isdigit():
+                        idx = int(choice)
+                        if 1 <= idx <= len(q.options):
+                            answers[q.question] = q.options[idx - 1]
+                            break
+                        elif idx == len(q.options) + 1:
+                            custom = input("  Your answer: ").strip()
+                            if custom:
+                                answers[q.question] = custom
+                                break
+                            print("  Please enter an answer.")
+                        else:
+                            print(f"  Please select 1-{len(q.options) + 1}")
+                    else:
+                        # Treat as free-form answer
+                        if choice:
+                            answers[q.question] = choice
+                            break
+                        print("  Please enter an answer.")
+                except (KeyboardInterrupt, EOFError):
+                    print("\n  (Skipped)")
+                    break
+        else:
+            # Free-form question
+            while True:
+                try:
+                    answer = input("  Your answer: ").strip()
+                    if answer:
+                        answers[q.question] = answer
+                        break
+                    elif not q.required:
+                        print("  (Skipped - optional question)")
+                        break
+                    print("  This question is required. Please enter an answer.")
+                except (KeyboardInterrupt, EOFError):
+                    print("\n  (Skipped)")
+                    break
+
+    return answers
+
+
+def format_clarification_context(answers: dict[str, str]) -> str:
+    """Format collected answers as context for synthesis.
+
+    Args:
+        answers: Dict mapping questions to user answers.
+
+    Returns:
+        Formatted context string.
+    """
+    if not answers:
+        return ""
+
+    lines = ["User clarifications:"]
+    for question, answer in answers.items():
+        # Shorten question for readability
+        short_q = question[:60] + "..." if len(question) > 60 else question
+        lines.append(f"- Q: {short_q}")
+        lines.append(f"  A: {answer}")
+
+    return "\n".join(lines)
+
+
 async def run_synthesizer(
     client: LLMClient,
     query: str,
@@ -535,12 +630,31 @@ async def run_synthesizer(
     planner_output: PlannerOutput,
     vocabulary: dict[str, str],
     response_style: Literal["concise", "detailed"] = "concise",
+    clarification_context: str = "",
 ) -> tuple[dict[str, Any], SynthesizerOutput]:
-    """Run Synthesizer agent and return results."""
+    """Run Synthesizer agent and return results.
+
+    Args:
+        client: LLM client.
+        query: Original query.
+        analyzer_output: AnalyzerOutput with findings.
+        planner_output: PlannerOutput with query type.
+        vocabulary: Domain vocabulary.
+        response_style: "concise" or "detailed".
+        clarification_context: Optional context from user clarification answers.
+
+    Returns:
+        Tuple of result dict and SynthesizerOutput.
+    """
     synthesizer = SynthesizerAgent(client)
 
+    # Augment query with clarification context if provided
+    augmented_query = query
+    if clarification_context:
+        augmented_query = f"{query}\n\n{clarification_context}"
+
     synthesizer_input = SynthesizerInput(
-        query=query,
+        query=augmented_query,
         query_type=planner_output.query_type,
         analysis=analyzer_output,
         vocabulary=vocabulary,
@@ -550,6 +664,8 @@ async def run_synthesizer(
 
     print_section("Synthesizer Input")
     print(f"Query: {query}")
+    if clarification_context:
+        print(f"Clarification context: {len(clarification_context)} chars")
     print(f"Query type: {planner_output.query_type.value}")
     print(f"Response style: {response_style}")
     print(f"Analyzer verdict: {analyzer_output.verdict.value}")
@@ -883,6 +999,9 @@ async def process_input(
                 except Exception as e:
                     print(f"\nAnalyzer ERROR: {e}")
 
+                # Track clarification context for synthesis
+                clarification_context = ""
+
                 # Run Clarifier if there are non-retrievable gaps
                 if analyzer_output is not None:
                     all_gaps = (
@@ -896,7 +1015,7 @@ async def process_input(
                         try:
                             vocabulary = get_merged_vocabulary(selected_domains)
                             patterns = get_merged_clarification_patterns(selected_domains)
-                            clarifier_result, _ = await run_clarifier(
+                            clarifier_result, clarifier_output = await run_clarifier(
                                 client,
                                 raw_input,
                                 analyzer_output,
@@ -906,6 +1025,14 @@ async def process_input(
                             )
                             print_section("Clarifier Output")
                             print_json(clarifier_result)
+
+                            # Collect user answers if there are questions
+                            if clarifier_output.questions:
+                                answers = collect_clarification_answers(clarifier_output)
+                                if answers:
+                                    clarification_context = format_clarification_context(answers)
+                                    print_section("Collected Answers")
+                                    print(clarification_context)
                         except Exception as e:
                             print(f"\nClarifier ERROR: {e}")
 
@@ -914,7 +1041,12 @@ async def process_input(
                     try:
                         vocabulary = get_merged_vocabulary(selected_domains)
                         synthesizer_result, synthesizer_output = await run_synthesizer(
-                            client, raw_input, analyzer_output, planner_output, vocabulary
+                            client,
+                            raw_input,
+                            analyzer_output,
+                            planner_output,
+                            vocabulary,
+                            clarification_context=clarification_context,
                         )
                         print_section("Synthesizer Output")
                         print_json(synthesizer_result)
@@ -987,6 +1119,9 @@ async def process_input(
                     except Exception as e:
                         print(f"\nAnalyzer ERROR: {e}")
 
+                    # Track clarification context for synthesis
+                    clarification_context = ""
+
                     # Run Clarifier if there are non-retrievable gaps
                     if analyzer_output is not None:
                         all_gaps = (
@@ -1000,7 +1135,7 @@ async def process_input(
                             try:
                                 vocabulary = get_merged_vocabulary(selected_domains)
                                 patterns = get_merged_clarification_patterns(selected_domains)
-                                clarifier_result, _ = await run_clarifier(
+                                clarifier_result, clarifier_output = await run_clarifier(
                                     client,
                                     query_portion,
                                     analyzer_output,
@@ -1010,6 +1145,14 @@ async def process_input(
                                 )
                                 print_section("Clarifier Output (query portion)")
                                 print_json(clarifier_result)
+
+                                # Collect user answers if there are questions
+                                if clarifier_output.questions:
+                                    answers = collect_clarification_answers(clarifier_output)
+                                    if answers:
+                                        clarification_context = format_clarification_context(answers)
+                                        print_section("Collected Answers (query portion)")
+                                        print(clarification_context)
                             except Exception as e:
                                 print(f"\nClarifier ERROR: {e}")
 
@@ -1018,7 +1161,12 @@ async def process_input(
                         try:
                             vocabulary = get_merged_vocabulary(selected_domains)
                             synthesizer_result, synthesizer_output = await run_synthesizer(
-                                client, query_portion, analyzer_output, planner_output, vocabulary
+                                client,
+                                query_portion,
+                                analyzer_output,
+                                planner_output,
+                                vocabulary,
+                                clarification_context=clarification_context,
                             )
                             print_section("Synthesizer Output (query portion)")
                             print_json(synthesizer_result)
