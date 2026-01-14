@@ -796,3 +796,90 @@ class EvaluatorOutput(BaseModel):
     overall_verdict: Verdict
     feedback: list[EvaluationFeedback] = Field(default_factory=list)  # pyright: ignore[reportUnknownVariableType]
     recommendation: Literal["accept", "retry_with_feedback", "retry_with_more_context", "give_partial"]
+
+
+# =============================================================================
+# Clarifier Models
+# =============================================================================
+
+
+class ClarificationQuestion(BaseModel):
+    """A question to ask the user for clarification.
+
+    Attributes:
+        question: The actual question text to ask the user.
+        gap_addressed: Description of which gap this question would fill.
+        options: Multiple choice options if applicable.
+        required: Whether the question must be answered.
+
+    Example:
+        >>> question = ClarificationQuestion(
+        ...     question="What time did this happen?",
+        ...     gap_addressed="Time of activity is ambiguous",
+        ...     options=["Morning", "Afternoon", "Evening"],
+        ...     required=True
+        ... )
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    question: str = Field(min_length=1)
+    gap_addressed: str = Field(min_length=1)
+    options: list[str] | None = None
+    required: bool = True
+
+
+class ClarifierInput(BaseModel):
+    """Input to Clarifier agent.
+
+    Attributes:
+        original_query: The original query from the user.
+        gaps: Gaps identified by Analyzer (will be filtered to non-retrievable).
+        vocabulary: Domain vocabulary for proper terminology.
+        retrieval_history: Previous retrieval attempts for context.
+        previous_clarifications: Questions already asked (to avoid re-asking).
+
+    Example:
+        >>> clarifier_input = ClarifierInput(
+        ...     original_query="How am I feeling today?",
+        ...     gaps=[Gap(
+        ...         description="Current feeling is subjective",
+        ...         gap_type=GapType.SUBJECTIVE,
+        ...         severity="critical"
+        ...     )],
+        ...     vocabulary={"rpe": "rate of perceived exertion"},
+        ...     retrieval_history=[],
+        ...     previous_clarifications=[]
+        ... )
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    original_query: str = Field(min_length=1)
+    gaps: list[Gap]
+    vocabulary: dict[str, str]
+    retrieval_history: list[RetrievalAttempt] = Field(default_factory=list)  # pyright: ignore[reportUnknownVariableType]
+    previous_clarifications: list[str] = Field(default_factory=list)  # pyright: ignore[reportUnknownVariableType]
+
+
+class ClarifierOutput(BaseModel):
+    """Output from Clarifier agent.
+
+    Attributes:
+        questions: List of questions to ask the user (max 3 per interaction).
+        context_explanation: Why we're asking these questions.
+        fallback_action: What we can still do if user declines to answer.
+
+    Example:
+        >>> output = ClarifierOutput(
+        ...     questions=[question1, question2],
+        ...     context_explanation="To provide personalized advice, I need...",
+        ...     fallback_action="Provide general recommendations based on available data"
+        ... )
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    questions: list[ClarificationQuestion]
+    context_explanation: str = Field(min_length=1)
+    fallback_action: str = Field(min_length=1)

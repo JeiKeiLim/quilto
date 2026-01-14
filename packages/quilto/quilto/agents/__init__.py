@@ -6,16 +6,21 @@ the ParserAgent for structured data extraction, the PlannerAgent
 for query decomposition and retrieval strategy, the RetrieverAgent
 for executing retrieval instructions against storage, the AnalyzerAgent
 for pattern finding and sufficiency assessment, the SynthesizerAgent
-for generating user-facing responses, and the EvaluatorAgent
-for quality-checking responses.
+for generating user-facing responses, the EvaluatorAgent
+for quality-checking responses, and the ClarifierAgent for requesting
+missing information from users.
 """
 
 from quilto.agents.analyzer import AnalyzerAgent
+from quilto.agents.clarifier import ClarifierAgent
 from quilto.agents.evaluator import EvaluatorAgent
 from quilto.agents.models import (
     ActiveDomainContext,
     AnalyzerInput,
     AnalyzerOutput,
+    ClarificationQuestion,
+    ClarifierInput,
+    ClarifierOutput,
     DependencyType,
     DomainInfo,
     EvaluationDimension,
@@ -54,6 +59,10 @@ __all__ = [
     "AnalyzerAgent",
     "AnalyzerInput",
     "AnalyzerOutput",
+    "ClarificationQuestion",
+    "ClarifierAgent",
+    "ClarifierInput",
+    "ClarifierOutput",
     "DependencyType",
     "DomainInfo",
     "EvaluationDimension",

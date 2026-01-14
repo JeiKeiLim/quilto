@@ -2,7 +2,7 @@
 """Manual validation script for Quilto/Swealog components.
 
 This script allows hands-on testing of the Router, Parser, Planner, Retriever,
-Analyzer, Synthesizer, and Evaluator agents with Swealog domain modules
+Analyzer, Clarifier, Synthesizer, and Evaluator agents with Swealog domain modules
 (GeneralFitness, Strength, Nutrition, Running).
 
 Usage:
@@ -60,10 +60,14 @@ from quilto.agents import (  # noqa: E402
     AnalyzerAgent,
     AnalyzerInput,
     AnalyzerOutput,
+    ClarifierAgent,
+    ClarifierInput,
+    ClarifierOutput,
     EvaluationFeedback,
     EvaluatorAgent,
     EvaluatorInput,
     EvaluatorOutput,
+    GapType,
     PlannerAgent,
     PlannerInput,
     PlannerOutput,
@@ -432,6 +436,73 @@ async def run_analyzer(
     return result, output
 
 
+async def run_clarifier(
+    client: LLMClient,
+    query: str,
+    analyzer_output: AnalyzerOutput,
+    vocabulary: dict[str, str],
+    retrieval_summary: list[Any] | None = None,
+) -> tuple[dict[str, Any], ClarifierOutput]:
+    """Run Clarifier agent when there are non-retrievable gaps.
+
+    Args:
+        client: LLM client.
+        query: Original query.
+        analyzer_output: AnalyzerOutput with gaps.
+        vocabulary: Domain vocabulary.
+        retrieval_summary: Optional retrieval history.
+
+    Returns:
+        Tuple of result dict and ClarifierOutput.
+    """
+    clarifier = ClarifierAgent(client)
+
+    # Collect all gaps from analyzer
+    all_gaps = (
+        analyzer_output.sufficiency_evaluation.critical_gaps
+        + analyzer_output.sufficiency_evaluation.nice_to_have_gaps
+    )
+
+    clarifier_input = ClarifierInput(
+        original_query=query,
+        gaps=all_gaps,
+        vocabulary=vocabulary,
+        retrieval_history=retrieval_summary or [],
+        previous_clarifications=[],
+    )
+
+    print_section("Clarifier Input")
+    print(f"Query: {query}")
+    print(f"Total gaps: {len(all_gaps)}")
+    non_retrievable = clarifier.filter_non_retrievable_gaps(all_gaps)
+    print(f"Non-retrievable gaps: {len(non_retrievable)}")
+    for gap in non_retrievable:
+        print(f"  - {gap.gap_type.value}: {gap.description}")
+
+    print_section("Running Clarifier...")
+    output = await clarifier.clarify(clarifier_input)
+
+    result: dict[str, Any] = {
+        "has_questions": clarifier.has_questions(output),
+        "question_count": len(output.questions),
+        "context_explanation": output.context_explanation,
+        "fallback_action": output.fallback_action,
+    }
+
+    if output.questions:
+        result["questions"] = [
+            {
+                "question": q.question,
+                "gap_addressed": q.gap_addressed,
+                "options": q.options,
+                "required": q.required,
+            }
+            for q in output.questions
+        ]
+
+    return result, output
+
+
 async def run_synthesizer(
     client: LLMClient,
     query: str,
@@ -787,8 +858,32 @@ async def process_input(
                 except Exception as e:
                     print(f"\nAnalyzer ERROR: {e}")
 
+                # Run Clarifier if there are non-retrievable gaps
+                if analyzer_output is not None:
+                    all_gaps = (
+                        analyzer_output.sufficiency_evaluation.critical_gaps
+                        + analyzer_output.sufficiency_evaluation.nice_to_have_gaps
+                    )
+                    non_retrievable_types = {GapType.SUBJECTIVE, GapType.CLARIFICATION}
+                    has_non_retrievable = any(g.gap_type in non_retrievable_types for g in all_gaps)
+
+                    if has_non_retrievable:
+                        try:
+                            vocabulary = get_merged_vocabulary(selected_domains)
+                            clarifier_result, _ = await run_clarifier(
+                                client,
+                                raw_input,
+                                analyzer_output,
+                                vocabulary,
+                                retriever_output.retrieval_summary if retriever_output else None,
+                            )
+                            print_section("Clarifier Output")
+                            print_json(clarifier_result)
+                        except Exception as e:
+                            print(f"\nClarifier ERROR: {e}")
+
                 # Run Synthesizer + Evaluator if analyzer succeeded
-                if analyzer_output is not None and planner_output is not None:
+                if analyzer_output is not None:
                     try:
                         vocabulary = get_merged_vocabulary(selected_domains)
                         synthesizer_result, synthesizer_output = await run_synthesizer(
@@ -865,8 +960,32 @@ async def process_input(
                     except Exception as e:
                         print(f"\nAnalyzer ERROR: {e}")
 
+                    # Run Clarifier if there are non-retrievable gaps
+                    if analyzer_output is not None:
+                        all_gaps = (
+                            analyzer_output.sufficiency_evaluation.critical_gaps
+                            + analyzer_output.sufficiency_evaluation.nice_to_have_gaps
+                        )
+                        non_retrievable_types = {GapType.SUBJECTIVE, GapType.CLARIFICATION}
+                        has_non_retrievable = any(g.gap_type in non_retrievable_types for g in all_gaps)
+
+                        if has_non_retrievable:
+                            try:
+                                vocabulary = get_merged_vocabulary(selected_domains)
+                                clarifier_result, _ = await run_clarifier(
+                                    client,
+                                    query_portion,
+                                    analyzer_output,
+                                    vocabulary,
+                                    retriever_output.retrieval_summary if retriever_output else None,
+                                )
+                                print_section("Clarifier Output (query portion)")
+                                print_json(clarifier_result)
+                            except Exception as e:
+                                print(f"\nClarifier ERROR: {e}")
+
                     # Run Synthesizer + Evaluator if analyzer succeeded
-                    if analyzer_output is not None and planner_output is not None:
+                    if analyzer_output is not None:
                         try:
                             vocabulary = get_merged_vocabulary(selected_domains)
                             synthesizer_result, synthesizer_output = await run_synthesizer(

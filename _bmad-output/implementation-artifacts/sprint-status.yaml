@@ -102,8 +102,8 @@ development_status:
   epic-4-retrospective: done
 
   # Epic 5: Human-in-the-Loop
-  epic-5: backlog
-  5-1-implement-clarifier-agent: backlog
+  epic-5: in-progress
+  5-1-implement-clarifier-agent: done
   5-2-implement-wait-user-state: backlog
   5-3-implement-correction-flow: backlog
   5-4-add-fitness-clarification-patterns: backlog
