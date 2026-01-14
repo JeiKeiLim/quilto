@@ -35,7 +35,6 @@ Requirements:
 import argparse
 import asyncio
 import json
-import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -561,6 +560,10 @@ def collect_clarification_answers(clarifier_output: ClarifierOutput) -> dict[str
             while True:
                 try:
                     choice = input(f"\n  Select option (1-{len(q.options) + 1}) or type answer: ").strip()
+                    if not choice:
+                        print("  Please enter an answer.")
+                        continue
+
                     if choice.isdigit():
                         idx = int(choice)
                         if 1 <= idx <= len(q.options):
@@ -572,28 +575,15 @@ def collect_clarification_answers(clarifier_output: ClarifierOutput) -> dict[str
                                 answers[q.question] = custom
                                 break
                             print("  Please enter an answer.")
+                            continue
                         else:
                             print(f"  Please select 1-{len(q.options) + 1}")
-                    else:
-                        # Check if starts with option number (e.g., "2. but also...")
-                        # Extract leading number and expand with option text
-                        match = re.match(r"^(\d+)[\.\,\s]*(.*)", choice)
-                        if match:
-                            idx = int(match.group(1))
-                            extra = match.group(2).strip()
-                            if 1 <= idx <= len(q.options):
-                                # Expand: "2. extra" -> "Somewhat tired - extra"
-                                base_answer = q.options[idx - 1]
-                                if extra:
-                                    answers[q.question] = f"{base_answer} - {extra}"
-                                else:
-                                    answers[q.question] = base_answer
-                                break
-                        # Treat as pure free-form answer
-                        if choice:
-                            answers[q.question] = choice
-                            break
-                        print("  Please enter an answer.")
+                            continue
+
+                    # Free-form answer - store with options context for LLM
+                    options_ctx = ", ".join(f"{i+1}={opt}" for i, opt in enumerate(q.options))
+                    answers[q.question] = f"{choice} (options were: {options_ctx})"
+                    break
                 except (KeyboardInterrupt, EOFError):
                     print("\n  (Skipped)")
                     break
