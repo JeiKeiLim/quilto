@@ -127,11 +127,12 @@ class ParserAgent:
         # Build correction mode section
         correction_section = ""
         if parser_input.correction_mode:
+            correction_target = parser_input.correction_target or "Not specified"
             correction_section = f"""
 === CORRECTION MODE ===
 
 This is a CORRECTION to a previous entry.
-Correction target hint: {parser_input.correction_target or "Not specified"}
+Correction target hint: {correction_target}
 
 IMPORTANT:
 - Set is_correction = true
@@ -139,6 +140,26 @@ IMPORTANT:
 - Set target_entry_id to the identified entry's ID
 - Set correction_delta to ONLY the fields that are changing
 - The domain_data should contain the full corrected data
+
+=== TARGET IDENTIFICATION ===
+
+Given the correction_target hint: "{correction_target}"
+
+Match against recent_entries using:
+1. Date matching: Does the hint mention a date or time? (e.g., "yesterday", "10:30 entry")
+2. Content matching: Does the hint mention specific exercises, foods, or activities?
+3. Value matching: Does the hint reference specific numbers that appear in entries?
+
+Entry format in recent_entries: "{{entry_id}}, {{date}}, {{content_summary}}"
+
+If multiple entries could match:
+- Select the most recent one
+- Note the ambiguity in extraction_notes
+
+If no entry matches:
+- Set target_entry_id to null
+- Set is_correction to false
+- Add explanation to extraction_notes
 """
 
         # Build the full prompt

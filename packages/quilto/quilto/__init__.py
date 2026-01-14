@@ -11,6 +11,7 @@ from quilto.agents import (
     RouterOutput,
 )
 from quilto.domain import DomainModule
+from quilto.flow import CorrectionResult, process_correction
 from quilto.llm import (
     AgentConfig,
     LLMClient,
@@ -35,6 +36,7 @@ __version__ = "0.1.0"
 
 __all__ = [
     "AgentConfig",
+    "CorrectionResult",
     "DateRange",
     "DomainInfo",
     "DomainModule",
@@ -58,6 +60,7 @@ __all__ = [
     "enter_wait_user",
     "load_llm_config",
     "load_llm_config_from_dict",
+    "process_correction",
     "process_user_response",
     "route_after_clarify",
     "route_after_wait_user",

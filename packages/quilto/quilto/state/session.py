@@ -81,3 +81,8 @@ class SessionState(TypedDict, total=False):
     # Output
     final_response: str | None
     complete: bool
+
+    # Correction tracking (Story 5-3)
+    is_correction_flow: bool
+    correction_target: str | None
+    correction_result: dict[str, Any] | None

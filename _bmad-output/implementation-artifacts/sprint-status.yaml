@@ -105,7 +105,7 @@ development_status:
   epic-5: in-progress
   5-1-implement-clarifier-agent: done
   5-2-implement-wait-user-state: done
-  5-3-implement-correction-flow: backlog
+  5-3-implement-correction-flow: done
   5-4-add-fitness-clarification-patterns: backlog
   epic-5-retrospective: optional
 
