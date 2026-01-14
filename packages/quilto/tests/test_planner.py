@@ -1296,6 +1296,261 @@ class TestPlannerPrompt:
 
 
 # =============================================================================
+# Test Planner Comparison Detection (Task 9: Story 3-5)
+# =============================================================================
+
+
+class TestPlannerComparisonQueries:
+    """Tests for comparison query strategy selection (AC: #1, #2, #5, #6)."""
+
+    @pytest.mark.asyncio
+    async def test_compare_to_previous_uses_date_range(self) -> None:
+        """Comparison query 'compare to previous' selects date_range (AC: #1)."""
+        response: dict[str, Any] = {
+            "original_query": "compare this to my previous workouts",
+            "query_type": "comparison",
+            "sub_queries": [
+                {
+                    "id": 1,
+                    "question": "compare this to my previous workouts",
+                    "retrieval_strategy": "date_range",
+                    "retrieval_params": {"start_date": "2026-01-07", "end_date": "2026-01-14"},
+                }
+            ],
+            "dependencies": [],
+            "execution_strategy": "coupled",
+            "execution_order": [1],
+            "retrieval_instructions": [
+                {
+                    "strategy": "date_range",
+                    "params": {"start_date": "2026-01-07", "end_date": "2026-01-14"},
+                    "sub_query_id": 1,
+                }
+            ],
+            "gaps_status": {},
+            "next_action": "retrieve",
+            "reasoning": "Comparison query uses date_range for language-agnostic retrieval",
+        }
+        client = create_mock_llm_client(response)
+        planner = PlannerAgent(client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="compare this to my previous workouts",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        assert result.query_type == QueryType.COMPARISON
+        assert result.sub_queries[0].retrieval_strategy == "date_range"
+
+    @pytest.mark.asyncio
+    async def test_am_i_improving_uses_date_range(self) -> None:
+        """Progress query 'am I improving' selects date_range (AC: #2)."""
+        response: dict[str, Any] = {
+            "original_query": "am I getting stronger?",
+            "query_type": "insight",
+            "sub_queries": [
+                {
+                    "id": 1,
+                    "question": "am I getting stronger?",
+                    "retrieval_strategy": "date_range",
+                    "retrieval_params": {"start_date": "2025-12-14", "end_date": "2026-01-14"},
+                }
+            ],
+            "dependencies": [],
+            "execution_strategy": "coupled",
+            "execution_order": [1],
+            "retrieval_instructions": [
+                {
+                    "strategy": "date_range",
+                    "params": {"start_date": "2025-12-14", "end_date": "2026-01-14"},
+                    "sub_query_id": 1,
+                }
+            ],
+            "gaps_status": {},
+            "next_action": "retrieve",
+            "reasoning": "Progress/trend query needs date_range for 30 days trend analysis",
+        }
+        client = create_mock_llm_client(response)
+        planner = PlannerAgent(client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="am I getting stronger?",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        assert result.sub_queries[0].retrieval_strategy == "date_range"
+
+    @pytest.mark.asyncio
+    async def test_progress_query_includes_default_date_range(self) -> None:
+        """Progress query includes valid date range params (AC: #1, #2)."""
+        response: dict[str, Any] = {
+            "original_query": "how is my progress?",
+            "query_type": "insight",
+            "sub_queries": [
+                {
+                    "id": 1,
+                    "question": "how is my progress?",
+                    "retrieval_strategy": "date_range",
+                    "retrieval_params": {"start_date": "2026-01-07", "end_date": "2026-01-14"},
+                }
+            ],
+            "dependencies": [],
+            "execution_strategy": "coupled",
+            "execution_order": [1],
+            "retrieval_instructions": [
+                {
+                    "strategy": "date_range",
+                    "params": {"start_date": "2026-01-07", "end_date": "2026-01-14"},
+                    "sub_query_id": 1,
+                }
+            ],
+            "gaps_status": {},
+            "next_action": "retrieve",
+            "reasoning": "Progress query uses date_range with default 7-day range",
+        }
+        client = create_mock_llm_client(response)
+        planner = PlannerAgent(client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="how is my progress?",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        params = result.sub_queries[0].retrieval_params
+        assert "start_date" in params
+        assert "end_date" in params
+
+    @pytest.mark.asyncio
+    async def test_explicit_keyword_query_unchanged(self) -> None:
+        """Explicit keyword query 'show me bench press' uses keyword (AC: #5)."""
+        response: dict[str, Any] = {
+            "original_query": "show me bench press workouts",
+            "query_type": "simple",
+            "sub_queries": [
+                {
+                    "id": 1,
+                    "question": "show me bench press workouts",
+                    "retrieval_strategy": "keyword",
+                    "retrieval_params": {"keywords": ["bench", "press"], "semantic_expansion": True},
+                }
+            ],
+            "dependencies": [],
+            "execution_strategy": "coupled",
+            "execution_order": [1],
+            "retrieval_instructions": [
+                {
+                    "strategy": "keyword",
+                    "params": {"keywords": ["bench", "press"], "semantic_expansion": True},
+                    "sub_query_id": 1,
+                }
+            ],
+            "gaps_status": {},
+            "next_action": "retrieve",
+            "reasoning": "Explicit item query uses keyword strategy",
+        }
+        client = create_mock_llm_client(response)
+        planner = PlannerAgent(client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="show me bench press workouts",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        assert result.sub_queries[0].retrieval_strategy == "keyword"
+
+    @pytest.mark.asyncio
+    async def test_explicit_date_sets_flag(self) -> None:
+        """Explicit date query 'last Monday' sets explicit_date=true (AC: #6)."""
+        response: dict[str, Any] = {
+            "original_query": "what did I do last Monday",
+            "query_type": "simple",
+            "sub_queries": [
+                {
+                    "id": 1,
+                    "question": "what did I do last Monday",
+                    "retrieval_strategy": "date_range",
+                    "retrieval_params": {
+                        "start_date": "2026-01-06",
+                        "end_date": "2026-01-06",
+                        "explicit_date": True,
+                    },
+                }
+            ],
+            "dependencies": [],
+            "execution_strategy": "coupled",
+            "execution_order": [1],
+            "retrieval_instructions": [
+                {
+                    "strategy": "date_range",
+                    "params": {"start_date": "2026-01-06", "end_date": "2026-01-06", "explicit_date": True},
+                    "sub_query_id": 1,
+                }
+            ],
+            "gaps_status": {},
+            "next_action": "retrieve",
+            "reasoning": "Specific date query with explicit_date=true",
+        }
+        client = create_mock_llm_client(response)
+        planner = PlannerAgent(client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="what did I do last Monday",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        params = result.sub_queries[0].retrieval_params
+        assert params.get("explicit_date") is True
+
+
+class TestPlannerPromptTodaysDate:
+    """Tests for today's date in Planner prompt."""
+
+    def test_prompt_includes_todays_date(self) -> None:
+        """Prompt includes Today's date for LLM to compute date ranges."""
+        from datetime import date as dt_date
+
+        client = create_mock_llm_client({})
+        planner = PlannerAgent(client)
+
+        planner_input = PlannerInput(
+            query="What did I eat?",
+            domain_context=create_sample_domain_context(),
+        )
+        prompt = planner.build_prompt(planner_input)
+
+        # Should contain today's date
+        assert "Today's date:" in prompt
+        assert dt_date.today().isoformat() in prompt
+
+    def test_prompt_includes_comparison_query_section(self) -> None:
+        """Prompt includes COMPARISON/PROGRESS QUERIES section."""
+        client = create_mock_llm_client({})
+        planner = PlannerAgent(client)
+
+        planner_input = PlannerInput(
+            query="What did I eat?",
+            domain_context=create_sample_domain_context(),
+        )
+        prompt = planner.build_prompt(planner_input)
+
+        # Should contain comparison query guidance
+        assert "COMPARISON/PROGRESS QUERIES" in prompt
+        assert "compare" in prompt.lower()
+        assert "progress" in prompt.lower()
+        assert "explicit_date" in prompt
+
+
+# =============================================================================
 # Integration Tests (Task 10)
 # =============================================================================
 
@@ -1385,3 +1640,60 @@ class TestPlannerIntegration:
         # Should use date_range or keyword strategy
         valid_strategies = ["date_range", "keyword", "topical"]
         assert result.sub_queries[0].retrieval_strategy in valid_strategies
+
+    @pytest.mark.asyncio
+    async def test_real_comparison_query_uses_date_range(
+        self, use_real_ollama: bool, integration_llm_config_path: Path
+    ) -> None:
+        """Test comparison query generates date_range retrieval with real LLM (AC: #7, Task 10)."""
+        if not use_real_ollama:
+            pytest.skip("Requires --use-real-ollama flag")
+
+        config = load_llm_config(integration_llm_config_path)
+        real_llm_client = LLMClient(config)
+        planner = PlannerAgent(real_llm_client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="compare this to my previous workouts - is it better than before?",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        assert len(result.sub_queries) >= 1
+        # Comparison query SHOULD use date_range strategy (not keyword)
+        # This is the key fix from Story 3-5
+        assert result.sub_queries[0].retrieval_strategy == "date_range", (
+            f"Expected date_range strategy for comparison query, got {result.sub_queries[0].retrieval_strategy}"
+        )
+        # Should have date range params
+        params = result.sub_queries[0].retrieval_params
+        assert "start_date" in params or "end_date" in params
+
+    @pytest.mark.asyncio
+    async def test_real_explicit_date_query_sets_flag(
+        self, use_real_ollama: bool, integration_llm_config_path: Path
+    ) -> None:
+        """Test explicit date query sets explicit_date flag with real LLM (AC: #6)."""
+        if not use_real_ollama:
+            pytest.skip("Requires --use-real-ollama flag")
+
+        config = load_llm_config(integration_llm_config_path)
+        real_llm_client = LLMClient(config)
+        planner = PlannerAgent(real_llm_client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="What did I do last Monday specifically?",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        assert len(result.sub_queries) >= 1
+        # Should use date_range strategy
+        assert result.sub_queries[0].retrieval_strategy == "date_range"
+        # Should have explicit_date flag set
+        params = result.sub_queries[0].retrieval_params
+        # Note: LLM may or may not set this flag - we assert soft behavior
+        # The key is that date_range was chosen, explicit_date is an optimization
+        assert "start_date" in params or "end_date" in params

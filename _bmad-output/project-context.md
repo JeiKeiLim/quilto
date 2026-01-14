@@ -3,8 +3,8 @@ project_name: 'swealog-workspace'
 framework_name: 'quilto'
 application_name: 'swealog'
 user_name: 'Jongkuk Lim'
-date: '2026-01-09'
-sections_completed: ['project_identity', 'directory_conventions', 'development_workflow']
+date: '2026-01-14'
+sections_completed: ['project_identity', 'directory_conventions', 'development_workflow', 'dual_llm_support']
 ---
 
 # Project Context for AI Agents
@@ -148,6 +148,22 @@ Before requesting code review:
 | litellm | latest | LLM client (Ollama + cloud) |
 | Pydantic | 2.10+ | Validation |
 | LangGraph | latest | Agent orchestration |
+
+### Design Principle: Dual LLM Support
+
+Quilto intentionally supports **both local and cloud LLM providers**. This is a feature, not a limitation.
+
+| Mode | Provider | Trade-offs |
+|------|----------|------------|
+| **Local** | Ollama (qwen2.5:3b, 7b, etc.) | Privacy, no API costs, offline capability, lower quality |
+| **Cloud** | OpenAI, Anthropic, etc. | Higher quality, larger context, requires API keys, costs money |
+
+**Users choose based on their priorities:**
+- Privacy-conscious users run everything locally
+- Quality-focused users pay for cloud APIs
+- Cost-sensitive users use local for development, cloud for production
+
+The tiered model config (low/medium/high) in `llm-config.yaml` allows fine-grained control per agent.
 
 ---
 

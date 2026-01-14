@@ -89,15 +89,17 @@ development_status:
   3-2-implement-planner-agent: done
   3-3-implement-retriever-agent: done
   3-4-create-running-domain-module: done
+  # Story 3.5: Hotfix from Epic 4 Retrospective - improve retrieval strategy ordering
+  3-5-improve-retrieval-strategy-ordering: done
   epic-3-retrospective: done
 
   # Epic 4: Analysis & Response
-  epic-4: in-progress
+  epic-4: done
   4-1-implement-analyzer-agent: done
   4-2-implement-synthesizer-agent: done
   4-3-implement-evaluator-agent-with-retry-loop: done
   4-4-add-fitness-expertise-and-evaluation-rules: done
-  epic-4-retrospective: optional
+  epic-4-retrospective: done
 
   # Epic 5: Human-in-the-Loop
   epic-5: backlog

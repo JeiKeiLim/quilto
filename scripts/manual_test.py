@@ -335,6 +335,7 @@ async def run_retriever(
         "total_entries_found": output.total_entries_found,
         "entries_returned": len(output.entries),
         "truncated": output.truncated,
+        "expansion_exhausted": output.expansion_exhausted,
         "warnings": output.warnings,
         "retrieval_summary": [
             {
@@ -342,6 +343,7 @@ async def run_retriever(
                 "strategy": attempt.strategy,
                 "entries_found": attempt.entries_found,
                 "summary": attempt.summary,
+                "expansion_tier": attempt.expansion_tier,
                 "expanded_terms": attempt.expanded_terms,
             }
             for attempt in output.retrieval_summary

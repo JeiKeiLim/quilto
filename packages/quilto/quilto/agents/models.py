@@ -419,6 +419,7 @@ class RetrievalAttempt(BaseModel):
         entries_found: Number of entries returned.
         summary: Brief human-readable description of the attempt.
         expanded_terms: Terms after vocabulary expansion (for keyword/topical).
+        expansion_tier: Progressive expansion tier (0=original, 1-4=expansion levels).
     """
 
     model_config = ConfigDict(strict=True)
@@ -429,6 +430,7 @@ class RetrievalAttempt(BaseModel):
     entries_found: int = Field(ge=0)
     summary: str = Field(min_length=1)
     expanded_terms: list[str] = Field(default_factory=list)
+    expansion_tier: int = Field(default=0, ge=0)
 
 
 class RetrieverInput(BaseModel):
@@ -439,6 +441,7 @@ class RetrieverInput(BaseModel):
             Structure: [{"strategy": str, "params": dict, "sub_query_id": int}, ...]
         vocabulary: Term normalization mapping for vocabulary expansion.
         max_entries: Maximum entries to return (safety limit).
+        enable_progressive_expansion: If True, expand date range progressively on empty results.
     """
 
     model_config = ConfigDict(strict=True)
@@ -446,6 +449,7 @@ class RetrieverInput(BaseModel):
     instructions: list[dict[str, Any]]
     vocabulary: dict[str, str] = Field(default_factory=dict)
     max_entries: int = Field(default=100, ge=1)
+    enable_progressive_expansion: bool = True
 
 
 class RetrieverOutput(BaseModel):
@@ -458,6 +462,7 @@ class RetrieverOutput(BaseModel):
         date_range_covered: Actual date range of returned entries.
         warnings: List of warning messages (empty results, truncation, errors).
         truncated: True if results were limited by max_entries.
+        expansion_exhausted: True if progressive expansion exhausted all tiers and fell back.
     """
 
     model_config = ConfigDict(strict=True)
@@ -470,6 +475,7 @@ class RetrieverOutput(BaseModel):
     date_range_covered: Any | None = None
     warnings: list[str] = Field(default_factory=list)
     truncated: bool = False
+    expansion_exhausted: bool = False
 
 
 # =============================================================================

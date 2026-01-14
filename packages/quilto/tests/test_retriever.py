@@ -478,6 +478,7 @@ class TestRetrieverDateRange:
                         "sub_query_id": 1,
                     }
                 ],
+                enable_progressive_expansion=False,  # Disable expansion to test base behavior
             )
         )
 
@@ -1118,6 +1119,7 @@ class TestRetrieverLimits:
                         "sub_query_id": 1,
                     }
                 ],
+                enable_progressive_expansion=False,  # Disable expansion to test base behavior
             )
         )
 
@@ -1481,3 +1483,269 @@ class TestRetrieverIntegration:
         # Entry IDs should be unique
         entry_ids = [e.id for e in dedup_result.entries]
         assert len(entry_ids) == len(set(entry_ids))  # No duplicates
+
+
+# =============================================================================
+# Test Progressive Expansion (Task 8: Story 3-5)
+# =============================================================================
+
+
+class TestRetrieverProgressiveExpansion:
+    """Tests for progressive date range expansion (AC: #3, #4)."""
+
+    @pytest.fixture
+    def mock_storage(self) -> MagicMock:
+        """Create mock storage repository."""
+        mock = MagicMock(spec=StorageRepository)
+        return mock
+
+    @pytest.fixture
+    def sample_entry(self) -> Entry:
+        """Create a sample entry for testing."""
+        return Entry(
+            id="2026-01-01_10-00-00",
+            date=date(2026, 1, 1),
+            timestamp=datetime(2026, 1, 1, 10, 0, 0),
+            raw_content="Bench press 3x5 at 135lbs",
+        )
+
+    @pytest.mark.asyncio
+    async def test_expansion_stops_when_entries_found(self, mock_storage: MagicMock, sample_entry: Entry) -> None:
+        """Progressive expansion stops when entries are found (AC: #3)."""
+        # First call returns empty, second returns entries
+        mock_storage.get_entries_by_date_range.side_effect = [[], [sample_entry]]
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    {
+                        "strategy": "date_range",
+                        "params": {"start_date": "2026-01-01", "end_date": "2026-01-02"},
+                        "sub_query_id": 1,
+                    }
+                ],
+                enable_progressive_expansion=True,
+            )
+        )
+
+        # Should have 2 attempts (tier 0 empty + tier 1 found)
+        assert len(result.retrieval_summary) == 2
+        assert result.retrieval_summary[0].expansion_tier == 0
+        assert result.retrieval_summary[1].expansion_tier == 1
+        assert result.entries == [sample_entry]
+        assert not result.expansion_exhausted
+
+    @pytest.mark.asyncio
+    async def test_expansion_tiers_7_14_30_90(self, mock_storage: MagicMock, sample_entry: Entry) -> None:
+        """Expansion tiers are 7, 14, 30, 90 days (AC: #3)."""
+        # All calls return empty until tier 3 (30 days)
+        mock_storage.get_entries_by_date_range.side_effect = [
+            [],  # tier 0: original
+            [],  # tier 1: 7 days
+            [],  # tier 2: 14 days
+            [sample_entry],  # tier 3: 30 days
+        ]
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    {
+                        "strategy": "date_range",
+                        "params": {"start_date": "2026-01-01", "end_date": "2026-01-02"},
+                        "sub_query_id": 1,
+                    }
+                ],
+                enable_progressive_expansion=True,
+            )
+        )
+
+        # Should have 4 attempts (tiers 0, 1, 2, 3)
+        assert len(result.retrieval_summary) == 4
+        assert result.retrieval_summary[0].expansion_tier == 0
+        assert result.retrieval_summary[1].expansion_tier == 1
+        assert result.retrieval_summary[2].expansion_tier == 2
+        assert result.retrieval_summary[3].expansion_tier == 3
+        # Tier 3 summary should mention 30 days
+        assert "30 days" in result.retrieval_summary[3].summary
+
+    @pytest.mark.asyncio
+    async def test_expansion_exhausted_triggers_fallback(self, mock_storage: MagicMock) -> None:
+        """Expansion exhaustion triggers term search fallback (AC: #4)."""
+        # All date range calls return empty
+        mock_storage.get_entries_by_date_range.return_value = []
+        # Keyword fallback also returns empty
+        mock_storage.search_entries.return_value = []
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    {
+                        "strategy": "date_range",
+                        "params": {
+                            "start_date": "2026-01-01",
+                            "end_date": "2026-01-02",
+                            "keywords": ["bench"],
+                        },
+                        "sub_query_id": 1,
+                    }
+                ],
+                enable_progressive_expansion=True,
+            )
+        )
+
+        assert result.expansion_exhausted is True
+        assert any("Progressive expansion exhausted" in w for w in result.warnings)
+        # Should have keyword fallback attempt
+        assert any(a.strategy == "keyword" for a in result.retrieval_summary)
+
+    @pytest.mark.asyncio
+    async def test_expansion_disabled_no_expansion(self, mock_storage: MagicMock) -> None:
+        """When enable_progressive_expansion=False, no expansion occurs."""
+        mock_storage.get_entries_by_date_range.return_value = []
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    {
+                        "strategy": "date_range",
+                        "params": {"start_date": "2026-01-01", "end_date": "2026-01-02"},
+                        "sub_query_id": 1,
+                    }
+                ],
+                enable_progressive_expansion=False,
+            )
+        )
+
+        # Only one attempt, no expansion
+        assert len(result.retrieval_summary) == 1
+        assert result.retrieval_summary[0].expansion_tier == 0
+        assert result.expansion_exhausted is False
+        # Should have normal empty warning
+        assert any("returned 0 entries" in w for w in result.warnings)
+
+    @pytest.mark.asyncio
+    async def test_explicit_date_no_expansion(self, mock_storage: MagicMock) -> None:
+        """When explicit_date=true, no expansion occurs (AC: #6)."""
+        mock_storage.get_entries_by_date_range.return_value = []
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    {
+                        "strategy": "date_range",
+                        "params": {
+                            "start_date": "2026-01-01",
+                            "end_date": "2026-01-02",
+                            "explicit_date": True,
+                        },
+                        "sub_query_id": 1,
+                    }
+                ],
+                enable_progressive_expansion=True,  # Would expand, but explicit_date blocks it
+            )
+        )
+
+        # Only one attempt, no expansion due to explicit_date
+        assert len(result.retrieval_summary) == 1
+        assert result.expansion_exhausted is False
+
+    @pytest.mark.asyncio
+    async def test_expansion_tier_logged_in_attempt(self, mock_storage: MagicMock, sample_entry: Entry) -> None:
+        """Expansion tier is correctly logged in RetrievalAttempt (AC: #3)."""
+        # Return entries on tier 2 (14 days)
+        mock_storage.get_entries_by_date_range.side_effect = [
+            [],  # tier 0
+            [],  # tier 1
+            [sample_entry],  # tier 2
+        ]
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    {
+                        "strategy": "date_range",
+                        "params": {"start_date": "2026-01-01", "end_date": "2026-01-02"},
+                        "sub_query_id": 1,
+                    }
+                ],
+            )
+        )
+
+        # Verify expansion_tier is correctly set
+        for i, attempt in enumerate(result.retrieval_summary):
+            assert attempt.expansion_tier == i
+        # Last attempt should have "Expanded to 14 days" in summary
+        assert "14 days" in result.retrieval_summary[2].summary
+
+    @pytest.mark.asyncio
+    async def test_keyword_strategy_no_expansion(self, mock_storage: MagicMock) -> None:
+        """Keyword strategy does not trigger progressive expansion (AC: #5, #7)."""
+        mock_storage.search_entries.return_value = []
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    {
+                        "strategy": "keyword",
+                        "params": {"keywords": ["bench"]},
+                        "sub_query_id": 1,
+                    }
+                ],
+                enable_progressive_expansion=True,  # Should be ignored for keyword
+            )
+        )
+
+        # Only one attempt for keyword strategy
+        assert len(result.retrieval_summary) == 1
+        assert result.retrieval_summary[0].strategy == "keyword"
+        assert result.retrieval_summary[0].expansion_tier == 0
+        assert result.expansion_exhausted is False
+
+
+class TestRetrieverLanguageMismatch:
+    """Integration tests for cross-language retrieval (AC: #7)."""
+
+    @pytest.fixture
+    def storage_with_korean_entry(self, tmp_path: Path) -> StorageRepository:
+        """Create storage with Korean entry."""
+        storage = StorageRepository(tmp_path)
+
+        # Create raw markdown files with Korean content
+        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True, exist_ok=True)
+
+        # Entry with Korean content
+        (raw_dir / "2026-01-01.md").write_text("## 10:00\n벤치프레스 55kg 10x5 완료. 오늘 기분 좋음!\n")
+
+        return storage
+
+    @pytest.mark.asyncio
+    async def test_korean_entry_english_query_with_date_range(
+        self, storage_with_korean_entry: StorageRepository
+    ) -> None:
+        """Date-range retrieval finds Korean entry regardless of query language (AC: #7)."""
+        retriever = RetrieverAgent(storage_with_korean_entry)
+
+        # Date range will find the entry regardless of language
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    {
+                        "strategy": "date_range",
+                        "params": {"start_date": "2026-01-01", "end_date": "2026-01-01"},
+                        "sub_query_id": 1,
+                    }
+                ],
+            )
+        )
+
+        # Should find the Korean entry
+        assert len(result.entries) == 1
+        assert "벤치프레스" in result.entries[0].raw_content

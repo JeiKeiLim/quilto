@@ -5,6 +5,8 @@ classifies dependencies, creates retrieval strategies, and handles
 domain expansion and clarification requests.
 """
 
+from datetime import date
+
 from quilto.agents.models import (
     Gap,
     GapType,
@@ -174,17 +176,42 @@ Single questions should always be classified as COUPLED.
 
 Choose the appropriate strategy for each sub-query:
 
-DATE_RANGE: When query mentions time periods
-- Parameters: {{"start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD"}}
+DATE_RANGE: When query mentions time periods OR comparison/progress queries
+- Parameters: {{"start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "explicit_date": true/false}}
 - Use for: "last week", "yesterday", "on Tuesday", specific dates
+- ALSO use for: comparison queries, progress queries, trend queries
+- Set explicit_date=true ONLY if user specifies exact day/date (e.g., "last Monday", "on January 5th")
 
 KEYWORD: When query mentions specific activities/items
 - Parameters: {{"keywords": ["term1", "term2"], "semantic_expansion": true/false}}
 - Use for: specific exercises, foods, activities
+- NOT for comparison queries (see COMPARISON/PROGRESS section below)
 
 TOPICAL: When query is about patterns/progress
 - Parameters: {{"topics": ["topic1"], "related_terms": ["term1"]}}
 - Use for: trends, progress, patterns, insights
+
+=== COMPARISON/PROGRESS QUERIES (CRITICAL) ===
+
+For queries with these trigger words: "compare", "progress", "better than", "trend",
+"improving", "stronger", "previous", "before", "last time", "history", "track record"
+→ USE DATE_RANGE (language-agnostic) NOT KEYWORD (fails cross-language)
+→ Default: today to 7 days ago if no date mentioned
+→ Set explicit_date=true if user specifies exact day/date (e.g., "last Monday")
+
+Examples:
+- "compare this to my previous workouts" → date_range (7 days default, explicit_date=false)
+- "am I getting stronger?" → date_range (30 days for trend, explicit_date=false)
+- "how does this stack up?" → date_range (7 days default, explicit_date=false)
+- "is this better than my last workout?" → date_range (7 days default, explicit_date=false)
+- "what did I do last Monday" → date_range (specific date, explicit_date=true)
+
+KEYWORD strategy examples (unchanged):
+- "show me bench press workouts" → keyword
+- "find all entries with squats" → keyword
+
+WHY: Keyword search fails when logs are in Korean but queries are in English.
+Date-range retrieval is language-agnostic and reliable for comparison queries.
 
 === DOMAIN EXPANSION ===
 
@@ -221,6 +248,8 @@ If evaluation_feedback or gaps_from_analyzer are provided, this is a re-planning
 - Explain in reasoning what changed from previous plan
 
 === INPUT ===
+
+Today's date: {date.today().isoformat()}
 
 Query: {planner_input.query}{query_type_hint}
 
@@ -259,7 +288,8 @@ Respond with a JSON object matching this schema:
 - execution_strategy: "independent" | "dependent" | "coupled"
 - execution_order: list of integers (sub_query IDs in execution order)
 - retrieval_instructions: list of objects {{"strategy": string, "params": object, "sub_query_id": int}}
-- gaps_status: object mapping gap descriptions to {{"searched": bool, "found": bool}}
+- gaps_status: object where keys are gap descriptions, values are {{"searched": bool, "found": bool}}.
+  Example: {{"missing data": {{"searched": true, "found": false}}}}. Use {{}} if no gaps.
 - domain_expansion_request: list of strings or null
 - expansion_reasoning: string or null
 - clarify_questions: list of strings or null

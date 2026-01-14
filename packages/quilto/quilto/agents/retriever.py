@@ -5,7 +5,7 @@ instructions from the Planner agent, fetching entries using StorageRepository
 methods and applying vocabulary expansion for better search coverage.
 """
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from quilto.agents.models import (
@@ -71,6 +71,7 @@ class RetrieverAgent:
 
     Attributes:
         storage: The storage repository for fetching entries.
+        EXPANSION_TIERS: Days to expand to when date range returns empty results.
 
     Example:
         >>> from pathlib import Path
@@ -91,6 +92,7 @@ class RetrieverAgent:
     """
 
     AGENT_NAME = "retriever"
+    EXPANSION_TIERS: list[int] = [7, 14, 30, 90]
 
     def __init__(self, storage: StorageRepository) -> None:
         """Initialize the Retriever agent.
@@ -105,6 +107,7 @@ class RetrieverAgent:
 
         Processes each instruction in order, executes the appropriate
         retrieval strategy, deduplicates results, and enforces limits.
+        Supports progressive expansion for date_range strategy.
 
         Args:
             retriever_input: RetrieverInput with instructions, vocabulary,
@@ -116,6 +119,7 @@ class RetrieverAgent:
         all_entries: list[Entry] = []
         retrieval_summary: list[RetrievalAttempt] = []
         warnings: list[str] = []
+        expansion_exhausted = False
 
         # Process each instruction in order
         for i, instruction in enumerate(retriever_input.instructions, start=1):
@@ -123,22 +127,39 @@ class RetrieverAgent:
             params = instruction.get("params", {})
             sub_query_id = instruction.get("sub_query_id", i)
 
-            # Execute strategy
-            entries, attempt = self._execute_strategy(
-                attempt_number=i,
-                strategy=strategy,
-                params=params,
-                sub_query_id=sub_query_id,
-                vocabulary=retriever_input.vocabulary,
-                warnings=warnings,
+            # Check if explicit_date flag is set (disables expansion)
+            explicit_date = params.get("explicit_date", False)
+            enable_expansion = (
+                retriever_input.enable_progressive_expansion and not explicit_date and strategy.lower() == "date_range"
             )
 
-            if attempt is not None:
-                retrieval_summary.append(attempt)
+            # Execute strategy (with expansion for date_range if enabled)
+            if enable_expansion:
+                entries, attempts, exhausted = self._execute_date_range_with_expansion(
+                    attempt_number=i,
+                    params=params,
+                    vocabulary=retriever_input.vocabulary,
+                    warnings=warnings,
+                )
+                retrieval_summary.extend(attempts)
+                if exhausted:
+                    expansion_exhausted = True
+            else:
+                entries, attempt = self._execute_strategy(
+                    attempt_number=i,
+                    strategy=strategy,
+                    params=params,
+                    sub_query_id=sub_query_id,
+                    vocabulary=retriever_input.vocabulary,
+                    warnings=warnings,
+                )
 
-                # Add warning for empty results
-                if attempt.entries_found == 0:
-                    warnings.append(f"Retrieval instruction {i} ({strategy}) returned 0 entries")
+                if attempt is not None:
+                    retrieval_summary.append(attempt)
+
+                    # Add warning for empty results
+                    if attempt.entries_found == 0:
+                        warnings.append(f"Retrieval instruction {i} ({strategy}) returned 0 entries")
 
             all_entries.extend(entries)
 
@@ -172,6 +193,7 @@ class RetrieverAgent:
             date_range_covered=date_range_covered,
             warnings=warnings,
             truncated=truncated,
+            expansion_exhausted=expansion_exhausted,
         )
 
     def _execute_strategy(
@@ -401,3 +423,93 @@ class RetrieverAgent:
 
         dates = [entry.date for entry in entries]
         return DateRange(start=min(dates), end=max(dates))
+
+    def _execute_date_range_with_expansion(
+        self,
+        attempt_number: int,
+        params: dict[str, Any],
+        vocabulary: dict[str, str],
+        warnings: list[str],
+    ) -> tuple[list[Entry], list[RetrievalAttempt], bool]:
+        """Execute date range with progressive expansion on empty results.
+
+        Tries the original date range first, then progressively expands
+        through tiers (7, 14, 30, 90 days) until entries are found or
+        expansion is exhausted. On exhaustion, falls back to term search.
+
+        Args:
+            attempt_number: Base attempt number.
+            params: Original date_range params with start_date, end_date.
+            vocabulary: Term normalization for fallback.
+            warnings: List to append warnings to.
+
+        Returns:
+            Tuple of (entries, list of RetrievalAttempts, expansion_exhausted).
+        """
+        attempts: list[RetrievalAttempt] = []
+
+        # Tier 0: Original date range
+        entries, attempt = self._execute_date_range(
+            attempt_number=attempt_number,
+            params=params,
+            warnings=warnings,
+        )
+
+        if attempt is not None:
+            attempt.expansion_tier = 0
+            attempts.append(attempt)
+
+            if attempt.entries_found > 0:
+                return entries, attempts, False
+
+        # If original date range failed validation (attempt is None), skip expansion
+        if attempt is None:
+            return [], attempts, False
+
+        # Progressive expansion through tiers
+        today = date.today()
+        for tier_index, days in enumerate(self.EXPANSION_TIERS, start=1):
+            expanded_params = {
+                "start_date": (today - timedelta(days=days)).isoformat(),
+                "end_date": today.isoformat(),
+            }
+
+            entries, tier_attempt = self._execute_date_range(
+                attempt_number=attempt_number,
+                params=expanded_params,
+                warnings=[],  # Don't add warnings for expansion attempts
+            )
+
+            if tier_attempt is not None:
+                tier_attempt.expansion_tier = tier_index
+                tier_attempt.summary = f"Expanded to {days} days: {tier_attempt.summary}"
+                attempts.append(tier_attempt)
+
+                if tier_attempt.entries_found > 0:
+                    return entries, attempts, False
+
+        # Exhausted all tiers - fall back to term search
+        warnings.append("Progressive expansion exhausted, falling back to term search")
+
+        # Extract keywords for fallback from params if available
+        keywords = params.get("keywords", [])
+        if not keywords:
+            # Extract from any keyword/topic related params or use empty
+            keywords = params.get("topics", [])
+
+        # If we have keywords, try term search fallback
+        if keywords:
+            fallback_entries, fallback_attempt = self._execute_keyword(
+                attempt_number=attempt_number,
+                params={"keywords": keywords, "semantic_expansion": True},
+                vocabulary=vocabulary,
+                warnings=warnings,
+            )
+
+            if fallback_attempt is not None:
+                fallback_attempt.expansion_tier = len(self.EXPANSION_TIERS) + 1
+                fallback_attempt.summary = f"Term search fallback: {fallback_attempt.summary}"
+                attempts.append(fallback_attempt)
+                return fallback_entries, attempts, True
+
+        return [], attempts, True
