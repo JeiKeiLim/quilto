@@ -35,6 +35,7 @@ Requirements:
 import argparse
 import asyncio
 import json
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -574,7 +575,21 @@ def collect_clarification_answers(clarifier_output: ClarifierOutput) -> dict[str
                         else:
                             print(f"  Please select 1-{len(q.options) + 1}")
                     else:
-                        # Treat as free-form answer
+                        # Check if starts with option number (e.g., "2. but also...")
+                        # Extract leading number and expand with option text
+                        match = re.match(r"^(\d+)[\.\,\s]*(.*)", choice)
+                        if match:
+                            idx = int(match.group(1))
+                            extra = match.group(2).strip()
+                            if 1 <= idx <= len(q.options):
+                                # Expand: "2. extra" -> "Somewhat tired - extra"
+                                base_answer = q.options[idx - 1]
+                                if extra:
+                                    answers[q.question] = f"{base_answer} - {extra}"
+                                else:
+                                    answers[q.question] = base_answer
+                                break
+                        # Treat as pure free-form answer
                         if choice:
                             answers[q.question] = choice
                             break
