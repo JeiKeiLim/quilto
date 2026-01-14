@@ -144,6 +144,25 @@ def get_merged_vocabulary(selected_domains: list[str]) -> dict[str, str]:
     return vocabulary
 
 
+def get_merged_clarification_patterns(selected_domains: list[str]) -> dict[str, list[str]]:
+    """Get merged clarification_patterns from selected domains."""
+    domain_modules = {
+        general_fitness.name: general_fitness,
+        strength.name: strength,
+        nutrition.name: nutrition,
+        running.name: running,
+    }
+    patterns: dict[str, list[str]] = {}
+    for name in selected_domains:
+        if name in domain_modules:
+            module = domain_modules[name]
+            for gap_type, questions in module.clarification_patterns.items():
+                if gap_type not in patterns:
+                    patterns[gap_type] = []
+                patterns[gap_type].extend(questions)
+    return patterns
+
+
 def build_active_domain_context(selected_domains: list[str]) -> ActiveDomainContext:
     """Build ActiveDomainContext from selected domains."""
     domain_modules = {
@@ -441,6 +460,7 @@ async def run_clarifier(
     query: str,
     analyzer_output: AnalyzerOutput,
     vocabulary: dict[str, str],
+    clarification_patterns: dict[str, list[str]],
     retrieval_summary: list[Any] | None = None,
 ) -> tuple[dict[str, Any], ClarifierOutput]:
     """Run Clarifier agent when there are non-retrievable gaps.
@@ -450,6 +470,7 @@ async def run_clarifier(
         query: Original query.
         analyzer_output: AnalyzerOutput with gaps.
         vocabulary: Domain vocabulary.
+        clarification_patterns: Domain-specific example questions by gap type.
         retrieval_summary: Optional retrieval history.
 
     Returns:
@@ -469,6 +490,7 @@ async def run_clarifier(
         vocabulary=vocabulary,
         retrieval_history=retrieval_summary or [],
         previous_clarifications=[],
+        clarification_patterns=clarification_patterns,
     )
 
     print_section("Clarifier Input")
@@ -478,6 +500,9 @@ async def run_clarifier(
     print(f"Non-retrievable gaps: {len(non_retrievable)}")
     for gap in non_retrievable:
         print(f"  - {gap.gap_type.value}: {gap.description}")
+    print(f"Clarification patterns: {len(clarification_patterns)} gap types")
+    for gap_type, questions in clarification_patterns.items():
+        print(f"  - {gap_type}: {len(questions)} example questions")
 
     print_section("Running Clarifier...")
     output = await clarifier.clarify(clarifier_input)
@@ -870,11 +895,13 @@ async def process_input(
                     if has_non_retrievable:
                         try:
                             vocabulary = get_merged_vocabulary(selected_domains)
+                            patterns = get_merged_clarification_patterns(selected_domains)
                             clarifier_result, _ = await run_clarifier(
                                 client,
                                 raw_input,
                                 analyzer_output,
                                 vocabulary,
+                                patterns,
                                 retriever_output.retrieval_summary if retriever_output else None,
                             )
                             print_section("Clarifier Output")
@@ -972,11 +999,13 @@ async def process_input(
                         if has_non_retrievable:
                             try:
                                 vocabulary = get_merged_vocabulary(selected_domains)
+                                patterns = get_merged_clarification_patterns(selected_domains)
                                 clarifier_result, _ = await run_clarifier(
                                     client,
                                     query_portion,
                                     analyzer_output,
                                     vocabulary,
+                                    patterns,
                                     retriever_output.retrieval_summary if retriever_output else None,
                                 )
                                 print_section("Clarifier Output (query portion)")
