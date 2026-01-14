@@ -202,4 +202,18 @@ nutrition = Nutrition(
         "Correlate: nutrition vs workout performance, meal timing vs energy levels, "
         "weekend vs weekday eating patterns, travel/social impact on nutrition."
     ),
+    clarification_patterns={
+        "SUBJECTIVE": [
+            "How hungry are you feeling right now?",
+            "Are you experiencing any food cravings?",
+            "How did your last meal make you feel - satisfied or still hungry?",
+            "Any digestive issues or food sensitivities to consider?",
+        ],
+        "CLARIFICATION": [
+            "Which meal are you asking about (breakfast, lunch, dinner, snack)?",
+            "Are you tracking specific macros (protein, carbs, fat) or total calories?",
+            "What's your current nutritional goal (muscle gain, fat loss, maintenance)?",
+            "Should I focus on timing (pre/post workout) or just daily totals?",
+        ],
+    },
 )

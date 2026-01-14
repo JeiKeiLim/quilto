@@ -229,4 +229,18 @@ strength = Strength(
         "persistent high RPE (>9 average over 2+ weeks), dramatic volume spikes. "
         "Correlate: performance vs sleep notes, strength trends vs bodyweight changes."
     ),
+    clarification_patterns={
+        "SUBJECTIVE": [
+            "How does your body feel today - any lingering soreness from previous workouts?",
+            "Are any joints or muscles feeling off or tight?",
+            "Did your warm-up sets feel smooth or did something feel heavy?",
+            "How's your grip strength feeling today?",
+        ],
+        "CLARIFICATION": [
+            "Which specific lift are you asking about (squat, bench, deadlift, etc.)?",
+            "What rep range are you targeting - strength (1-5), hypertrophy (6-12), or endurance (12+)?",
+            "Do you have access to your usual equipment, or are you working with substitutes?",
+            "Are you comparing to a recent session or your all-time PR?",
+        ],
+    },
 )

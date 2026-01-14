@@ -838,6 +838,7 @@ class ClarifierInput(BaseModel):
         vocabulary: Domain vocabulary for proper terminology.
         retrieval_history: Previous retrieval attempts for context.
         previous_clarifications: Questions already asked (to avoid re-asking).
+        clarification_patterns: Domain-specific example questions by gap type.
 
     Example:
         >>> clarifier_input = ClarifierInput(
@@ -849,7 +850,8 @@ class ClarifierInput(BaseModel):
         ...     )],
         ...     vocabulary={"rpe": "rate of perceived exertion"},
         ...     retrieval_history=[],
-        ...     previous_clarifications=[]
+        ...     previous_clarifications=[],
+        ...     clarification_patterns={"SUBJECTIVE": ["How's your energy level?"]}
         ... )
     """
 
@@ -860,6 +862,7 @@ class ClarifierInput(BaseModel):
     vocabulary: dict[str, str]
     retrieval_history: list[RetrievalAttempt] = Field(default_factory=list)  # pyright: ignore[reportUnknownVariableType]
     previous_clarifications: list[str] = Field(default_factory=list)  # pyright: ignore[reportUnknownVariableType]
+    clarification_patterns: dict[str, list[str]] = Field(default_factory=dict)  # pyright: ignore[reportUnknownVariableType]
 
 
 class ClarifierOutput(BaseModel):

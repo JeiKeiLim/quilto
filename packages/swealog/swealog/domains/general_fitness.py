@@ -125,4 +125,17 @@ general_fitness = GeneralFitness(
         "general engagement patterns (consistency, gaps). Flag: sudden intensity "
         "spikes, extended rest periods, dramatic volume changes."
     ),
+    clarification_patterns={
+        "SUBJECTIVE": [
+            "How's your energy level right now - feeling fresh or fatigued?",
+            "How well did you sleep last night (roughly)?",
+            "Are you dealing with any stress or life factors affecting your training?",
+            "On a scale of 1-10, how motivated are you for today's workout?",
+        ],
+        "CLARIFICATION": [
+            "Which specific workout or activity are you asking about?",
+            "What time period should I focus on - today, this week, or longer?",
+            "Are you asking about a specific type of exercise (cardio, strength, flexibility)?",
+        ],
+    },
 )

@@ -106,7 +106,7 @@ development_status:
   5-1-implement-clarifier-agent: done
   5-2-implement-wait-user-state: done
   5-3-implement-correction-flow: done
-  5-4-add-fitness-clarification-patterns: backlog
+  5-4-add-fitness-clarification-patterns: done
   epic-5-retrospective: optional
 
   # Epic 6: Domain Intelligence

@@ -153,6 +153,28 @@ class ClarifierAgent:
 
         return "\n".join(lines)
 
+    def _format_clarification_patterns(self, patterns: dict[str, list[str]]) -> str:
+        """Format clarification patterns for the prompt.
+
+        Args:
+            patterns: Gap type to example questions mapping. Keys should be
+                uppercase strings like "SUBJECTIVE", "CLARIFICATION".
+
+        Returns:
+            Formatted string with domain-specific example questions.
+        """
+        if not patterns:
+            return "(No domain-specific patterns provided)"
+
+        lines: list[str] = []
+        for gap_type, examples in patterns.items():
+            lines.append(f"For {gap_type} gaps, consider questions like:")
+            for example in examples:
+                lines.append(f"  - {example}")
+            lines.append("")
+
+        return "\n".join(lines).strip()
+
     def has_questions(self, output: ClarifierOutput) -> bool:
         """Check if output contains any questions.
 
@@ -181,6 +203,7 @@ class ClarifierAgent:
         gaps_text = self._format_gaps(non_retrievable_gaps)
         retrieval_text = self._format_retrieval_history(clarifier_input.retrieval_history)
         previous_text = self._format_previous_clarifications(clarifier_input.previous_clarifications)
+        patterns_text = self._format_clarification_patterns(clarifier_input.clarification_patterns)
 
         return f"""ROLE: You are a clarification agent that requests missing information from users.
 
@@ -218,6 +241,11 @@ Bad: "Can you tell me more?" (vague, unhelpful)
 
 Good: "Were you feeling tired or energized?" (options provided)
 Bad: "How were you feeling?" (too open-ended)
+
+=== DOMAIN-SPECIFIC PATTERNS ===
+{patterns_text}
+
+Use these patterns as inspiration. Adapt them to the specific context.
 
 === GAP TYPES YOU SHOULD ASK ABOUT ===
 

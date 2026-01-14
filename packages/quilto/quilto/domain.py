@@ -30,6 +30,9 @@ class DomainModule(BaseModel):
         context_management_guidance: Instructions for Observer agent on what patterns
             to track over time. E.g., "Track personal records, workout frequency,
             recovery patterns".
+        clarification_patterns: Example questions for clarification, grouped by gap
+            type. E.g., {"SUBJECTIVE": ["How are you feeling?"], "CLARIFICATION":
+            ["Which exercise?"]}.
 
     Example:
         >>> from pydantic import BaseModel
@@ -69,6 +72,19 @@ class DomainModule(BaseModel):
 
     context_management_guidance: str = ""
     """Instructions for Observer agent on what patterns to track over time."""
+
+    clarification_patterns: dict[str, list[str]] = {}
+    """Example questions for clarification, grouped by gap type.
+
+    Maps gap type names (SUBJECTIVE, CLARIFICATION) to example questions
+    that guide the Clarifier agent in asking domain-appropriate questions.
+
+    Example:
+        clarification_patterns = {
+            "SUBJECTIVE": ["How are you feeling today?"],
+            "CLARIFICATION": ["Which exercise are you asking about?"],
+        }
+    """
 
     @field_validator("log_schema", mode="before")
     @classmethod

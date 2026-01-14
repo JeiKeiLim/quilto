@@ -265,4 +265,18 @@ running = Running(
         "Correlate: pace vs heart rate (cardiac drift), performance vs sleep/recovery notes, "
         "injury mentions vs training load, race performance vs training volume."
     ),
+    clarification_patterns={
+        "SUBJECTIVE": [
+            "How did your breathing feel during the run - comfortable or labored?",
+            "Did your legs feel fresh or heavy?",
+            "Were you well-hydrated before and during?",
+            "How did the temperature/weather affect your run?",
+        ],
+        "CLARIFICATION": [
+            "Are you focusing on distance, time, or pace for this run?",
+            "What type of terrain - road, trail, or track?",
+            "Is this training for a specific race or event?",
+            "Should I compare to your recent runs or your best times?",
+        ],
+    },
 )
