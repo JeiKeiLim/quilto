@@ -139,7 +139,24 @@ class EvaluatorAgent:
         Returns:
             Formatted string with entries summary.
         """
-        return f"AVAILABLE EVIDENCE:\n{entries_summary}"
+        return entries_summary
+
+    def _format_user_responses(self, user_responses: dict[str, str]) -> str:
+        """Format user responses for the prompt.
+
+        Args:
+            user_responses: Map of gap_addressed to user's answer.
+
+        Returns:
+            Formatted string showing what the user provided.
+        """
+        if not user_responses:
+            return ""
+
+        lines: list[str] = []
+        for gap, answer in user_responses.items():
+            lines.append(f"- {gap}: {answer}")
+        return "\n".join(lines)
 
     def build_prompt(self, evaluator_input: EvaluatorInput) -> str:
         """Build the system prompt for response evaluation.
@@ -155,6 +172,25 @@ class EvaluatorAgent:
         rules_text = self._format_evaluation_rules(evaluator_input.evaluation_rules)
         feedback_text = self._format_previous_feedback(evaluator_input.previous_feedback)
         entries_text = self._format_entries_summary(evaluator_input.entries_summary)
+
+        # Build user responses section if present
+        user_responses_section = ""
+        if evaluator_input.user_responses:
+            formatted_responses = self._format_user_responses(evaluator_input.user_responses)
+            user_responses_section = f"""
+=== USER CLARIFICATION CONTEXT ===
+
+The following information was gathered directly from the user via clarification questions.
+This information is AUTHORITATIVE and should NOT be flagged as speculation.
+
+{formatted_responses}
+
+IMPORTANT EVALUATION RULES FOR CLARIFICATION CONTEXT:
+1. Information derived from user answers is NOT speculation - it is user-provided data
+2. Do NOT suggest "ask the user" for information already provided above
+3. Treat user answers as valid evidence, equivalent to stored log entries
+4. The response correctly uses this context if it references or builds upon these answers
+"""
 
         # Retry context
         retry_instruction = ""
@@ -206,8 +242,9 @@ CRITICAL: Strict AND logic applies:
 === ANALYSIS RESULTS ===
 {analysis_text}
 
-=== {entries_text}
-
+=== AVAILABLE EVIDENCE ===
+{entries_text}
+{user_responses_section}
 === INPUT ===
 
 Original query: {evaluator_input.query}

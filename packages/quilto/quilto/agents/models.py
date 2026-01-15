@@ -770,6 +770,15 @@ class EvaluatorInput(BaseModel):
     evaluation_rules: list[str]
     attempt_number: int = Field(default=1, ge=1)
     previous_feedback: list[EvaluationFeedback] = Field(default_factory=list)  # pyright: ignore[reportUnknownVariableType]
+    user_responses: dict[str, str] = Field(default_factory=dict)  # pyright: ignore[reportUnknownVariableType]
+    """User's answers to clarification questions.
+
+    Maps gap_addressed (question topic) to the user's answer.
+    Example: {"Current 1RM": "60kg for 10 reps", "Training days": "4 days"}
+
+    When non-empty, Evaluator should treat this as authoritative information
+    and NOT flag responses using this data as speculative.
+    """
 
 
 class EvaluatorOutput(BaseModel):

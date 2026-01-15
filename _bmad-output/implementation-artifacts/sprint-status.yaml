@@ -108,7 +108,7 @@ development_status:
   5-3-implement-correction-flow: done
   5-4-add-fitness-clarification-patterns: done
   # Story 5.5: Hotfix from Epic 5 Retrospective - Evaluator missing clarification context
-  5-5-pass-clarification-context-to-evaluator: ready-for-dev
+  5-5-pass-clarification-context-to-evaluator: done
   epic-5-retrospective: optional
 
   # Epic 6: Domain Intelligence

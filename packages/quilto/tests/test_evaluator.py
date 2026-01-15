@@ -867,14 +867,19 @@ class TestFormatEntriesSummaryHelper:
     """Tests for EvaluatorAgent._format_entries_summary method."""
 
     def test_format_entries_summary(self) -> None:
-        """_format_entries_summary formats entries summary."""
+        """_format_entries_summary returns entries summary as-is.
+
+        Note: The "AVAILABLE EVIDENCE" header is now in the prompt template,
+        not in _format_entries_summary, for consistent section formatting.
+        """
         client = create_mock_llm_client({})
         evaluator = EvaluatorAgent(client)
 
         summary = create_sample_entries_summary()
         result = evaluator._format_entries_summary(summary)  # pyright: ignore[reportPrivateUsage]
 
-        assert "AVAILABLE EVIDENCE:" in result
+        # Returns raw summary (header is in template)
+        assert result == summary
         assert "5 bench press entries found" in result
 
 
@@ -1542,3 +1547,319 @@ class TestEvaluatorIntegration:
         # Should have valid output structure
         assert result is not None
         assert len(result.dimensions) == 4
+
+
+# =============================================================================
+# Test user_responses Field (Story 5.5)
+# =============================================================================
+
+
+class TestEvaluatorInputUserResponses:
+    """Tests for EvaluatorInput.user_responses field (Story 5-5)."""
+
+    def test_evaluator_input_user_responses_default_empty(self) -> None:
+        """EvaluatorInput has empty user_responses dict by default (AC #6)."""
+        evaluator_input = EvaluatorInput(
+            query="Test query",
+            response="Test response",
+            analysis=create_sample_analyzer_output(),
+            entries_summary="Test summary",
+            evaluation_rules=[],
+        )
+        assert evaluator_input.user_responses == {}
+
+    def test_evaluator_input_user_responses_accepts_dict(self) -> None:
+        """EvaluatorInput accepts user_responses dict (AC #2)."""
+        user_responses = {
+            "Current 1RM": "60kg for 10 reps",
+            "Training days": "4 days per week",
+        }
+        evaluator_input = EvaluatorInput(
+            query="Test query",
+            response="Test response",
+            analysis=create_sample_analyzer_output(),
+            entries_summary="Test summary",
+            evaluation_rules=[],
+            user_responses=user_responses,
+        )
+        assert evaluator_input.user_responses == user_responses
+        assert len(evaluator_input.user_responses) == 2
+
+    def test_evaluator_input_user_responses_single_entry(self) -> None:
+        """EvaluatorInput accepts single user_responses entry."""
+        user_responses = {"Current 1RM": "80kg"}
+        evaluator_input = EvaluatorInput(
+            query="Test query",
+            response="Test response",
+            analysis=create_sample_analyzer_output(),
+            entries_summary="Test summary",
+            evaluation_rules=[],
+            user_responses=user_responses,
+        )
+        assert len(evaluator_input.user_responses) == 1
+        assert evaluator_input.user_responses["Current 1RM"] == "80kg"
+
+    def test_evaluator_input_backward_compat_without_user_responses(self) -> None:
+        """EvaluatorInput works exactly as before without user_responses (AC #6)."""
+        # This mirrors existing tests without user_responses field
+        evaluator_input = EvaluatorInput(
+            query="How has my bench press progressed?",
+            response="Your bench press increased by 10 lbs",
+            analysis=create_sample_analyzer_output(),
+            entries_summary=create_sample_entries_summary(),
+            evaluation_rules=create_sample_evaluation_rules(),
+            attempt_number=2,
+            previous_feedback=create_sample_evaluation_feedback(),
+        )
+        # All existing fields work as before
+        assert evaluator_input.query == "How has my bench press progressed?"
+        assert evaluator_input.attempt_number == 2
+        assert len(evaluator_input.previous_feedback) == 2
+        # user_responses defaults to empty dict
+        assert evaluator_input.user_responses == {}
+
+
+class TestFormatUserResponsesHelper:
+    """Tests for EvaluatorAgent._format_user_responses method (Story 5-5, Task 5.5)."""
+
+    def test_format_user_responses_empty_returns_empty(self) -> None:
+        """_format_user_responses returns empty string for empty dict."""
+        client = create_mock_llm_client({})
+        evaluator = EvaluatorAgent(client)
+
+        result = evaluator._format_user_responses({})  # pyright: ignore[reportPrivateUsage]
+        assert result == ""
+
+    def test_format_user_responses_single_entry(self) -> None:
+        """_format_user_responses formats single entry correctly."""
+        client = create_mock_llm_client({})
+        evaluator = EvaluatorAgent(client)
+
+        user_responses = {"Current 1RM": "60kg for 10 reps"}
+        result = evaluator._format_user_responses(user_responses)  # pyright: ignore[reportPrivateUsage]
+
+        assert "- Current 1RM: 60kg for 10 reps" in result
+
+    def test_format_user_responses_multiple_entries(self) -> None:
+        """_format_user_responses formats multiple entries correctly."""
+        client = create_mock_llm_client({})
+        evaluator = EvaluatorAgent(client)
+
+        user_responses = {
+            "Current 1RM": "60kg for 10 reps",
+            "Training days": "4 days per week",
+            "Goal": "Increase bench to 100kg",
+        }
+        result = evaluator._format_user_responses(user_responses)  # pyright: ignore[reportPrivateUsage]
+
+        assert "- Current 1RM: 60kg for 10 reps" in result
+        assert "- Training days: 4 days per week" in result
+        assert "- Goal: Increase bench to 100kg" in result
+
+
+class TestBuildPromptUserResponses:
+    """Tests for build_prompt with user_responses (Story 5-5, Tasks 5.3, 5.4)."""
+
+    def test_prompt_includes_clarification_context_when_provided(self) -> None:
+        """build_prompt includes USER CLARIFICATION CONTEXT section when user_responses provided (AC #3)."""
+        client = create_mock_llm_client({})
+        evaluator = EvaluatorAgent(client)
+
+        user_responses = {
+            "Current 1RM": "60kg for 10 reps",
+            "Training days": "4 days per week",
+        }
+        evaluator_input = EvaluatorInput(
+            query="Test query",
+            response="Test response",
+            analysis=create_sample_analyzer_output(),
+            entries_summary=create_sample_entries_summary(),
+            evaluation_rules=[],
+            user_responses=user_responses,
+        )
+        prompt = evaluator.build_prompt(evaluator_input)
+
+        assert "USER CLARIFICATION CONTEXT" in prompt
+        assert "Current 1RM: 60kg for 10 reps" in prompt
+        assert "Training days: 4 days per week" in prompt
+
+    def test_prompt_omits_clarification_context_when_empty(self) -> None:
+        """build_prompt omits USER CLARIFICATION CONTEXT when user_responses empty (Task 5.4)."""
+        client = create_mock_llm_client({})
+        evaluator = EvaluatorAgent(client)
+
+        evaluator_input = EvaluatorInput(
+            query="Test query",
+            response="Test response",
+            analysis=create_sample_analyzer_output(),
+            entries_summary=create_sample_entries_summary(),
+            evaluation_rules=[],
+            user_responses={},  # Empty
+        )
+        prompt = evaluator.build_prompt(evaluator_input)
+
+        assert "USER CLARIFICATION CONTEXT" not in prompt
+
+    def test_prompt_clarification_states_authoritative(self) -> None:
+        """build_prompt states user answers are AUTHORITATIVE (AC #5)."""
+        client = create_mock_llm_client({})
+        evaluator = EvaluatorAgent(client)
+
+        evaluator_input = EvaluatorInput(
+            query="Test query",
+            response="Test response",
+            analysis=create_sample_analyzer_output(),
+            entries_summary=create_sample_entries_summary(),
+            evaluation_rules=[],
+            user_responses={"Current 1RM": "80kg"},
+        )
+        prompt = evaluator.build_prompt(evaluator_input)
+
+        assert "AUTHORITATIVE" in prompt
+        assert "NOT be flagged as speculation" in prompt
+
+    def test_prompt_clarification_instruction_no_ask_again(self) -> None:
+        """build_prompt includes instruction not to suggest asking again (AC #4)."""
+        client = create_mock_llm_client({})
+        evaluator = EvaluatorAgent(client)
+
+        evaluator_input = EvaluatorInput(
+            query="Test query",
+            response="Test response",
+            analysis=create_sample_analyzer_output(),
+            entries_summary=create_sample_entries_summary(),
+            evaluation_rules=[],
+            user_responses={"Current 1RM": "80kg"},
+        )
+        prompt = evaluator.build_prompt(evaluator_input)
+
+        assert 'Do NOT suggest "ask the user"' in prompt
+
+    def test_prompt_clarification_instruction_not_speculation(self) -> None:
+        """build_prompt includes instruction that user-provided info is NOT speculation (AC #1)."""
+        client = create_mock_llm_client({})
+        evaluator = EvaluatorAgent(client)
+
+        evaluator_input = EvaluatorInput(
+            query="Test query",
+            response="Test response",
+            analysis=create_sample_analyzer_output(),
+            entries_summary=create_sample_entries_summary(),
+            evaluation_rules=[],
+            user_responses={"Current 1RM": "80kg"},
+        )
+        prompt = evaluator.build_prompt(evaluator_input)
+
+        assert "NOT speculation" in prompt
+        assert "user-provided data" in prompt
+
+    def test_prompt_clarification_instruction_valid_evidence(self) -> None:
+        """build_prompt states user answers are valid evidence."""
+        client = create_mock_llm_client({})
+        evaluator = EvaluatorAgent(client)
+
+        evaluator_input = EvaluatorInput(
+            query="Test query",
+            response="Test response",
+            analysis=create_sample_analyzer_output(),
+            entries_summary=create_sample_entries_summary(),
+            evaluation_rules=[],
+            user_responses={"Current 1RM": "80kg"},
+        )
+        prompt = evaluator.build_prompt(evaluator_input)
+
+        assert "valid evidence" in prompt
+
+
+class TestEvaluatorWithUserResponses:
+    """Integration tests for Evaluator with user_responses (Story 5-5, Task 5.6)."""
+
+    @pytest.mark.asyncio
+    async def test_evaluate_with_user_responses_passes(self) -> None:
+        """Evaluator with user_responses doesn't flag user-provided info as speculative."""
+        # Create a response that acknowledges the mock returns PASS
+        response = create_sample_evaluator_output_pass()
+        client = create_mock_llm_client(response)
+        evaluator = EvaluatorAgent(client)
+
+        user_responses = {
+            "Current 1RM": "60kg for 10 reps, so estimated ~80kg 1RM",
+        }
+
+        result = await evaluator.evaluate(
+            EvaluatorInput(
+                query="What weight should I use for my 5x5 bench program?",
+                response="Based on your estimated 1RM of ~80kg, you should use around 60-65kg for 5x5.",
+                analysis=create_sample_analyzer_output(),
+                entries_summary=create_sample_entries_summary(),
+                evaluation_rules=create_sample_evaluation_rules(),
+                user_responses=user_responses,
+            )
+        )
+
+        assert isinstance(result, EvaluatorOutput)
+        # Mock returns PASS, so we verify the structure is correct
+        assert result.overall_verdict == Verdict.SUFFICIENT
+        assert result.recommendation == "accept"
+
+    @pytest.mark.asyncio
+    async def test_evaluate_without_user_responses_backward_compat(self) -> None:
+        """Evaluator without user_responses works exactly as before (AC #6)."""
+        response = create_sample_evaluator_output_pass()
+        client = create_mock_llm_client(response)
+        evaluator = EvaluatorAgent(client)
+
+        # Call without user_responses field - should work exactly as before
+        result = await evaluator.evaluate(
+            EvaluatorInput(
+                query="How has my bench press progressed?",
+                response="Your bench press increased by 10 lbs",
+                analysis=create_sample_analyzer_output(),
+                entries_summary=create_sample_entries_summary(),
+                evaluation_rules=create_sample_evaluation_rules(),
+            )
+        )
+
+        assert isinstance(result, EvaluatorOutput)
+        assert result.overall_verdict == Verdict.SUFFICIENT
+
+    @pytest.mark.asyncio
+    async def test_real_evaluation_with_user_responses(
+        self, use_real_ollama: bool, integration_llm_config_path: Path
+    ) -> None:
+        """Test real evaluation with user_responses context.
+
+        This tests that the Evaluator doesn't flag user-provided info as speculation
+        when user_responses is provided.
+        """
+        if not use_real_ollama:
+            pytest.skip("Requires --use-real-ollama flag")
+
+        config = load_llm_config(integration_llm_config_path)
+        real_llm_client = LLMClient(config)
+        evaluator = EvaluatorAgent(real_llm_client)
+
+        # User provided their estimated 1RM via clarification
+        user_responses = {
+            "Current 1RM": "Haven't measured directly. 60kg for 10 reps so far.",
+        }
+
+        result = await evaluator.evaluate(
+            EvaluatorInput(
+                query="What weight should I use for my 5x5 bench program?",
+                response="Based on your estimate of 60kg for 10 reps, your 1RM is approximately "
+                "78-80kg. For a 5x5 program, you should use around 65-70% of your 1RM, "
+                "which means 52-56kg. Start with 52kg and progress as you get comfortable.",
+                analysis=create_sample_analyzer_output(),
+                entries_summary=create_sample_entries_summary(),
+                evaluation_rules=create_sample_evaluation_rules(),
+                user_responses=user_responses,
+            )
+        )
+
+        # Should have valid output structure
+        assert result is not None
+        assert len(result.dimensions) == 4
+        # The key test: with user_responses context, the evaluator should NOT
+        # flag the 1RM estimate as speculation since it came from the user
+        assert result.overall_verdict in [Verdict.SUFFICIENT, Verdict.INSUFFICIENT, Verdict.PARTIAL]

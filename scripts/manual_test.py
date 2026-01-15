@@ -628,6 +628,26 @@ def format_clarification_context(answers: dict[str, str]) -> str:
     return "\n".join(lines)
 
 
+def build_user_responses_for_evaluator(
+    raw_answers: dict[str, str],
+    clarifier_output: ClarifierOutput,
+) -> dict[str, str]:
+    """Convert raw answers to user_responses format for Evaluator.
+
+    Args:
+        raw_answers: Dict mapping question text to user's answer.
+        clarifier_output: ClarifierOutput containing question metadata.
+
+    Returns:
+        Dict mapping gap_addressed to user's answer.
+    """
+    user_responses: dict[str, str] = {}
+    for q in clarifier_output.questions:
+        if q.question in raw_answers:
+            user_responses[q.gap_addressed] = raw_answers[q.question]
+    return user_responses
+
+
 async def run_synthesizer(
     client: LLMClient,
     query: str,
@@ -764,6 +784,7 @@ async def run_evaluator(
     evaluation_rules: list[str],
     attempt_number: int = 1,
     previous_feedback: list[EvaluationFeedback] | None = None,
+    user_responses: dict[str, str] | None = None,
 ) -> tuple[dict[str, Any], EvaluatorOutput]:
     """Run Evaluator agent and return results.
 
@@ -776,6 +797,7 @@ async def run_evaluator(
         evaluation_rules: Domain-specific rules.
         attempt_number: Current attempt number.
         previous_feedback: Feedback from previous attempts.
+        user_responses: User's answers to clarification questions (gap_addressed -> answer).
 
     Returns:
         Tuple of result dict and EvaluatorOutput.
@@ -790,6 +812,7 @@ async def run_evaluator(
         evaluation_rules=evaluation_rules,
         attempt_number=attempt_number,
         previous_feedback=previous_feedback or [],
+        user_responses=user_responses or {},
     )
 
     print_section("Evaluator Input")
@@ -797,6 +820,8 @@ async def run_evaluator(
     print(f"Response length: {len(response)} chars")
     print(f"Attempt: {attempt_number}")
     print(f"Evaluation rules: {len(evaluation_rules)} rules")
+    if user_responses:
+        print(f"User responses: {len(user_responses)} clarification answer(s)")
 
     print_section("Running Evaluator...")
     output = await evaluator.evaluate(evaluator_input)
@@ -1004,8 +1029,9 @@ async def process_input(
                 except Exception as e:
                     print(f"\nAnalyzer ERROR: {e}")
 
-                # Track clarification context for synthesis
+                # Track clarification context for synthesis and user_responses for evaluator
                 clarification_context = ""
+                user_responses: dict[str, str] = {}
 
                 # Run Clarifier if there are non-retrievable gaps
                 if analyzer_output is not None:
@@ -1036,6 +1062,10 @@ async def process_input(
                                 answers = collect_clarification_answers(clarifier_output)
                                 if answers:
                                     clarification_context = format_clarification_context(answers)
+                                    # Convert to gap_addressed -> answer format for Evaluator
+                                    user_responses = build_user_responses_for_evaluator(
+                                        answers, clarifier_output
+                                    )
                                     print_section("Collected Answers")
                                     print(clarification_context)
                         except Exception as e:
@@ -1067,6 +1097,7 @@ async def process_input(
                                 analyzer_output,
                                 entries_summary,
                                 evaluation_rules,
+                                user_responses=user_responses,
                             )
                             print_section("Evaluator Output")
                             print_json(evaluator_result)
@@ -1124,8 +1155,9 @@ async def process_input(
                     except Exception as e:
                         print(f"\nAnalyzer ERROR: {e}")
 
-                    # Track clarification context for synthesis
+                    # Track clarification context for synthesis and user_responses for evaluator
                     clarification_context = ""
+                    user_responses_both: dict[str, str] = {}
 
                     # Run Clarifier if there are non-retrievable gaps
                     if analyzer_output is not None:
@@ -1156,6 +1188,10 @@ async def process_input(
                                     answers = collect_clarification_answers(clarifier_output)
                                     if answers:
                                         clarification_context = format_clarification_context(answers)
+                                        # Convert to gap_addressed -> answer format for Evaluator
+                                        user_responses_both = build_user_responses_for_evaluator(
+                                            answers, clarifier_output
+                                        )
                                         print_section("Collected Answers (query portion)")
                                         print(clarification_context)
                             except Exception as e:
@@ -1187,6 +1223,7 @@ async def process_input(
                                     analyzer_output,
                                     entries_summary,
                                     evaluation_rules,
+                                    user_responses=user_responses_both,
                                 )
                                 print_section("Evaluator Output (query portion)")
                                 print_json(evaluator_result)
