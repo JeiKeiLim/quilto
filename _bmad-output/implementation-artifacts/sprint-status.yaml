@@ -102,18 +102,18 @@ development_status:
   epic-4-retrospective: done
 
   # Epic 5: Human-in-the-Loop
-  epic-5: in-progress
+  epic-5: done
   5-1-implement-clarifier-agent: done
   5-2-implement-wait-user-state: done
   5-3-implement-correction-flow: done
   5-4-add-fitness-clarification-patterns: done
   # Story 5.5: Hotfix from Epic 5 Retrospective - Evaluator missing clarification context
   5-5-pass-clarification-context-to-evaluator: done
-  epic-5-retrospective: optional
+  epic-5-retrospective: done
 
   # Epic 6: Domain Intelligence
-  epic-6: backlog
-  6-1-implement-domain-auto-selection: backlog
+  epic-6: in-progress
+  6-1-implement-domain-auto-selection: done
   6-2-implement-multi-domain-combination: backlog
   6-3-implement-mid-flow-domain-expansion: backlog
   6-4-create-swimming-domain-module: backlog

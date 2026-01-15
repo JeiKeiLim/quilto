@@ -11,6 +11,7 @@ from quilto.agents import (
     RouterOutput,
 )
 from quilto.domain import DomainModule
+from quilto.domain_selector import DomainSelector
 from quilto.flow import CorrectionResult, process_correction
 from quilto.llm import (
     AgentConfig,
@@ -40,6 +41,7 @@ __all__ = [
     "DateRange",
     "DomainInfo",
     "DomainModule",
+    "DomainSelector",
     "Entry",
     "InputType",
     "LLMClient",

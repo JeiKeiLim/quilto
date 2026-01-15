@@ -310,18 +310,20 @@ class SubQuery(BaseModel):
 
 
 class ActiveDomainContext(BaseModel):
-    """Combined context from base + selected domains.
+    """Combined context from selected domains for downstream agents.
 
-    NOTE: This is a stub for Planner story. Full implementation
-    will come with domain combination feature.
+    Built by DomainSelector from Router's selected_domains output. Contains
+    merged vocabularies, combined expertise, and other domain-specific data
+    needed by downstream agents (Analyzer, Planner, Clarifier, etc.).
 
     Attributes:
         domains_loaded: List of domain names currently loaded.
-        vocabulary: Term normalization mapping.
-        expertise: Description of combined expertise.
-        evaluation_rules: List of domain-specific evaluation rules.
-        context_guidance: Guidance for context usage.
-        available_domains: List of all available domains.
+        vocabulary: Merged term normalization mapping from all selected domains.
+        expertise: Combined expertise from selected domains with domain labels.
+        evaluation_rules: Combined evaluation rules from all selected domains.
+        context_guidance: Combined context management guidance.
+        available_domains: List of all available domains (for Router reference).
+        clarification_patterns: Merged clarification patterns grouped by gap type.
     """
 
     model_config = ConfigDict(strict=True)
@@ -332,6 +334,7 @@ class ActiveDomainContext(BaseModel):
     evaluation_rules: list[str] = []
     context_guidance: str = ""
     available_domains: list[DomainInfo] = []
+    clarification_patterns: dict[str, list[str]] = {}
 
 
 class PlannerInput(BaseModel):

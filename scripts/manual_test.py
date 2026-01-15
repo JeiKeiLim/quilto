@@ -47,6 +47,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "packages" / "swealog"))
 
 from quilto import (  # noqa: E402
     DomainInfo,
+    DomainSelector,
     InputType,
     LLMClient,
     ParserAgent,
@@ -90,6 +91,10 @@ from swealog.domains import (  # noqa: E402
     strength,
 )
 
+# Initialize DomainSelector with all Swealog domains
+ALL_DOMAINS = [general_fitness, strength, nutrition, running]
+domain_selector = DomainSelector(ALL_DOMAINS)
+
 
 def print_header(text: str) -> None:
     """Print a formatted header."""
@@ -109,13 +114,11 @@ def print_json(data: dict[str, Any], indent: int = 2) -> None:
 
 
 def get_available_domains() -> list[DomainInfo]:
-    """Get list of available domain info for Router."""
-    return [
-        DomainInfo(name=general_fitness.name, description=general_fitness.description),
-        DomainInfo(name=strength.name, description=strength.description),
-        DomainInfo(name=nutrition.name, description=nutrition.description),
-        DomainInfo(name=running.name, description=running.description),
-    ]
+    """Get list of available domain info for Router.
+
+    Uses DomainSelector.get_domain_infos() for consistency.
+    """
+    return domain_selector.get_domain_infos()
 
 
 def get_domain_schemas(selected_domains: list[str]) -> dict[str, type]:
@@ -130,72 +133,31 @@ def get_domain_schemas(selected_domains: list[str]) -> dict[str, type]:
 
 
 def get_merged_vocabulary(selected_domains: list[str]) -> dict[str, str]:
-    """Get merged vocabulary from selected domains."""
-    domain_modules = {
-        general_fitness.name: general_fitness,
-        strength.name: strength,
-        nutrition.name: nutrition,
-        running.name: running,
-    }
-    vocabulary: dict[str, str] = {}
-    for name in selected_domains:
-        if name in domain_modules:
-            vocabulary.update(domain_modules[name].vocabulary)
-    return vocabulary
+    """Get merged vocabulary from selected domains.
+
+    Uses DomainSelector.build_active_context() to get merged vocabulary.
+    """
+    context = domain_selector.build_active_context(selected_domains)
+    return context.vocabulary
 
 
 def get_merged_clarification_patterns(selected_domains: list[str]) -> dict[str, list[str]]:
-    """Get merged clarification_patterns from selected domains."""
-    domain_modules = {
-        general_fitness.name: general_fitness,
-        strength.name: strength,
-        nutrition.name: nutrition,
-        running.name: running,
-    }
-    patterns: dict[str, list[str]] = {}
-    for name in selected_domains:
-        if name in domain_modules:
-            module = domain_modules[name]
-            for gap_type, questions in module.clarification_patterns.items():
-                if gap_type not in patterns:
-                    patterns[gap_type] = []
-                patterns[gap_type].extend(questions)
-    return patterns
+    """Get merged clarification_patterns from selected domains.
+
+    Uses DomainSelector.build_active_context() to get merged patterns.
+    """
+    context = domain_selector.build_active_context(selected_domains)
+    return context.clarification_patterns
 
 
 def build_active_domain_context(selected_domains: list[str]) -> ActiveDomainContext:
-    """Build ActiveDomainContext from selected domains."""
-    domain_modules = {
-        general_fitness.name: general_fitness,
-        strength.name: strength,
-        nutrition.name: nutrition,
-        running.name: running,
-    }
+    """Build ActiveDomainContext from selected domains.
 
-    # Merge vocabulary and expertise from selected domains
-    vocabulary: dict[str, str] = {}
-    expertise_parts: list[str] = []
-
-    for name in selected_domains:
-        if name in domain_modules:
-            module = domain_modules[name]
-            vocabulary.update(module.vocabulary)
-            # Add domain label for multi-domain queries
-            expertise_parts.append(f"[{module.name}] {module.expertise}")
-
-    # Get available domains (those not selected)
-    available = [
-        DomainInfo(name=m.name, description=m.description)
-        for m in domain_modules.values()
-        if m.name not in selected_domains
-    ]
-
-    return ActiveDomainContext(
-        domains_loaded=selected_domains,
-        vocabulary=vocabulary,
-        expertise=" | ".join(expertise_parts) if expertise_parts else "General fitness tracking",
-        available_domains=available,
-    )
+    Uses DomainSelector.build_active_context() for proper domain merging.
+    This delegates to DomainSelector which handles vocabulary conflicts,
+    expertise combination with labels, and clarification pattern merging.
+    """
+    return domain_selector.build_active_context(selected_domains)
 
 
 async def run_router(client: LLMClient, raw_input: str) -> dict[str, Any]:
