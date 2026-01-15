@@ -117,7 +117,7 @@ development_status:
   6-2-implement-multi-domain-combination: done
   6-3-implement-mid-flow-domain-expansion: done
   6-4-create-swimming-domain-module: done
-  epic-6-retrospective: optional
+  epic-6-retrospective: done
 
   # Epic 7: Learning & Personalization
   epic-7: backlog
