@@ -6,7 +6,7 @@ and validates end-to-end flow from Router output to ActiveDomainContext.
 
 import pytest
 from quilto import DomainModule, DomainSelector
-from swealog.domains import nutrition, running, strength
+from swealog.domains import general_fitness, nutrition, running, strength
 
 
 @pytest.fixture
@@ -171,3 +171,139 @@ class TestRouterOutputIntegration:
 
         assert context.domains_loaded == []
         assert len(context.available_domains) == 3  # Still knows all domains
+
+
+class TestBaseDomainWithSwealogDomains:
+    """Integration tests for base_domain with actual Swealog domains.
+
+    Tests Story 6.2: Multi-Domain Combination with general_fitness as base domain.
+    """
+
+    @pytest.fixture
+    def swealog_domains_with_base(self) -> list[DomainModule]:
+        """Return Swealog domains including general_fitness."""
+        return [general_fitness, strength, running, nutrition]
+
+    @pytest.fixture
+    def selector_with_base(
+        self, swealog_domains_with_base: list[DomainModule]
+    ) -> DomainSelector:
+        """Create DomainSelector with general_fitness as base domain."""
+        return DomainSelector(
+            swealog_domains_with_base, base_domain=general_fitness
+        )
+
+    def test_base_domain_general_fitness_with_strength_selected(
+        self, selector_with_base: DomainSelector
+    ) -> None:
+        """general_fitness as base + strength as selected merges correctly."""
+        context = selector_with_base.build_active_context(["Strength"])
+
+        # domains_loaded has base first
+        assert context.domains_loaded == ["GeneralFitness", "Strength"]
+        # Vocabulary from both domains
+        assert "workout" in context.vocabulary  # From general_fitness
+        assert "bp" in context.vocabulary  # From strength
+        # Expertise from both domains
+        assert "[GeneralFitness]" in context.expertise
+        assert "[Strength]" in context.expertise
+        # GeneralFitness expertise comes first
+        gf_pos = context.expertise.find("[GeneralFitness]")
+        strength_pos = context.expertise.find("[Strength]")
+        assert gf_pos < strength_pos
+
+    def test_merged_vocabulary_from_base_and_selected(
+        self, selector_with_base: DomainSelector
+    ) -> None:
+        """Merged context has vocabulary from both general_fitness and strength."""
+        context = selector_with_base.build_active_context(["Strength"])
+
+        # General fitness vocabulary
+        assert "workout" in context.vocabulary
+        assert "cardio" in context.vocabulary
+        assert "pr" in context.vocabulary  # Personal record
+        # Strength vocabulary
+        assert "bp" in context.vocabulary
+        assert context.vocabulary["bp"] == "bench press"
+
+    def test_merged_expertise_from_base_and_selected(
+        self, selector_with_base: DomainSelector
+    ) -> None:
+        """Merged context has expertise from both domains with correct labels."""
+        context = selector_with_base.build_active_context(["Strength"])
+
+        # Both domain labels present
+        assert "[GeneralFitness]" in context.expertise
+        assert "[Strength]" in context.expertise
+        # Content from both domains
+        assert "progressive overload" in context.expertise  # Common fitness principle
+        # Strength-specific content
+        assert any(
+            term in context.expertise.lower()
+            for term in ["1rm", "bench", "squat", "deadlift", "rep", "set"]
+        )
+
+    def test_deduplication_when_general_fitness_both_base_and_selected(
+        self, selector_with_base: DomainSelector
+    ) -> None:
+        """When general_fitness is both base AND selected, it appears only once."""
+        context = selector_with_base.build_active_context(
+            ["GeneralFitness", "Strength"]
+        )
+
+        # GeneralFitness appears only once in domains_loaded
+        assert context.domains_loaded == ["GeneralFitness", "Strength"]
+        assert context.domains_loaded.count("GeneralFitness") == 1
+        # Expertise label also appears only once
+        assert context.expertise.count("[GeneralFitness]") == 1
+
+    def test_base_domain_with_multiple_selected_domains(
+        self, selector_with_base: DomainSelector
+    ) -> None:
+        """Base domain + multiple selected domains merges correctly."""
+        context = selector_with_base.build_active_context(["Strength", "Running"])
+
+        # All three domains in domains_loaded (base + 2 selected)
+        assert context.domains_loaded == ["GeneralFitness", "Strength", "Running"]
+        # All three expertise labels
+        assert "[GeneralFitness]" in context.expertise
+        assert "[Strength]" in context.expertise
+        assert "[Running]" in context.expertise
+
+    def test_evaluation_rules_from_base_and_selected(
+        self, selector_with_base: DomainSelector
+    ) -> None:
+        """Evaluation rules from both base and selected domains are combined."""
+        context = selector_with_base.build_active_context(["Strength"])
+
+        # Rules from general_fitness
+        assert any(
+            "injury" in rule.lower() or "recovery" in rule.lower()
+            for rule in context.evaluation_rules
+        )
+        # Rules from strength
+        assert any("1RM" in rule for rule in context.evaluation_rules)
+
+    def test_clarification_patterns_from_base_and_selected(
+        self, selector_with_base: DomainSelector
+    ) -> None:
+        """Clarification patterns from both domains are combined."""
+        context = selector_with_base.build_active_context(["Strength"])
+
+        # Should have patterns from both domains
+        assert "SUBJECTIVE" in context.clarification_patterns
+        subjective = context.clarification_patterns["SUBJECTIVE"]
+        # Should have more questions than single domain alone
+        assert len(subjective) > 0
+
+    def test_backward_compatible_selector_without_base(
+        self, swealog_domains_with_base: list[DomainModule]
+    ) -> None:
+        """Selector without base_domain works identically to Story 6.1."""
+        selector_no_base = DomainSelector(swealog_domains_with_base)
+        context = selector_no_base.build_active_context(["Strength"])
+
+        # Only Strength in domains_loaded (no GeneralFitness base)
+        assert context.domains_loaded == ["Strength"]
+        assert "[GeneralFitness]" not in context.expertise
+        assert "[Strength]" in context.expertise

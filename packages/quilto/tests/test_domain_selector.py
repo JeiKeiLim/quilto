@@ -313,3 +313,236 @@ class TestUnknownDomainSelection:
         assert context.domains_loaded == ["unknown1", "unknown2"]
         assert context.vocabulary == {}
         assert context.expertise == ""
+
+
+class TestBaseDomainSupport:
+    """Tests for base_domain support in DomainSelector."""
+
+    @pytest.fixture
+    def base_domain(self) -> DomainModule:
+        """Create a base domain for testing."""
+        return DomainModule(
+            name="base_domain",
+            description="Base domain for testing",
+            log_schema=MockSchema,
+            vocabulary={"base_term": "base_value", "shared": "base_shared_value"},
+            expertise="Base domain expertise",
+            response_evaluation_rules=["Base Rule 1", "Base Rule 2"],
+            context_management_guidance="Base guidance",
+            clarification_patterns={
+                "SUBJECTIVE": ["Base subjective question?"],
+                "BASE_TYPE": ["Base specific question?"],
+            },
+        )
+
+    def test_init_with_base_domain(
+        self, domain_a: DomainModule, base_domain: DomainModule
+    ) -> None:
+        """DomainSelector stores base_domain when provided."""
+        selector = DomainSelector([domain_a], base_domain=base_domain)
+        assert selector.base_domain is base_domain
+
+    def test_init_without_base_domain(self, domain_a: DomainModule) -> None:
+        """DomainSelector has base_domain=None by default."""
+        selector = DomainSelector([domain_a])
+        assert selector.base_domain is None
+
+    def test_base_domain_with_single_selected(
+        self, domain_a: DomainModule, base_domain: DomainModule
+    ) -> None:
+        """build_active_context merges base_domain + single selected domain."""
+        selector = DomainSelector([domain_a], base_domain=base_domain)
+        context = selector.build_active_context(["domain_a"])
+
+        # domains_loaded includes base_domain first
+        assert context.domains_loaded == ["base_domain", "domain_a"]
+        # Both vocabularies merged
+        assert "base_term" in context.vocabulary
+        assert "term1" in context.vocabulary
+        # Both expertise combined with base first
+        assert context.expertise.index("[base_domain]") < context.expertise.index(
+            "[domain_a]"
+        )
+        # Both evaluation rules combined
+        assert "Base Rule 1" in context.evaluation_rules
+        assert "Rule A1" in context.evaluation_rules
+
+    def test_base_domain_with_multiple_selected(
+        self, domain_a: DomainModule, domain_b: DomainModule, base_domain: DomainModule
+    ) -> None:
+        """build_active_context merges base_domain + multiple selected domains."""
+        selector = DomainSelector([domain_a, domain_b], base_domain=base_domain)
+        context = selector.build_active_context(["domain_a", "domain_b"])
+
+        # domains_loaded: base first, then selected in order
+        assert context.domains_loaded == ["base_domain", "domain_a", "domain_b"]
+        # All vocabularies merged
+        assert "base_term" in context.vocabulary
+        assert "term1" in context.vocabulary
+        assert "term2" in context.vocabulary
+        # All expertise combined
+        assert "[base_domain]" in context.expertise
+        assert "[domain_a]" in context.expertise
+        assert "[domain_b]" in context.expertise
+
+    def test_base_domain_none_backward_compatible(
+        self, domain_a: DomainModule, domain_b: DomainModule
+    ) -> None:
+        """base_domain=None produces identical results to Story 6.1 implementation."""
+        selector_without_base = DomainSelector([domain_a, domain_b])
+        selector_with_none = DomainSelector([domain_a, domain_b], base_domain=None)
+
+        context1 = selector_without_base.build_active_context(["domain_a", "domain_b"])
+        context2 = selector_with_none.build_active_context(["domain_a", "domain_b"])
+
+        assert context1.domains_loaded == context2.domains_loaded
+        assert context1.vocabulary == context2.vocabulary
+        assert context1.expertise == context2.expertise
+        assert context1.evaluation_rules == context2.evaluation_rules
+        assert context1.context_guidance == context2.context_guidance
+        assert context1.clarification_patterns == context2.clarification_patterns
+
+    def test_vocabulary_merge_order_base_first(
+        self, base_domain: DomainModule
+    ) -> None:
+        """Base domain vocabulary applied first, selected domain overrides conflicts."""
+        # Create domain with conflicting 'shared' key
+        domain_with_override = DomainModule(
+            name="domain_override",
+            description="Domain with override",
+            log_schema=MockSchema,
+            vocabulary={"unique": "unique_value", "shared": "override_value"},
+            expertise="Override expertise",
+            response_evaluation_rules=[],
+            context_management_guidance="",
+            clarification_patterns={},
+        )
+        selector = DomainSelector([domain_with_override], base_domain=base_domain)
+        context = selector.build_active_context(["domain_override"])
+
+        # Selected domain should override base domain's 'shared' value
+        assert context.vocabulary["shared"] == "override_value"
+        # Non-conflicting keys remain
+        assert context.vocabulary["base_term"] == "base_value"
+        assert context.vocabulary["unique"] == "unique_value"
+
+    def test_domains_loaded_base_first(
+        self, domain_a: DomainModule, base_domain: DomainModule
+    ) -> None:
+        """domains_loaded includes base_domain.name first."""
+        selector = DomainSelector([domain_a], base_domain=base_domain)
+        context = selector.build_active_context(["domain_a"])
+
+        assert context.domains_loaded[0] == "base_domain"
+        assert context.domains_loaded[1] == "domain_a"
+
+    def test_deduplication_base_also_selected(
+        self, domain_a: DomainModule, base_domain: DomainModule
+    ) -> None:
+        """When base_domain.name is in selected_domains, it appears only once."""
+        # Register base_domain in selector.domains as well
+        selector = DomainSelector([domain_a, base_domain], base_domain=base_domain)
+        context = selector.build_active_context(["base_domain", "domain_a"])
+
+        # base_domain appears only once in domains_loaded
+        assert context.domains_loaded == ["base_domain", "domain_a"]
+        assert context.domains_loaded.count("base_domain") == 1
+        # Expertise label also appears only once
+        assert context.expertise.count("[base_domain]") == 1
+
+    def test_expertise_base_domain_label_first(
+        self, domain_a: DomainModule, base_domain: DomainModule
+    ) -> None:
+        """Base domain expertise appears first in combined expertise."""
+        selector = DomainSelector([domain_a], base_domain=base_domain)
+        context = selector.build_active_context(["domain_a"])
+
+        # Base domain expertise should come before selected domain
+        base_pos = context.expertise.find("[base_domain]")
+        selected_pos = context.expertise.find("[domain_a]")
+        assert base_pos < selected_pos
+
+    def test_vocabulary_conflict_warning_base_vs_selected(
+        self,
+        base_domain: DomainModule,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Vocabulary conflict between base_domain and selected domain logs warning."""
+        domain_with_conflict = DomainModule(
+            name="conflict_domain",
+            description="Domain with conflict",
+            log_schema=MockSchema,
+            vocabulary={"shared": "conflict_value"},
+            expertise="",
+            response_evaluation_rules=[],
+            context_management_guidance="",
+            clarification_patterns={},
+        )
+        selector = DomainSelector([domain_with_conflict], base_domain=base_domain)
+
+        with caplog.at_level(logging.WARNING):
+            selector.build_active_context(["conflict_domain"])
+
+        assert "Vocabulary conflict for 'shared'" in caplog.text
+        assert "'conflict_value' overrides 'base_shared_value'" in caplog.text
+
+    def test_clarification_patterns_combined(
+        self, domain_a: DomainModule, base_domain: DomainModule
+    ) -> None:
+        """Clarification patterns from base and selected domains are combined."""
+        selector = DomainSelector([domain_a], base_domain=base_domain)
+        context = selector.build_active_context(["domain_a"])
+
+        # SUBJECTIVE has questions from both base and domain_a
+        assert "SUBJECTIVE" in context.clarification_patterns
+        subjective = context.clarification_patterns["SUBJECTIVE"]
+        assert "Base subjective question?" in subjective
+        assert "How do you feel about A?" in subjective
+        # BASE_TYPE is unique to base_domain
+        assert "BASE_TYPE" in context.clarification_patterns
+        assert "Base specific question?" in context.clarification_patterns["BASE_TYPE"]
+
+    def test_evaluation_rules_combined(
+        self, domain_a: DomainModule, base_domain: DomainModule
+    ) -> None:
+        """Evaluation rules from base and selected domains are combined."""
+        selector = DomainSelector([domain_a], base_domain=base_domain)
+        context = selector.build_active_context(["domain_a"])
+
+        # Base rules come first
+        assert "Base Rule 1" in context.evaluation_rules
+        assert "Base Rule 2" in context.evaluation_rules
+        # Selected domain rules included
+        assert "Rule A1" in context.evaluation_rules
+        assert "Rule A2" in context.evaluation_rules
+
+    def test_context_guidance_combined(
+        self, domain_a: DomainModule, base_domain: DomainModule
+    ) -> None:
+        """Context guidance from base and selected domains are combined."""
+        selector = DomainSelector([domain_a], base_domain=base_domain)
+        context = selector.build_active_context(["domain_a"])
+
+        assert "[base_domain] Base guidance" in context.context_guidance
+        assert "[domain_a] Guidance for domain A" in context.context_guidance
+        # Base guidance appears first
+        base_pos = context.context_guidance.find("[base_domain]")
+        selected_pos = context.context_guidance.find("[domain_a]")
+        assert base_pos < selected_pos
+
+    def test_empty_selection_with_base_domain(
+        self, base_domain: DomainModule
+    ) -> None:
+        """Empty selection with base_domain returns only base_domain context."""
+        selector = DomainSelector([], base_domain=base_domain)
+        context = selector.build_active_context([])
+
+        # Only base_domain in domains_loaded
+        assert context.domains_loaded == ["base_domain"]
+        # Base domain vocabulary only
+        assert context.vocabulary == {
+            "base_term": "base_value",
+            "shared": "base_shared_value",
+        }
+        # Base domain expertise
+        assert "[base_domain] Base domain expertise" in context.expertise

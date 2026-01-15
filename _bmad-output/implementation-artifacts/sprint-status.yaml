@@ -114,7 +114,7 @@ development_status:
   # Epic 6: Domain Intelligence
   epic-6: in-progress
   6-1-implement-domain-auto-selection: done
-  6-2-implement-multi-domain-combination: backlog
+  6-2-implement-multi-domain-combination: done
   6-3-implement-mid-flow-domain-expansion: backlog
   6-4-create-swimming-domain-module: backlog
   epic-6-retrospective: optional
