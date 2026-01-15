@@ -6,7 +6,7 @@ and validates end-to-end flow from Router output to ActiveDomainContext.
 
 import pytest
 from quilto import DomainModule, DomainSelector
-from swealog.domains import general_fitness, nutrition, running, strength
+from swealog.domains import general_fitness, nutrition, running, strength, swimming
 
 
 @pytest.fixture
@@ -307,3 +307,146 @@ class TestBaseDomainWithSwealogDomains:
         assert context.domains_loaded == ["Strength"]
         assert "[GeneralFitness]" not in context.expertise
         assert "[Strength]" in context.expertise
+
+
+class TestSwimmingDomainSelectorIntegration:
+    """Integration tests for Swimming domain with DomainSelector.
+
+    Tests AC #6: Cross-domain query selection (Running + Swimming) validates
+    that the Story 6.1-6.3 infrastructure works with the new Swimming domain.
+    """
+
+    @pytest.fixture
+    def swealog_domains_with_swimming(self) -> list[DomainModule]:
+        """Return all Swealog fitness domains including Swimming."""
+        return [general_fitness, strength, running, nutrition, swimming]
+
+    @pytest.fixture
+    def selector_with_swimming(
+        self, swealog_domains_with_swimming: list[DomainModule]
+    ) -> DomainSelector:
+        """Create DomainSelector with all domains including Swimming."""
+        return DomainSelector(swealog_domains_with_swimming)
+
+    @pytest.fixture
+    def selector_with_swimming_and_base(
+        self, swealog_domains_with_swimming: list[DomainModule]
+    ) -> DomainSelector:
+        """Create DomainSelector with general_fitness as base and Swimming available."""
+        return DomainSelector(
+            swealog_domains_with_swimming, base_domain=general_fitness
+        )
+
+    def test_swimming_domain_available_in_selector(
+        self, selector_with_swimming: DomainSelector
+    ) -> None:
+        """Swimming domain is available in DomainSelector domain infos."""
+        infos = selector_with_swimming.get_domain_infos()
+
+        names = {info.name for info in infos}
+        assert "Swimming" in names
+        assert len(infos) == 5  # GeneralFitness, Strength, Running, Nutrition, Swimming
+
+    def test_single_domain_swimming(
+        self, selector_with_swimming: DomainSelector
+    ) -> None:
+        """Build context with single swimming domain."""
+        context = selector_with_swimming.build_active_context(["Swimming"])
+
+        assert context.domains_loaded == ["Swimming"]
+        # Check swimming vocabulary is present
+        assert "free" in context.vocabulary
+        assert context.vocabulary["free"] == "freestyle"
+        # Check swimming expertise
+        assert "[Swimming]" in context.expertise
+        assert "stroke" in context.expertise.lower()
+        # Check evaluation rules
+        assert len(context.evaluation_rules) > 0
+
+    def test_cross_domain_running_and_swimming(
+        self, selector_with_swimming: DomainSelector
+    ) -> None:
+        """Build context with Running and Swimming for cross-domain cardio queries.
+
+        AC #6: Cross-domain query like "compare running vs swimming cardio"
+        should have both domains auto-selected and accessible.
+        """
+        context = selector_with_swimming.build_active_context(["Running", "Swimming"])
+
+        # Both domains loaded
+        assert context.domains_loaded == ["Running", "Swimming"]
+        # Expertise from both domains
+        assert "[Running]" in context.expertise
+        assert "[Swimming]" in context.expertise
+        # Vocabularies merged
+        assert "ran" in context.vocabulary  # From running
+        assert "swam" in context.vocabulary  # From swimming
+        # Evaluation rules combined
+        running_rule_count = len(running.response_evaluation_rules)
+        swimming_rule_count = len(swimming.response_evaluation_rules)
+        assert len(context.evaluation_rules) == running_rule_count + swimming_rule_count
+
+    def test_swimming_with_base_domain(
+        self, selector_with_swimming_and_base: DomainSelector
+    ) -> None:
+        """Swimming domain works with general_fitness base domain."""
+        context = selector_with_swimming_and_base.build_active_context(["Swimming"])
+
+        # Base domain (GeneralFitness) + Swimming
+        assert context.domains_loaded == ["GeneralFitness", "Swimming"]
+        # Expertise from both
+        assert "[GeneralFitness]" in context.expertise
+        assert "[Swimming]" in context.expertise
+        # GeneralFitness comes first in expertise
+        gf_pos = context.expertise.find("[GeneralFitness]")
+        swim_pos = context.expertise.find("[Swimming]")
+        assert gf_pos < swim_pos
+
+    def test_all_five_domains_merged(
+        self, selector_with_swimming: DomainSelector
+    ) -> None:
+        """All five Swealog domains can be selected and merged."""
+        context = selector_with_swimming.build_active_context(
+            ["GeneralFitness", "Strength", "Running", "Nutrition", "Swimming"]
+        )
+
+        assert context.domains_loaded == [
+            "GeneralFitness",
+            "Strength",
+            "Running",
+            "Nutrition",
+            "Swimming",
+        ]
+        # All five expertise labels
+        assert "[GeneralFitness]" in context.expertise
+        assert "[Strength]" in context.expertise
+        assert "[Running]" in context.expertise
+        assert "[Nutrition]" in context.expertise
+        assert "[Swimming]" in context.expertise
+        # All five domains in available_domains
+        assert len(context.available_domains) == 5
+
+    def test_swimming_clarification_patterns_merged(
+        self, selector_with_swimming: DomainSelector
+    ) -> None:
+        """Swimming clarification patterns are merged with other domains."""
+        context = selector_with_swimming.build_active_context(["Running", "Swimming"])
+
+        assert "SUBJECTIVE" in context.clarification_patterns
+        assert "CLARIFICATION" in context.clarification_patterns
+        # Should have patterns from both domains
+        subjective = context.clarification_patterns["SUBJECTIVE"]
+        assert len(subjective) > 0
+
+    def test_swimming_domain_info_has_description(
+        self, selector_with_swimming: DomainSelector
+    ) -> None:
+        """Swimming domain info has description for Router auto-selection."""
+        infos = selector_with_swimming.get_domain_infos()
+
+        swimming_info = next(info for info in infos if info.name == "Swimming")
+        assert swimming_info.description
+        assert len(swimming_info.description) > 0
+        # Description should mention swimming-related terms for Router matching
+        desc_lower = swimming_info.description.lower()
+        assert "swimming" in desc_lower or "laps" in desc_lower or "stroke" in desc_lower

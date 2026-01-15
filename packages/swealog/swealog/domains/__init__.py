@@ -27,6 +27,13 @@ from swealog.domains.strength import (
     StrengthSet,
     strength,
 )
+from swealog.domains.swimming import (
+    Swimming,
+    SwimmingEntry,
+    SwimmingInterval,
+    SwimmingLap,
+    swimming,
+)
 
 __all__ = [
     "ExerciseRecord",
@@ -44,8 +51,13 @@ __all__ = [
     "StrengthEntry",
     "StrengthExercise",
     "StrengthSet",
+    "Swimming",
+    "SwimmingEntry",
+    "SwimmingInterval",
+    "SwimmingLap",
     "general_fitness",
     "nutrition",
     "running",
     "strength",
+    "swimming",
 ]

@@ -11,6 +11,7 @@ from swealog.domains import (
     nutrition,
     running,
     strength,
+    swimming,
 )
 
 
@@ -19,7 +20,7 @@ class TestDomainExpertiseFields:
 
     @pytest.mark.parametrize(
         "domain",
-        [general_fitness, strength, nutrition, running],
+        [general_fitness, strength, nutrition, running, swimming],
         ids=lambda d: d.name,
     )
     def test_domain_has_non_empty_expertise(self, domain: DomainModule) -> None:
@@ -53,13 +54,19 @@ class TestDomainExpertiseFields:
         assert "pace" in expertise.lower() or "zone" in expertise.lower()
         assert "10%" in expertise or "mileage" in expertise.lower()
 
+    def test_swimming_expertise_covers_core_concepts(self) -> None:
+        """Test Swimming expertise covers required concepts."""
+        expertise = swimming.expertise
+        assert "stroke" in expertise.lower() or "pace" in expertise.lower()
+        assert "interval" in expertise.lower()
+
 
 class TestDomainEvaluationRules:
     """Tests for domain response_evaluation_rules field."""
 
     @pytest.mark.parametrize(
         "domain",
-        [general_fitness, strength, nutrition, running],
+        [general_fitness, strength, nutrition, running, swimming],
         ids=lambda d: d.name,
     )
     def test_domain_has_non_empty_evaluation_rules(self, domain: DomainModule) -> None:
@@ -71,7 +78,7 @@ class TestDomainEvaluationRules:
 
     @pytest.mark.parametrize(
         "domain",
-        [general_fitness, strength, nutrition, running],
+        [general_fitness, strength, nutrition, running, swimming],
         ids=lambda d: d.name,
     )
     def test_evaluation_rules_are_strings(self, domain: DomainModule) -> None:
@@ -108,13 +115,20 @@ class TestDomainEvaluationRules:
         assert "mileage" in rules_text or "10%" in rules_text
         assert "pain" in rules_text or "injur" in rules_text
 
+    def test_swimming_rules_cover_safety(self) -> None:
+        """Test Swimming rules cover safety concerns."""
+        rules = swimming.response_evaluation_rules
+        rules_text = " ".join(rules).lower()
+        assert "volume" in rules_text or "10%" in rules_text
+        assert "shoulder" in rules_text or "open water" in rules_text
+
 
 class TestDomainModuleInterface:
     """Tests for DomainModule interface compliance."""
 
     @pytest.mark.parametrize(
         "domain",
-        [general_fitness, strength, nutrition, running],
+        [general_fitness, strength, nutrition, running, swimming],
         ids=lambda d: d.name,
     )
     def test_domain_has_required_fields(self, domain: DomainModule) -> None:
@@ -130,7 +144,7 @@ class TestDomainModuleInterface:
 
     @pytest.mark.parametrize(
         "domain",
-        [general_fitness, strength, nutrition, running],
+        [general_fitness, strength, nutrition, running, swimming],
         ids=lambda d: d.name,
     )
     def test_domain_vocabulary_is_dict(self, domain: DomainModule) -> None:
@@ -167,9 +181,9 @@ class TestMultiDomainExpertiseMerging:
         # Should have rules from both domains
         assert len(rules) == (len(strength.response_evaluation_rules) + len(nutrition.response_evaluation_rules))
 
-    def test_all_four_domains_can_merge_expertise(self) -> None:
-        """Test that all four domains can merge expertise."""
-        all_domains = [general_fitness, strength, nutrition, running]
+    def test_all_five_domains_can_merge_expertise(self) -> None:
+        """Test that all five domains can merge expertise."""
+        all_domains = [general_fitness, strength, nutrition, running, swimming]
         expertise_parts = [f"[{d.name}] {d.expertise}" for d in all_domains]
         merged = " | ".join(expertise_parts)
 
@@ -177,9 +191,9 @@ class TestMultiDomainExpertiseMerging:
             assert f"[{domain.name}]" in merged
             assert domain.expertise in merged
 
-    def test_all_four_domains_can_merge_rules(self) -> None:
-        """Test that all four domains can merge evaluation rules."""
-        all_domains = [general_fitness, strength, nutrition, running]
+    def test_all_five_domains_can_merge_rules(self) -> None:
+        """Test that all five domains can merge evaluation rules."""
+        all_domains = [general_fitness, strength, nutrition, running, swimming]
         rules: list[str] = []
         for domain in all_domains:
             rules.extend(domain.response_evaluation_rules)
@@ -234,8 +248,52 @@ class TestGetEvaluationRulesLogic:
     def test_response_evaluation_rules_not_evaluation_rules(self) -> None:
         """Test that domains have response_evaluation_rules, not evaluation_rules."""
         # This explicitly tests the bug that was fixed: using wrong attribute name
-        for domain in [general_fitness, strength, nutrition, running]:
+        for domain in [general_fitness, strength, nutrition, running, swimming]:
             # The correct attribute should exist
             assert hasattr(domain, "response_evaluation_rules")
             # The incorrect attribute should NOT exist
             assert not hasattr(domain, "evaluation_rules")
+
+
+class TestSwimmingDomainIntegration:
+    """Tests for Swimming domain integration with domain selection infrastructure.
+
+    These tests validate that Swimming integrates with the existing 6.1-6.3 infrastructure.
+    They confirm Swimming works as expected with DomainSelector and multi-domain merging.
+    """
+
+    def test_swimming_and_running_expertise_can_merge(self) -> None:
+        """Test that Swimming and Running expertise can be merged for cross-domain queries."""
+        domains = [running, swimming]
+        expertise_parts = [f"[{d.name}] {d.expertise}" for d in domains]
+        merged = " | ".join(expertise_parts)
+
+        assert "[Running]" in merged
+        assert "[Swimming]" in merged
+        assert "pace" in merged.lower()
+        assert "stroke" in merged.lower()
+
+    def test_swimming_vocabulary_available_for_merging(self) -> None:
+        """Test that Swimming vocabulary is available for context merging."""
+        # Merge vocabularies from running and swimming (for cross-domain queries)
+        combined_vocab = {**running.vocabulary, **swimming.vocabulary}
+
+        # Should have running terms
+        assert "ran" in combined_vocab
+        # Should have swimming terms
+        assert "swam" in combined_vocab
+        assert "free" in combined_vocab  # freestyle abbreviation
+
+    def test_swimming_rules_can_be_combined_with_running(self) -> None:
+        """Test that Swimming and Running rules can be combined."""
+        combined_rules = running.response_evaluation_rules + swimming.response_evaluation_rules
+
+        # Both domain rules should be present
+        running_rules_text = " ".join(running.response_evaluation_rules).lower()
+        swimming_rules_text = " ".join(swimming.response_evaluation_rules).lower()
+        combined_text = " ".join(combined_rules).lower()
+
+        assert "mileage" in running_rules_text
+        assert "shoulder" in swimming_rules_text
+        assert "mileage" in combined_text
+        assert "shoulder" in combined_text
