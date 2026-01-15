@@ -21,6 +21,8 @@ class SessionState(TypedDict, total=False):
         query_type: QueryType enum as string.
         retrieval_history: Accumulating list of retrieval attempts.
         retrieved_entries: Accumulating list of retrieved entries.
+        planner_output: PlannerOutput.model_dump() result.
+            Contains next_action, retrieval_strategies, domain_expansion_request.
         analysis: AnalyzerOutput.model_dump() result.
         gaps: List of Gap.model_dump() results.
         draft_response: Current draft response from Synthesizer.
@@ -35,6 +37,18 @@ class SessionState(TypedDict, total=False):
         next_state: Routing destination after processing.
         final_response: Final response to return to user.
         complete: True when processing is complete.
+        active_domain_context: ActiveDomainContext.model_dump() result.
+            Contains merged vocabulary, expertise, and rules from selected domains.
+            Use active_domain_context["domains_loaded"] to get list of selected domains.
+        domain_expansion_request: List of domain names requested for expansion.
+            Set by Planner (next_action="expand_domain") or Analyzer (outside_current_expertise gap).
+            Cleared after EXPAND_DOMAIN node processes it.
+        domain_expansion_history: List of all domains added via expansion.
+            Persists across retry cycles to prevent infinite loops.
+            Checked before adding domains - skip any already in history.
+        is_partial: True when domain expansion is exhausted.
+            Signals Synthesizer to generate partial answer.
+            Set when requested domains already in history or invalid.
 
     Example:
         >>> state: SessionState = {
@@ -57,6 +71,12 @@ class SessionState(TypedDict, total=False):
     # Retrieval (accumulating - use Annotated reducer)
     retrieval_history: Annotated[list[dict[str, Any]], add]
     retrieved_entries: Annotated[list[dict[str, Any]], add]
+
+    # Planning (Story 6-3)
+    # Serialized PlannerOutput from Planner agent.
+    # Contains: next_action, retrieval_strategies, domain_expansion_request, etc.
+    # Set by Planner node for downstream routing decisions.
+    planner_output: dict[str, Any] | None
 
     # Analysis
     analysis: dict[str, Any] | None
@@ -86,3 +106,9 @@ class SessionState(TypedDict, total=False):
     is_correction_flow: bool
     correction_target: str | None
     correction_result: dict[str, Any] | None
+
+    # Domain expansion (Story 6-3)
+    active_domain_context: dict[str, Any] | None
+    domain_expansion_request: list[str] | None
+    domain_expansion_history: list[str]
+    is_partial: bool

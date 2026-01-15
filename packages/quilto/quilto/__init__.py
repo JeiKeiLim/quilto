@@ -27,8 +27,12 @@ from quilto.state import (
     SessionState,
     UserClarificationResponse,
     enter_wait_user,
+    expand_domain_node,
     process_user_response,
+    route_after_analyzer,
     route_after_clarify,
+    route_after_expand_domain,
+    route_after_planner,
     route_after_wait_user,
 )
 from quilto.storage import DateRange, Entry, StorageRepository
@@ -60,10 +64,14 @@ __all__ = [
     "UserClarificationResponse",
     "__version__",
     "enter_wait_user",
+    "expand_domain_node",
     "load_llm_config",
     "load_llm_config_from_dict",
     "process_correction",
     "process_user_response",
+    "route_after_analyzer",
     "route_after_clarify",
+    "route_after_expand_domain",
+    "route_after_planner",
     "route_after_wait_user",
 ]
