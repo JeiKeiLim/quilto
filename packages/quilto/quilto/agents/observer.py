@@ -12,7 +12,7 @@ from quilto.llm import LLMClient
 
 
 class ObserverAgent:
-    """Observer agent for learning patterns and updating global context.
+    r"""Observer agent for learning patterns and updating global context.
 
     Runs asynchronously to update the global context based on patterns
     discovered in user data. Triggered by post_query, user_correction,

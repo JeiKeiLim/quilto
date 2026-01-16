@@ -935,7 +935,7 @@ class ContextUpdate(BaseModel):
 
 
 class ObserverInput(BaseModel):
-    """Input to Observer agent.
+    r"""Input to Observer agent.
 
     Attributes:
         trigger: What triggered this observation.

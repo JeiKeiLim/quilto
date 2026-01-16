@@ -120,11 +120,11 @@ development_status:
   epic-6-retrospective: done
 
   # Epic 7: Learning & Personalization
-  epic-7: in-progress
+  epic-7: done
   7-1-implement-observer-agent: done
   7-2-implement-global-context-storage: done
   7-3-implement-observer-triggers: done
-  7-4-add-fitness-context-management: backlog
+  7-4-add-fitness-context-management: done
   epic-7-retrospective: optional
 
   # Epic 8: Interface Layer

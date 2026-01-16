@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert Obsidian markdown files to Quilto StorageRepository format.
+r"""Convert Obsidian markdown files to Quilto StorageRepository format.
 
 This script converts markdown files from an Obsidian vault (or any directory)
 to the format expected by Quilto's StorageRepository.
@@ -18,16 +18,15 @@ Usage:
     python scripts/convert_obsidian.py /path/to/vault /path/to/output --date-pattern "YYYY-MM-DD"
 
 Examples:
-    python scripts/convert_obsidian.py \\
-        "/Users/limjk/Library/Mobile Documents/iCloud~md~obsidian/Documents/MyObsidian/02_Personal/05_Journals/01_Workout" \\
-        "./test-storage" \\
+    python scripts/convert_obsidian.py \
+        /path/to/obsidian/vault \
+        ./test-storage \
         --dry-run
 """
 
 import argparse
 import re
-import shutil
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 
 
