@@ -3,12 +3,15 @@
 import asyncio
 import tempfile
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
+from quilto import DomainModule, LLMClient, StorageRepository
 from quilto.llm import LLMConfig
 from swealog.cli.utils import (
     EXIT_ERROR,
     EXIT_SUCCESS,
     EXIT_USAGE_ERROR,
+    get_dependencies,
     load_cli_config,
     resolve_storage_path,
     run_async,
@@ -169,3 +172,98 @@ class TestResolveStoragePath:
         result = resolve_storage_path(existing_path)
         assert result == existing_path
         assert (result / "test.txt").exists()  # Original content preserved
+
+
+class TestGetDependencies:
+    """Tests for get_dependencies helper function."""
+
+    def test_get_dependencies_returns_tuple(self, tmp_path: Path) -> None:
+        """Test get_dependencies returns correct tuple structure."""
+        config_path = tmp_path / "llm-config.yaml"
+        config_content = """
+default_provider: ollama
+providers:
+  ollama:
+    api_base: http://localhost:11434
+tiers:
+  low:
+    ollama: qwen2.5:7b
+  medium:
+    ollama: qwen2.5:7b
+  high:
+    ollama: qwen2.5:7b
+"""
+        config_path.write_text(config_content)
+        storage_path = tmp_path / "logs"
+
+        llm_client, storage, domains = get_dependencies(config_path, storage_path)
+
+        assert isinstance(llm_client, LLMClient)
+        assert isinstance(storage, StorageRepository)
+        assert isinstance(domains, list)
+        assert len(domains) == 5  # 5 fitness domains
+        assert all(isinstance(d, DomainModule) for d in domains)
+
+    def test_get_dependencies_creates_storage_directory(self, tmp_path: Path) -> None:
+        """Test get_dependencies creates storage directory if missing."""
+        config_path = tmp_path / "llm-config.yaml"
+        config_content = """
+default_provider: ollama
+providers:
+  ollama:
+    api_base: http://localhost:11434
+tiers:
+  low:
+    ollama: qwen2.5:7b
+  medium:
+    ollama: qwen2.5:7b
+  high:
+    ollama: qwen2.5:7b
+"""
+        config_path.write_text(config_content)
+        storage_path = tmp_path / "nested" / "storage"
+
+        _llm_client, _storage, _domains = get_dependencies(config_path, storage_path)
+
+        assert storage_path.exists()
+        assert storage_path.is_dir()
+
+    def test_get_dependencies_returns_all_five_domains(self, tmp_path: Path) -> None:
+        """Test get_dependencies returns all 5 fitness domains."""
+        config_path = tmp_path / "llm-config.yaml"
+        config_content = """
+default_provider: ollama
+providers:
+  ollama:
+    api_base: http://localhost:11434
+tiers:
+  low:
+    ollama: qwen2.5:7b
+  medium:
+    ollama: qwen2.5:7b
+  high:
+    ollama: qwen2.5:7b
+"""
+        config_path.write_text(config_content)
+        storage_path = tmp_path / "logs"
+
+        _llm_client, _storage, domains = get_dependencies(config_path, storage_path)
+
+        domain_names = {d.name for d in domains}
+        expected_names = {"GeneralFitness", "Strength", "Nutrition", "Running", "Swimming"}
+        assert domain_names == expected_names
+
+    def test_get_dependencies_uses_default_storage_path(self) -> None:
+        """Test get_dependencies uses default storage path when None."""
+        with (
+            patch("swealog.cli.utils.load_cli_config") as mock_load,
+            patch("swealog.cli.utils.LLMClient"),
+            patch("swealog.cli.utils.StorageRepository"),
+            patch("swealog.cli.utils.resolve_storage_path") as mock_resolve,
+        ):
+            mock_load.return_value = MagicMock()
+            mock_resolve.return_value = Path("logs")
+
+            get_dependencies(config_path=Path("test.yaml"), storage_path=None)
+
+            mock_resolve.assert_called_once_with(None)

@@ -4,7 +4,9 @@ from importlib.metadata import version
 
 import typer
 
+from swealog.cli.ask_cmd import ask
 from swealog.cli.import_cmd import import_file
+from swealog.cli.log_cmd import log
 
 
 def _get_version() -> str:
@@ -78,3 +80,7 @@ def serve(
 
 # Register import command (name="import" since "import" is reserved keyword)
 app.command(name="import")(import_file)
+
+# Register log and ask commands
+app.command()(log)
+app.command()(ask)

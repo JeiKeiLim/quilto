@@ -6,7 +6,10 @@ from functools import wraps
 from pathlib import Path
 from typing import Any
 
+from quilto import DomainModule, LLMClient, StorageRepository
 from quilto.llm import LLMConfig, load_llm_config
+
+from swealog.domains import general_fitness, nutrition, running, strength, swimming
 
 # Exit codes
 EXIT_SUCCESS = 0
@@ -58,3 +61,23 @@ def resolve_storage_path(storage_path: Path | None = None) -> Path:
         storage_path = Path("logs")
     storage_path.mkdir(parents=True, exist_ok=True)
     return storage_path
+
+
+def get_dependencies(
+    config_path: Path | None = None,
+    storage_path: Path | None = None,
+) -> tuple[LLMClient, StorageRepository, list[DomainModule]]:
+    """Initialize shared CLI dependencies.
+
+    Args:
+        config_path: Optional path to llm-config.yaml.
+        storage_path: Optional path to storage directory.
+
+    Returns:
+        Tuple of (LLMClient, StorageRepository, list of domains).
+    """
+    config = load_cli_config(config_path)
+    llm_client = LLMClient(config)
+    storage = StorageRepository(resolve_storage_path(storage_path))
+    domains: list[DomainModule] = [general_fitness, strength, nutrition, running, swimming]
+    return llm_client, storage, domains
