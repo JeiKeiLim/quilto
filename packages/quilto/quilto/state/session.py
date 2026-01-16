@@ -112,3 +112,7 @@ class SessionState(TypedDict, total=False):
     domain_expansion_request: list[str] | None
     domain_expansion_history: list[str]
     is_partial: bool
+
+    # Observer (Story 7-3)
+    # ObserverOutput.model_dump() result from observe_node.
+    observer_output: dict[str, Any] | None

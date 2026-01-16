@@ -24,10 +24,12 @@ from quilto.llm import (
     load_llm_config_from_dict,
 )
 from quilto.state import (
+    ObserverTriggerConfig,
     SessionState,
     UserClarificationResponse,
     enter_wait_user,
     expand_domain_node,
+    observe_node,
     process_user_response,
     route_after_analyzer,
     route_after_clarify,
@@ -51,6 +53,7 @@ __all__ = [
     "LLMClient",
     "LLMConfig",
     "ModelResolution",
+    "ObserverTriggerConfig",
     "ParserAgent",
     "ParserInput",
     "ParserOutput",
@@ -67,6 +70,7 @@ __all__ = [
     "expand_domain_node",
     "load_llm_config",
     "load_llm_config_from_dict",
+    "observe_node",
     "process_correction",
     "process_user_response",
     "route_after_analyzer",

@@ -123,7 +123,7 @@ development_status:
   epic-7: in-progress
   7-1-implement-observer-agent: done
   7-2-implement-global-context-storage: done
-  7-3-implement-observer-triggers: backlog
+  7-3-implement-observer-triggers: done
   7-4-add-fitness-context-management: backlog
   epic-7-retrospective: optional
 
