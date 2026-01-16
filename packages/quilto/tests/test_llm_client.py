@@ -418,9 +418,23 @@ class TestCompleteWithFallback:
     @pytest.mark.asyncio
     async def test_uses_fallback_provider_model(self) -> None:
         """Fallback uses fallback_provider's model."""
-        config = create_test_config(
+        # Set max_retries=1 to get simple primary->fallback behavior
+        config = LLMConfig(
             default_provider="ollama",
             fallback_provider="anthropic",
+            max_retries=1,
+            base_retry_delay=0.01,
+            providers={
+                "ollama": ProviderConfig(api_base="http://localhost:11434"),
+                "anthropic": ProviderConfig(api_key="anthropic_key"),
+            },
+            tiers={
+                "low": TierModels(
+                    ollama="qwen2.5:7b",
+                    anthropic="claude-3-haiku-20240307",
+                ),
+            },
+            agents={"router": AgentConfig(tier="low")},
         )
         client = LLMClient(config)
 
@@ -428,7 +442,10 @@ class TestCompleteWithFallback:
         fallback_response = MagicMock()
         fallback_response.choices = [MagicMock(message=MagicMock(content="Fallback"))]
 
-        with patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
+        with (
+            patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion,
+            patch("quilto.llm.client.asyncio.sleep", new_callable=AsyncMock),
+        ):
             mock_acompletion.side_effect = [primary_error, fallback_response]
 
             await client.complete_with_fallback(
@@ -462,13 +479,30 @@ class TestCompleteWithFallback:
     @pytest.mark.asyncio
     async def test_raises_if_both_providers_fail(self) -> None:
         """Raises fallback error if both providers fail."""
-        config = create_test_config(
+        # Set max_retries=1 to get simple primary->fallback behavior
+        config = LLMConfig(
             default_provider="ollama",
             fallback_provider="anthropic",
+            max_retries=1,
+            base_retry_delay=0.01,
+            providers={
+                "ollama": ProviderConfig(api_base="http://localhost:11434"),
+                "anthropic": ProviderConfig(api_key="anthropic_key"),
+            },
+            tiers={
+                "low": TierModels(
+                    ollama="qwen2.5:7b",
+                    anthropic="claude-3-haiku-20240307",
+                ),
+            },
+            agents={"router": AgentConfig(tier="low")},
         )
         client = LLMClient(config)
 
-        with patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
+        with (
+            patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion,
+            patch("quilto.llm.client.asyncio.sleep", new_callable=AsyncMock),
+        ):
             mock_acompletion.side_effect = [
                 Exception("Primary failed"),
                 Exception("Fallback failed"),

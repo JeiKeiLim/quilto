@@ -174,7 +174,7 @@ class LLMConfig(BaseModel):
     """Root LLM configuration.
 
     Configures default provider, fallback, provider credentials,
-    tier-based model selection, and per-agent settings.
+    tier-based model selection, per-agent settings, and error cascade options.
 
     Attributes:
         default_provider: Provider to use by default.
@@ -182,6 +182,10 @@ class LLMConfig(BaseModel):
         providers: Provider-specific configurations keyed by provider name.
         tiers: Model mappings per tier (low, medium, high).
         agents: Per-agent configuration keyed by agent name.
+        max_retries: Maximum retry attempts per provider for transient errors.
+        base_retry_delay: Base delay in seconds for exponential backoff.
+        enable_graceful_degradation: If True, return PartialResult instead of
+            raising when all providers fail.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -191,6 +195,45 @@ class LLMConfig(BaseModel):
     providers: dict[ProviderName, ProviderConfig] = {}
     tiers: dict[TierName, TierModels] = {}
     agents: dict[str, AgentConfig] = {}
+    max_retries: int = 3
+    base_retry_delay: float = 1.0
+    enable_graceful_degradation: bool = True
+
+    @field_validator("max_retries")
+    @classmethod
+    def validate_max_retries(cls, v: int) -> int:
+        """Validate max_retries is non-negative.
+
+        Args:
+            v: The max_retries value.
+
+        Returns:
+            The validated max_retries value.
+
+        Raises:
+            ValueError: If max_retries is negative.
+        """
+        if v < 0:
+            raise ValueError("max_retries must be >= 0")
+        return v
+
+    @field_validator("base_retry_delay")
+    @classmethod
+    def validate_base_retry_delay(cls, v: float) -> float:
+        """Validate base_retry_delay is positive.
+
+        Args:
+            v: The base_retry_delay value.
+
+        Returns:
+            The validated base_retry_delay value.
+
+        Raises:
+            ValueError: If base_retry_delay is not positive.
+        """
+        if v <= 0:
+            raise ValueError("base_retry_delay must be > 0")
+        return v
 
     @model_validator(mode="after")
     def apply_defaults_and_validate(self) -> "LLMConfig":

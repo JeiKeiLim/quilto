@@ -132,6 +132,6 @@ development_status:
   8-1-implement-typer-cli-framework: done  # CLI in swealog/cli/ (revised from quilto)
   8-2-implement-fastapi-endpoints: done  # API in swealog/api/
   8-3-implement-batch-import: done
-  8-4-implement-error-cascade: backlog
+  8-4-implement-error-cascade: done
   8-5-create-swealog-cli-commands: backlog        # May merge with 8-1
   epic-8-retrospective: optional
