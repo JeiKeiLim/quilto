@@ -125,7 +125,7 @@ development_status:
   7-2-implement-global-context-storage: done
   7-3-implement-observer-triggers: done
   7-4-add-fitness-context-management: done
-  epic-7-retrospective: optional
+  epic-7-retrospective: done
 
   # Epic 8: Interface Layer
   epic-8: backlog
