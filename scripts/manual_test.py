@@ -3,17 +3,19 @@
 
 This script allows hands-on testing of the Router, Parser, Planner, Retriever,
 Analyzer, Clarifier, Synthesizer, and Evaluator agents with Swealog domain modules
-(GeneralFitness, Strength, Nutrition, Running).
+(GeneralFitness, Strength, Nutrition, Running, Swimming).
 
 Usage:
     # Single input mode - LOG entries
     python scripts/manual_test.py "bench 185x5 felt heavy"
     python scripts/manual_test.py "점심: 닭가슴살 샐러드 500칼로리"
     python scripts/manual_test.py "ran 5k in 25:30, felt good"
+    python scripts/manual_test.py "swam 2000m freestyle in 45 minutes"
 
     # Single input mode - QUERY
     python scripts/manual_test.py "How has my bench press progressed?"
     python scripts/manual_test.py "What's my average running pace this month?"
+    python scripts/manual_test.py "How many laps did I swim last week?"
 
     # Single input mode - BOTH (log + query)
     python scripts/manual_test.py "ran 5k in 25 minutes, how's my pace?"
@@ -85,14 +87,16 @@ from swealog.domains import (  # noqa: E402
     NutritionEntry,
     RunningEntry,
     StrengthEntry,
+    SwimmingEntry,
     general_fitness,
     nutrition,
     running,
     strength,
+    swimming,
 )
 
 # Initialize DomainSelector with all Swealog domains
-ALL_DOMAINS = [general_fitness, strength, nutrition, running]
+ALL_DOMAINS = [general_fitness, strength, nutrition, running, swimming]
 domain_selector = DomainSelector(ALL_DOMAINS)
 
 
@@ -128,6 +132,7 @@ def get_domain_schemas(selected_domains: list[str]) -> dict[str, type]:
         strength.name: StrengthEntry,
         nutrition.name: NutritionEntry,
         running.name: RunningEntry,
+        swimming.name: SwimmingEntry,
     }
     return {name: domain_map[name] for name in selected_domains if name in domain_map}
 
@@ -694,6 +699,7 @@ def get_evaluation_rules(selected_domains: list[str]) -> list[str]:
         strength.name: strength,
         nutrition.name: nutrition,
         running.name: running,
+        swimming.name: swimming,
     }
 
     rules: list[str] = []
@@ -1213,7 +1219,7 @@ async def interactive_mode(
     """Run in interactive mode, accepting inputs until 'quit'."""
     print_header("Quilto/Swealog Manual Validation")
     print("\nAvailable domains:")
-    for domain in [general_fitness, strength, nutrition, running]:
+    for domain in [general_fitness, strength, nutrition, running, swimming]:
         print(f"  - {domain.name}: {domain.description[:60]}...")
 
     if storage:
@@ -1227,6 +1233,7 @@ async def interactive_mode(
     print("  - 점심: 닭가슴살 샐러드 500칼로리")
     print("  - How has my bench press progressed?")
     print("  - ran 5k in 25 minutes, how's my pace?")
+    print("  - swam 2000m freestyle in 45 minutes")
 
     while True:
         try:
@@ -1260,10 +1267,12 @@ Examples:
   python scripts/manual_test.py "bench 185x5 felt heavy"        # Strength
   python scripts/manual_test.py "점심: 닭가슴살 샐러드"              # Nutrition
   python scripts/manual_test.py "ran 5k in 25:30"               # Running
+  python scripts/manual_test.py "swam 2000m freestyle"          # Swimming
 
   # QUERY inputs
   python scripts/manual_test.py "How has my bench progressed?"
   python scripts/manual_test.py "What's my average running pace?"
+  python scripts/manual_test.py "How many laps did I swim last week?"
 
   # BOTH (log + query)
   python scripts/manual_test.py "ran 5k in 25 minutes, how's my pace?"
