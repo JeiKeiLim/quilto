@@ -1,7 +1,7 @@
-"""Tests for quilto.cli.app module."""
+"""Tests for swealog.cli.app module."""
 
-from quilto import __version__
-from quilto.cli import app
+from swealog import __version__
+from swealog.cli import app
 from typer.testing import CliRunner
 
 runner = CliRunner()
@@ -16,7 +16,7 @@ def test_version_flag() -> None:
     """Test --version displays version."""
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
-    assert "quilto version" in result.stdout
+    assert "swealog version" in result.stdout
     assert __version__ in result.stdout
 
 
@@ -24,7 +24,7 @@ def test_short_version_flag() -> None:
     """Test -v displays version."""
     result = runner.invoke(app, ["-v"])
     assert result.exit_code == 0
-    assert "quilto version" in result.stdout
+    assert "swealog version" in result.stdout
 
 
 def test_help_flag() -> None:
@@ -32,7 +32,7 @@ def test_help_flag() -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
     # Help text shows app name (lowercase) or description
-    assert "quilto" in result.stdout.lower()
+    assert "swealog" in result.stdout.lower()
 
 
 def test_no_args_shows_help() -> None:
@@ -44,7 +44,7 @@ def test_no_args_shows_help() -> None:
 
 
 def test_app_can_add_command() -> None:
-    """Test that commands can be added to a Typer app (AC3: extensibility).
+    """Test that commands can be added to a Typer app (extensibility).
 
     Uses a fresh app instance to avoid polluting shared state.
     """
@@ -73,7 +73,7 @@ def test_app_can_add_command() -> None:
 
 
 def test_app_command_decorator() -> None:
-    """Test that @app.command() decorator works (AC3: extensibility)."""
+    """Test that @app.command() decorator works (extensibility)."""
     # Create a fresh app with a single command
     import typer
 

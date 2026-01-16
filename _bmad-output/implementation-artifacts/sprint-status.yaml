@@ -127,11 +127,11 @@ development_status:
   7-4-add-fitness-context-management: done
   epic-7-retrospective: done
 
-  # Epic 8: Interface Layer
+  # Epic 8: Interface Layer (all interfaces in Swealog, not Quilto)
   epic-8: in-progress
-  8-1-implement-typer-cli-framework: done
-  8-2-implement-fastapi-endpoints: backlog
+  8-1-implement-typer-cli-framework: ready-for-review  # CLI in swealog/cli/ (revised from quilto)
+  8-2-implement-fastapi-endpoints: backlog        # API in swealog/api/
   8-3-implement-batch-import: backlog
   8-4-implement-error-cascade: backlog
-  8-5-create-swealog-cli-commands: backlog
+  8-5-create-swealog-cli-commands: backlog        # May merge with 8-1
   epic-8-retrospective: optional

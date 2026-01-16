@@ -1,7 +1,7 @@
-"""CLI framework for Quilto applications."""
+"""CLI framework for Swealog application."""
 
-from quilto.cli.app import app
-from quilto.cli.output import (
+from swealog.cli.app import app
+from swealog.cli.output import (
     console,
     print_error,
     print_info,
@@ -10,7 +10,7 @@ from quilto.cli.output import (
     print_table,
     print_warning,
 )
-from quilto.cli.utils import (
+from swealog.cli.utils import (
     EXIT_ERROR,
     EXIT_SUCCESS,
     EXIT_USAGE_ERROR,

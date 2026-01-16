@@ -13,7 +13,7 @@ def print_success(message: str) -> None:
     Args:
         message: The message to display.
     """
-    console.print(f"[green]✓[/green] {message}")
+    console.print(f"[green]\u2713 {message}[/green]")
 
 
 def print_error(message: str) -> None:
@@ -22,7 +22,7 @@ def print_error(message: str) -> None:
     Args:
         message: The error message to display.
     """
-    console.print(f"[red]✗ {message}[/red]")
+    console.print(f"[red]\u2717 {message}[/red]")
 
 
 def print_warning(message: str) -> None:
@@ -40,7 +40,7 @@ def print_info(message: str) -> None:
     Args:
         message: The info message to display.
     """
-    console.print(f"[blue]ℹ[/blue] {message}")
+    console.print(f"[blue]\u2139[/blue] {message}")
 
 
 def print_panel(content: str, title: str = "") -> None:

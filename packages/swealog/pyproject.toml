@@ -9,6 +9,9 @@ dependencies = [
     "rich>=13.9.0",
 ]
 
+[project.scripts]
+swealog = "swealog.cli:app"
+
 [tool.uv.sources]
 quilto = { workspace = true }
 

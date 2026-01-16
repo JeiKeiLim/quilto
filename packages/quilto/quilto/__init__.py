@@ -10,7 +10,6 @@ from quilto.agents import (
     RouterInput,
     RouterOutput,
 )
-from quilto.cli import app as cli_app
 from quilto.domain import DomainModule
 from quilto.domain_selector import DomainSelector
 from quilto.flow import CorrectionResult, process_correction
@@ -67,7 +66,6 @@ __all__ = [
     "TierModels",
     "UserClarificationResponse",
     "__version__",
-    "cli_app",
     "enter_wait_user",
     "expand_domain_node",
     "load_llm_config",

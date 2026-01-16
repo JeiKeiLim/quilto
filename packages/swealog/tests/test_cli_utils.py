@@ -1,10 +1,11 @@
-"""Tests for quilto.cli.utils module."""
+"""Tests for swealog.cli.utils module."""
 
 import asyncio
 import tempfile
 from pathlib import Path
 
-from quilto.cli.utils import (
+from quilto.llm import LLMConfig
+from swealog.cli.utils import (
     EXIT_ERROR,
     EXIT_SUCCESS,
     EXIT_USAGE_ERROR,
@@ -12,7 +13,6 @@ from quilto.cli.utils import (
     resolve_storage_path,
     run_async,
 )
-from quilto.llm import LLMConfig
 
 
 class TestExitCodes:
