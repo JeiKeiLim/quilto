@@ -1,6 +1,6 @@
 # Story 8.1: Implement Typer CLI Framework
 
-Status: ready-for-review
+Status: done
 
 ## Story
 
