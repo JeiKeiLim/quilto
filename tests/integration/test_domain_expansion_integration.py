@@ -34,9 +34,7 @@ def selector(swealog_domains: list[DomainModule]) -> DomainSelector:
 @pytest.fixture
 def selector_with_base(swealog_domains: list[DomainModule]) -> DomainSelector:
     """Create DomainSelector with general_fitness as base domain."""
-    return DomainSelector(
-        [general_fitness] + swealog_domains, base_domain=general_fitness
-    )
+    return DomainSelector([general_fitness] + swealog_domains, base_domain=general_fitness)
 
 
 class TestPlannerToExpandDomainFlow:
@@ -53,9 +51,7 @@ class TestPlannerToExpandDomainFlow:
                 "domain_expansion_request": ["Nutrition"],
                 "expansion_reasoning": "Query requires nutrition expertise",
             },
-            "active_domain_context": selector.build_active_context(
-                ["Strength"]
-            ).model_dump(),
+            "active_domain_context": selector.build_active_context(["Strength"]).model_dump(),
             "domain_expansion_request": ["Nutrition"],  # Set by Planner node
             "domain_expansion_history": [],
             "gaps": [],
@@ -85,9 +81,7 @@ class TestPlannerToExpandDomainFlow:
                 "next_action": "expand_domain",
                 "domain_expansion_request": ["Nutrition", "Running"],
             },
-            "active_domain_context": selector.build_active_context(
-                ["Strength"]
-            ).model_dump(),
+            "active_domain_context": selector.build_active_context(["Strength"]).model_dump(),
             "domain_expansion_request": ["Nutrition", "Running"],
             "domain_expansion_history": [],
             "gaps": [],
@@ -118,9 +112,7 @@ class TestAnalyzerToExpandDomainFlow:
                     "description": "Query requires nutrition expertise",
                 }
             ],
-            "active_domain_context": selector.build_active_context(
-                ["Strength"]
-            ).model_dump(),
+            "active_domain_context": selector.build_active_context(["Strength"]).model_dump(),
             "domain_expansion_request": ["Nutrition"],  # Set by Analyzer node
             "domain_expansion_history": [],
         }
@@ -262,9 +254,7 @@ class TestSwealogDomainExpansion:
 class TestNoInfiniteLoop:
     """Tests for preventing infinite expansion loops (Task 7.5)."""
 
-    def test_single_expansion_for_same_domain(
-        self, selector: DomainSelector
-    ) -> None:
+    def test_single_expansion_for_same_domain(self, selector: DomainSelector) -> None:
         """Requesting same domain twice only expands once."""
         initial_context = selector.build_active_context(["Strength"])
 
@@ -344,9 +334,7 @@ class TestNoInfiniteLoop:
 class TestRouterToExpandDomainIntegration:
     """Tests full routing integration from Router selection to expansion."""
 
-    def test_full_flow_router_to_expansion(
-        self, selector_with_base: DomainSelector
-    ) -> None:
+    def test_full_flow_router_to_expansion(self, selector_with_base: DomainSelector) -> None:
         """Test full flow: Router selects domain → Planner requests expansion."""
         # Step 1: Router selects Strength (with GeneralFitness as base)
         initial_context = selector_with_base.build_active_context(["Strength"])
@@ -446,9 +434,7 @@ class TestPlannerDomainExpansionWithOllama:
             assert len(result.domain_expansion_request) > 0
             # Planner should recognize Nutrition is needed
             # (domain name matching may vary - Nutrition vs nutrition)
-            requested_domains_lower = [
-                d.lower() for d in result.domain_expansion_request
-            ]
-            assert any(
-                "nutrition" in d for d in requested_domains_lower
-            ), f"Expected nutrition in expansion request, got: {result.domain_expansion_request}"
+            requested_domains_lower = [d.lower() for d in result.domain_expansion_request]
+            assert any("nutrition" in d for d in requested_domains_lower), (
+                f"Expected nutrition in expansion request, got: {result.domain_expansion_request}"
+            )

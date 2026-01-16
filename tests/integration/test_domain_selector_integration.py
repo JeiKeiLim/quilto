@@ -24,9 +24,7 @@ def selector(swealog_domains: list[DomainModule]) -> DomainSelector:
 class TestDomainSelectorWithSwealogDomains:
     """Integration tests using actual Swealog domain modules."""
 
-    def test_get_domain_infos_returns_all_swealog_domains(
-        self, selector: DomainSelector
-    ) -> None:
+    def test_get_domain_infos_returns_all_swealog_domains(self, selector: DomainSelector) -> None:
         """get_domain_infos includes all Swealog domains."""
         infos = selector.get_domain_infos()
 
@@ -67,9 +65,7 @@ class TestDomainSelectorWithSwealogDomains:
         assert "[Nutrition]" in context.expertise
         assert len(context.evaluation_rules) > 0
 
-    def test_multi_domain_strength_and_running(
-        self, selector: DomainSelector
-    ) -> None:
+    def test_multi_domain_strength_and_running(self, selector: DomainSelector) -> None:
         """Build context with strength and running domains combined."""
         context = selector.build_active_context(["Strength", "Running"])
 
@@ -93,9 +89,7 @@ class TestDomainSelectorWithSwealogDomains:
         # All available domains listed
         assert len(context.available_domains) == 3
 
-    def test_clarification_patterns_from_strength(
-        self, selector: DomainSelector
-    ) -> None:
+    def test_clarification_patterns_from_strength(self, selector: DomainSelector) -> None:
         """Strength domain clarification patterns are included."""
         context = selector.build_active_context(["Strength"])
 
@@ -105,9 +99,7 @@ class TestDomainSelectorWithSwealogDomains:
         subjective_questions = context.clarification_patterns["SUBJECTIVE"]
         assert len(subjective_questions) > 0
 
-    def test_clarification_patterns_merged_multi_domain(
-        self, selector: DomainSelector
-    ) -> None:
+    def test_clarification_patterns_merged_multi_domain(self, selector: DomainSelector) -> None:
         """Clarification patterns from multiple domains are merged."""
         context = selector.build_active_context(["Strength", "Running"])
 
@@ -118,13 +110,9 @@ class TestDomainSelectorWithSwealogDomains:
             # Should have more questions than single domain
             single_context = selector.build_active_context(["Strength"])
             if "SUBJECTIVE" in single_context.clarification_patterns:
-                assert len(subjective) >= len(
-                    single_context.clarification_patterns["SUBJECTIVE"]
-                )
+                assert len(subjective) >= len(single_context.clarification_patterns["SUBJECTIVE"])
 
-    def test_empty_selection_has_available_domains(
-        self, selector: DomainSelector
-    ) -> None:
+    def test_empty_selection_has_available_domains(self, selector: DomainSelector) -> None:
         """Empty selection still knows about available domains."""
         context = selector.build_active_context([])
 
@@ -185,17 +173,11 @@ class TestBaseDomainWithSwealogDomains:
         return [general_fitness, strength, running, nutrition]
 
     @pytest.fixture
-    def selector_with_base(
-        self, swealog_domains_with_base: list[DomainModule]
-    ) -> DomainSelector:
+    def selector_with_base(self, swealog_domains_with_base: list[DomainModule]) -> DomainSelector:
         """Create DomainSelector with general_fitness as base domain."""
-        return DomainSelector(
-            swealog_domains_with_base, base_domain=general_fitness
-        )
+        return DomainSelector(swealog_domains_with_base, base_domain=general_fitness)
 
-    def test_base_domain_general_fitness_with_strength_selected(
-        self, selector_with_base: DomainSelector
-    ) -> None:
+    def test_base_domain_general_fitness_with_strength_selected(self, selector_with_base: DomainSelector) -> None:
         """general_fitness as base + strength as selected merges correctly."""
         context = selector_with_base.build_active_context(["Strength"])
 
@@ -212,9 +194,7 @@ class TestBaseDomainWithSwealogDomains:
         strength_pos = context.expertise.find("[Strength]")
         assert gf_pos < strength_pos
 
-    def test_merged_vocabulary_from_base_and_selected(
-        self, selector_with_base: DomainSelector
-    ) -> None:
+    def test_merged_vocabulary_from_base_and_selected(self, selector_with_base: DomainSelector) -> None:
         """Merged context has vocabulary from both general_fitness and strength."""
         context = selector_with_base.build_active_context(["Strength"])
 
@@ -226,9 +206,7 @@ class TestBaseDomainWithSwealogDomains:
         assert "bp" in context.vocabulary
         assert context.vocabulary["bp"] == "bench press"
 
-    def test_merged_expertise_from_base_and_selected(
-        self, selector_with_base: DomainSelector
-    ) -> None:
+    def test_merged_expertise_from_base_and_selected(self, selector_with_base: DomainSelector) -> None:
         """Merged context has expertise from both domains with correct labels."""
         context = selector_with_base.build_active_context(["Strength"])
 
@@ -238,18 +216,13 @@ class TestBaseDomainWithSwealogDomains:
         # Content from both domains
         assert "progressive overload" in context.expertise  # Common fitness principle
         # Strength-specific content
-        assert any(
-            term in context.expertise.lower()
-            for term in ["1rm", "bench", "squat", "deadlift", "rep", "set"]
-        )
+        assert any(term in context.expertise.lower() for term in ["1rm", "bench", "squat", "deadlift", "rep", "set"])
 
     def test_deduplication_when_general_fitness_both_base_and_selected(
         self, selector_with_base: DomainSelector
     ) -> None:
         """When general_fitness is both base AND selected, it appears only once."""
-        context = selector_with_base.build_active_context(
-            ["GeneralFitness", "Strength"]
-        )
+        context = selector_with_base.build_active_context(["GeneralFitness", "Strength"])
 
         # GeneralFitness appears only once in domains_loaded
         assert context.domains_loaded == ["GeneralFitness", "Strength"]
@@ -257,9 +230,7 @@ class TestBaseDomainWithSwealogDomains:
         # Expertise label also appears only once
         assert context.expertise.count("[GeneralFitness]") == 1
 
-    def test_base_domain_with_multiple_selected_domains(
-        self, selector_with_base: DomainSelector
-    ) -> None:
+    def test_base_domain_with_multiple_selected_domains(self, selector_with_base: DomainSelector) -> None:
         """Base domain + multiple selected domains merges correctly."""
         context = selector_with_base.build_active_context(["Strength", "Running"])
 
@@ -270,23 +241,16 @@ class TestBaseDomainWithSwealogDomains:
         assert "[Strength]" in context.expertise
         assert "[Running]" in context.expertise
 
-    def test_evaluation_rules_from_base_and_selected(
-        self, selector_with_base: DomainSelector
-    ) -> None:
+    def test_evaluation_rules_from_base_and_selected(self, selector_with_base: DomainSelector) -> None:
         """Evaluation rules from both base and selected domains are combined."""
         context = selector_with_base.build_active_context(["Strength"])
 
         # Rules from general_fitness
-        assert any(
-            "injury" in rule.lower() or "recovery" in rule.lower()
-            for rule in context.evaluation_rules
-        )
+        assert any("injury" in rule.lower() or "recovery" in rule.lower() for rule in context.evaluation_rules)
         # Rules from strength
         assert any("1RM" in rule for rule in context.evaluation_rules)
 
-    def test_clarification_patterns_from_base_and_selected(
-        self, selector_with_base: DomainSelector
-    ) -> None:
+    def test_clarification_patterns_from_base_and_selected(self, selector_with_base: DomainSelector) -> None:
         """Clarification patterns from both domains are combined."""
         context = selector_with_base.build_active_context(["Strength"])
 
@@ -296,9 +260,7 @@ class TestBaseDomainWithSwealogDomains:
         # Should have more questions than single domain alone
         assert len(subjective) > 0
 
-    def test_backward_compatible_selector_without_base(
-        self, swealog_domains_with_base: list[DomainModule]
-    ) -> None:
+    def test_backward_compatible_selector_without_base(self, swealog_domains_with_base: list[DomainModule]) -> None:
         """Selector without base_domain works identically to Story 6.1."""
         selector_no_base = DomainSelector(swealog_domains_with_base)
         context = selector_no_base.build_active_context(["Strength"])
@@ -322,24 +284,16 @@ class TestSwimmingDomainSelectorIntegration:
         return [general_fitness, strength, running, nutrition, swimming]
 
     @pytest.fixture
-    def selector_with_swimming(
-        self, swealog_domains_with_swimming: list[DomainModule]
-    ) -> DomainSelector:
+    def selector_with_swimming(self, swealog_domains_with_swimming: list[DomainModule]) -> DomainSelector:
         """Create DomainSelector with all domains including Swimming."""
         return DomainSelector(swealog_domains_with_swimming)
 
     @pytest.fixture
-    def selector_with_swimming_and_base(
-        self, swealog_domains_with_swimming: list[DomainModule]
-    ) -> DomainSelector:
+    def selector_with_swimming_and_base(self, swealog_domains_with_swimming: list[DomainModule]) -> DomainSelector:
         """Create DomainSelector with general_fitness as base and Swimming available."""
-        return DomainSelector(
-            swealog_domains_with_swimming, base_domain=general_fitness
-        )
+        return DomainSelector(swealog_domains_with_swimming, base_domain=general_fitness)
 
-    def test_swimming_domain_available_in_selector(
-        self, selector_with_swimming: DomainSelector
-    ) -> None:
+    def test_swimming_domain_available_in_selector(self, selector_with_swimming: DomainSelector) -> None:
         """Swimming domain is available in DomainSelector domain infos."""
         infos = selector_with_swimming.get_domain_infos()
 
@@ -347,9 +301,7 @@ class TestSwimmingDomainSelectorIntegration:
         assert "Swimming" in names
         assert len(infos) == 5  # GeneralFitness, Strength, Running, Nutrition, Swimming
 
-    def test_single_domain_swimming(
-        self, selector_with_swimming: DomainSelector
-    ) -> None:
+    def test_single_domain_swimming(self, selector_with_swimming: DomainSelector) -> None:
         """Build context with single swimming domain."""
         context = selector_with_swimming.build_active_context(["Swimming"])
 
@@ -363,9 +315,7 @@ class TestSwimmingDomainSelectorIntegration:
         # Check evaluation rules
         assert len(context.evaluation_rules) > 0
 
-    def test_cross_domain_running_and_swimming(
-        self, selector_with_swimming: DomainSelector
-    ) -> None:
+    def test_cross_domain_running_and_swimming(self, selector_with_swimming: DomainSelector) -> None:
         """Build context with Running and Swimming for cross-domain cardio queries.
 
         AC #6: Cross-domain query like "compare running vs swimming cardio"
@@ -386,9 +336,7 @@ class TestSwimmingDomainSelectorIntegration:
         swimming_rule_count = len(swimming.response_evaluation_rules)
         assert len(context.evaluation_rules) == running_rule_count + swimming_rule_count
 
-    def test_swimming_with_base_domain(
-        self, selector_with_swimming_and_base: DomainSelector
-    ) -> None:
+    def test_swimming_with_base_domain(self, selector_with_swimming_and_base: DomainSelector) -> None:
         """Swimming domain works with general_fitness base domain."""
         context = selector_with_swimming_and_base.build_active_context(["Swimming"])
 
@@ -402,9 +350,7 @@ class TestSwimmingDomainSelectorIntegration:
         swim_pos = context.expertise.find("[Swimming]")
         assert gf_pos < swim_pos
 
-    def test_all_five_domains_merged(
-        self, selector_with_swimming: DomainSelector
-    ) -> None:
+    def test_all_five_domains_merged(self, selector_with_swimming: DomainSelector) -> None:
         """All five Swealog domains can be selected and merged."""
         context = selector_with_swimming.build_active_context(
             ["GeneralFitness", "Strength", "Running", "Nutrition", "Swimming"]
@@ -426,9 +372,7 @@ class TestSwimmingDomainSelectorIntegration:
         # All five domains in available_domains
         assert len(context.available_domains) == 5
 
-    def test_swimming_clarification_patterns_merged(
-        self, selector_with_swimming: DomainSelector
-    ) -> None:
+    def test_swimming_clarification_patterns_merged(self, selector_with_swimming: DomainSelector) -> None:
         """Swimming clarification patterns are merged with other domains."""
         context = selector_with_swimming.build_active_context(["Running", "Swimming"])
 
@@ -438,9 +382,7 @@ class TestSwimmingDomainSelectorIntegration:
         subjective = context.clarification_patterns["SUBJECTIVE"]
         assert len(subjective) > 0
 
-    def test_swimming_domain_info_has_description(
-        self, selector_with_swimming: DomainSelector
-    ) -> None:
+    def test_swimming_domain_info_has_description(self, selector_with_swimming: DomainSelector) -> None:
         """Swimming domain info has description for Router auto-selection."""
         infos = selector_with_swimming.get_domain_infos()
 

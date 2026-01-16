@@ -156,7 +156,9 @@ class TestSwimmingIntervalValidation:
         ]
         for stroke in valid_strokes:
             interval = SwimmingInterval(
-                repetitions=1, distance=100.0, stroke_type=stroke  # type: ignore[arg-type]
+                repetitions=1,
+                distance=100.0,
+                stroke_type=stroke,  # type: ignore[arg-type]
             )
             assert interval.stroke_type == stroke
 
@@ -166,7 +168,9 @@ class TestSwimmingIntervalValidation:
 
         with pytest.raises(ValidationError):
             SwimmingInterval(
-                repetitions=1, distance=100.0, stroke_type="crawl"  # type: ignore[arg-type]
+                repetitions=1,
+                distance=100.0,
+                stroke_type="crawl",  # type: ignore[arg-type]
             )
 
     def test_distance_unit_all_valid_values(self) -> None:
@@ -176,7 +180,9 @@ class TestSwimmingIntervalValidation:
         valid_units = ["m", "y", "laps"]
         for unit in valid_units:
             interval = SwimmingInterval(
-                repetitions=1, distance=100.0, distance_unit=unit  # type: ignore[arg-type]
+                repetitions=1,
+                distance=100.0,
+                distance_unit=unit,  # type: ignore[arg-type]
             )
             assert interval.distance_unit == unit
 
@@ -186,7 +192,9 @@ class TestSwimmingIntervalValidation:
 
         with pytest.raises(ValidationError):
             SwimmingInterval(
-                repetitions=1, distance=100.0, distance_unit="meters"  # type: ignore[arg-type]
+                repetitions=1,
+                distance=100.0,
+                distance_unit="meters",  # type: ignore[arg-type]
             )
 
     def test_optional_fields_can_be_none(self) -> None:

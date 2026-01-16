@@ -52,10 +52,7 @@ class DomainSelector:
         Returns:
             List of DomainInfo objects for all registered domains.
         """
-        return [
-            DomainInfo(name=d.name, description=d.description)
-            for d in self.domains.values()
-        ]
+        return [DomainInfo(name=d.name, description=d.description) for d in self.domains.values()]
 
     def build_active_context(self, selected_domains: list[str]) -> ActiveDomainContext:
         """Build merged context from selected domain names.
@@ -70,9 +67,7 @@ class DomainSelector:
         Returns:
             ActiveDomainContext with merged data from base (if set) + selected domains.
         """
-        selected = [
-            self.domains[name] for name in selected_domains if name in self.domains
-        ]
+        selected = [self.domains[name] for name in selected_domains if name in self.domains]
 
         # Build merge list: base_domain first (if set), then selected (deduplicated)
         domains_to_merge: list[DomainModule] = []
@@ -118,8 +113,7 @@ class DomainSelector:
             for key, value in domain.vocabulary.items():
                 if key in merged and merged[key] != value:
                     logger.warning(
-                        "Vocabulary conflict for '%s': '%s' overrides '%s' "
-                        "(from domain '%s')",
+                        "Vocabulary conflict for '%s': '%s' overrides '%s' (from domain '%s')",
                         key,
                         value,
                         merged[key],
@@ -163,16 +157,10 @@ class DomainSelector:
         Returns:
             Combined context guidance string with domain labels.
         """
-        parts = [
-            f"[{d.name}] {d.context_management_guidance}"
-            for d in domains
-            if d.context_management_guidance
-        ]
+        parts = [f"[{d.name}] {d.context_management_guidance}" for d in domains if d.context_management_guidance]
         return "\n\n".join(parts)
 
-    def _combine_clarification_patterns(
-        self, domains: list[DomainModule]
-    ) -> dict[str, list[str]]:
+    def _combine_clarification_patterns(self, domains: list[DomainModule]) -> dict[str, list[str]]:
         """Combine clarification patterns from multiple domains.
 
         Args:

@@ -1028,7 +1028,7 @@ class TestArchival:
                 confidence="tentative",
                 source="test",
                 category="insight",
-                added_date=f"2026-01-{i+1:02d}",
+                added_date=f"2026-01-{i + 1:02d}",
             )
             for i in range(10)
         ]

@@ -386,9 +386,7 @@ class TestProcessCorrection:
         assert call_args.correction_target == "bench weight recorded as 85"  # pyright: ignore[reportUnknownMemberType]
 
     @pytest.mark.asyncio
-    async def test_uses_reasoning_when_log_portion_is_none(
-        self, tmp_path: Path, sample_entries: list[Entry]
-    ) -> None:
+    async def test_uses_reasoning_when_log_portion_is_none(self, tmp_path: Path, sample_entries: list[Entry]) -> None:
         """Test that reasoning is used as fallback when log_portion is None."""
         router_output = RouterOutput(
             input_type=InputType.CORRECTION,

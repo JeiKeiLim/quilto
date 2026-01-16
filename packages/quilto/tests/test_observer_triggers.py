@@ -1055,10 +1055,7 @@ class TestObserverTriggersIntegration:
         if result.should_update:
             context = context_manager.read_context()
             total_entries = (
-                len(context.preferences)
-                + len(context.patterns)
-                + len(context.facts)
-                + len(context.insights)
+                len(context.preferences) + len(context.patterns) + len(context.facts) + len(context.insights)
             )
             assert total_entries > 0
 

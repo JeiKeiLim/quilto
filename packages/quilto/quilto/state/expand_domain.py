@@ -56,21 +56,15 @@ def expand_domain_node(
 
     # Get current domains from active context (AC #7: handle None)
     active_ctx = state.get("active_domain_context")
-    current_domains: list[str] = (
-        active_ctx.get("domains_loaded", []) if active_ctx else []
-    )
+    current_domains: list[str] = active_ctx.get("domains_loaded", []) if active_ctx else []
 
     # Filter: invalid domains (not in selector) - log warning (AC #6)
     invalid_domains = [d for d in request if d not in domain_selector.domains]
     for invalid in invalid_domains:
-        logger.warning(
-            "Domain expansion: '%s' not in available domains, skipping", invalid
-        )
+        logger.warning("Domain expansion: '%s' not in available domains, skipping", invalid)
 
     # Filter: new domains only (not in history, valid in selector) (AC #4)
-    new_domains = [
-        d for d in request if d not in history and d in domain_selector.domains
-    ]
+    new_domains = [d for d in request if d not in history and d in domain_selector.domains]
 
     if not new_domains:
         # No expansion possible - proceed to clarify or synthesize partial (AC #4)
@@ -82,9 +76,7 @@ def expand_domain_node(
 
         # Check if there are non-retrievable gaps for clarification
         gaps = state.get("gaps") or []
-        has_non_retrievable_gaps = any(
-            gap.get("gap_type") in ("subjective", "clarification") for gap in gaps
-        )
+        has_non_retrievable_gaps = any(gap.get("gap_type") in ("subjective", "clarification") for gap in gaps)
 
         return {
             "next_state": "clarify" if has_non_retrievable_gaps else "synthesize",
@@ -93,9 +85,7 @@ def expand_domain_node(
         }
 
     # Build merged domain list (current + new, deduplicated)
-    merged: list[str] = current_domains + [
-        d for d in new_domains if d not in current_domains
-    ]
+    merged: list[str] = current_domains + [d for d in new_domains if d not in current_domains]
 
     logger.info("Domain expansion: adding %s (merged=%s)", new_domains, merged)
 

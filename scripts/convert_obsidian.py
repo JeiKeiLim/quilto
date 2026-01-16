@@ -167,12 +167,7 @@ def convert_file(
 
     # Prepare output path
     output_path = (
-        output_dir
-        / "logs"
-        / "raw"
-        / str(file_date.year)
-        / f"{file_date.month:02d}"
-        / f"{file_date.isoformat()}.md"
+        output_dir / "logs" / "raw" / str(file_date.year) / f"{file_date.month:02d}" / f"{file_date.isoformat()}.md"
     )
 
     # Prepare content with time header

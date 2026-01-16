@@ -810,9 +810,7 @@ class TestObserverIntegration:
     """
 
     @pytest.mark.asyncio
-    async def test_real_post_query_observation(
-        self, use_real_ollama: bool, integration_llm_config_path: Path
-    ) -> None:
+    async def test_real_post_query_observation(self, use_real_ollama: bool, integration_llm_config_path: Path) -> None:
         """Test real observation with post_query trigger."""
         if not use_real_ollama:
             pytest.skip("Requires --use-real-ollama flag")
@@ -881,16 +879,11 @@ class TestObserverIntegration:
         # For explicit corrections, LLM should generate updates with certain confidence
         # This is a key behavioral requirement per AC #7
         assert result.should_update, (
-            "User corrections should always trigger updates - LLM should recognize "
-            "explicit preference change"
+            "User corrections should always trigger updates - LLM should recognize explicit preference change"
         )
-        assert len(result.updates) > 0, (
-            "User corrections should generate at least one update"
-        )
+        assert len(result.updates) > 0, "User corrections should generate at least one update"
         confidences = [u.confidence for u in result.updates]
-        assert "certain" in confidences, (
-            "User corrections should generate 'certain' confidence updates"
-        )
+        assert "certain" in confidences, "User corrections should generate 'certain' confidence updates"
 
     @pytest.mark.asyncio
     async def test_real_significant_log_observation(

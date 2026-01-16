@@ -95,9 +95,7 @@ def state_with_strength_context(selector: DomainSelector) -> SessionState:
 class TestExpandDomainNodeValidExpansion:
     """Tests for valid domain expansion scenarios (AC #3)."""
 
-    def test_expands_single_domain(
-        self, selector: DomainSelector, state_with_strength_context: SessionState
-    ) -> None:
+    def test_expands_single_domain(self, selector: DomainSelector, state_with_strength_context: SessionState) -> None:
         """expand_domain_node adds requested domain to context."""
         result = expand_domain_node(state_with_strength_context, selector)
 
@@ -105,9 +103,7 @@ class TestExpandDomainNodeValidExpansion:
         assert "nutrition" in result["domain_expansion_history"]
         assert result["domain_expansion_request"] is None
 
-    def test_rebuilds_active_context(
-        self, selector: DomainSelector, state_with_strength_context: SessionState
-    ) -> None:
+    def test_rebuilds_active_context(self, selector: DomainSelector, state_with_strength_context: SessionState) -> None:
         """expand_domain_node rebuilds ActiveDomainContext with merged domains."""
         result = expand_domain_node(state_with_strength_context, selector)
 
@@ -118,9 +114,7 @@ class TestExpandDomainNodeValidExpansion:
         assert "rep" in new_context["vocabulary"]
         assert "macro" in new_context["vocabulary"]
 
-    def test_appends_to_history(
-        self, selector: DomainSelector, state_with_strength_context: SessionState
-    ) -> None:
+    def test_appends_to_history(self, selector: DomainSelector, state_with_strength_context: SessionState) -> None:
         """expand_domain_node appends new domains to history."""
         state_with_strength_context["domain_expansion_history"] = ["running"]
         state_with_strength_context["domain_expansion_request"] = ["nutrition"]
@@ -159,9 +153,7 @@ class TestExpandDomainNodeHistoryFilter:
         assert result["next_state"] == "synthesize"
         assert result["is_partial"] is True
 
-    def test_partial_history_filter(
-        self, selector: DomainSelector, state_with_strength_context: SessionState
-    ) -> None:
+    def test_partial_history_filter(self, selector: DomainSelector, state_with_strength_context: SessionState) -> None:
         """expand_domain_node expands only domains not in history."""
         state_with_strength_context["domain_expansion_history"] = ["nutrition"]
         state_with_strength_context["domain_expansion_request"] = [
@@ -185,9 +177,7 @@ class TestExpandDomainNodeHistoryFilter:
         result1 = expand_domain_node(state_with_strength_context, selector)
 
         # Second expansion with same state (simulating retry)
-        state_with_strength_context["domain_expansion_history"] = result1[
-            "domain_expansion_history"
-        ]
+        state_with_strength_context["domain_expansion_history"] = result1["domain_expansion_history"]
         state_with_strength_context["domain_expansion_request"] = ["running"]
         result2 = expand_domain_node(state_with_strength_context, selector)
 
@@ -228,9 +218,7 @@ class TestExpandDomainNodeInvalidDomains:
         assert "nutrition" in result["domain_expansion_history"]
         assert "unknown_domain" not in result["domain_expansion_history"]
 
-    def test_all_invalid_domains(
-        self, selector: DomainSelector, state_with_strength_context: SessionState
-    ) -> None:
+    def test_all_invalid_domains(self, selector: DomainSelector, state_with_strength_context: SessionState) -> None:
         """expand_domain_node handles all invalid domains gracefully."""
         state_with_strength_context["domain_expansion_request"] = [
             "unknown1",
@@ -252,9 +240,7 @@ class TestExpandDomainNodeNoNewDomains:
         """Routes to clarify when no new domains and has non-retrievable gaps (Subtask 6.4)."""
         state_with_strength_context["domain_expansion_history"] = ["nutrition"]
         state_with_strength_context["domain_expansion_request"] = ["nutrition"]
-        state_with_strength_context["gaps"] = [
-            {"gap_type": "subjective", "description": "How do you feel?"}
-        ]
+        state_with_strength_context["gaps"] = [{"gap_type": "subjective", "description": "How do you feel?"}]
 
         result = expand_domain_node(state_with_strength_context, selector)
 
@@ -280,9 +266,7 @@ class TestExpandDomainNodeNoNewDomains:
         """Gaps with gap_type='clarification' route to clarify."""
         state_with_strength_context["domain_expansion_history"] = ["nutrition"]
         state_with_strength_context["domain_expansion_request"] = ["nutrition"]
-        state_with_strength_context["gaps"] = [
-            {"gap_type": "clarification", "description": "Which exercise?"}
-        ]
+        state_with_strength_context["gaps"] = [{"gap_type": "clarification", "description": "Which exercise?"}]
 
         result = expand_domain_node(state_with_strength_context, selector)
 
@@ -294,9 +278,7 @@ class TestExpandDomainNodeNoNewDomains:
         """Gaps with gap_type='factual' don't trigger clarify."""
         state_with_strength_context["domain_expansion_history"] = ["nutrition"]
         state_with_strength_context["domain_expansion_request"] = ["nutrition"]
-        state_with_strength_context["gaps"] = [
-            {"gap_type": "factual", "description": "Missing data"}
-        ]
+        state_with_strength_context["gaps"] = [{"gap_type": "factual", "description": "Missing data"}]
 
         result = expand_domain_node(state_with_strength_context, selector)
 
@@ -329,9 +311,7 @@ class TestExpandDomainNodeIsPartial:
 class TestExpandDomainNodeNoneContext:
     """Tests for handling active_domain_context=None (AC #7)."""
 
-    def test_handles_none_context(
-        self, selector: DomainSelector, domain_nutrition: DomainModule
-    ) -> None:
+    def test_handles_none_context(self, selector: DomainSelector, domain_nutrition: DomainModule) -> None:
         """expand_domain_node handles active_domain_context=None (Subtask 6.7)."""
         state: SessionState = SessionState(
             raw_input="Test",
@@ -348,9 +328,7 @@ class TestExpandDomainNodeNoneContext:
         assert "nutrition" in result["domain_expansion_history"]
         assert result["active_domain_context"]["domains_loaded"] == ["nutrition"]
 
-    def test_handles_missing_domains_loaded(
-        self, selector: DomainSelector
-    ) -> None:
+    def test_handles_missing_domains_loaded(self, selector: DomainSelector) -> None:
         """expand_domain_node handles active_domain_context without domains_loaded."""
         state: SessionState = SessionState(
             raw_input="Test",
@@ -370,9 +348,7 @@ class TestExpandDomainNodeNoneContext:
 class TestExpandDomainNodeEmptyRequest:
     """Tests for empty domain expansion request."""
 
-    def test_empty_request_list(
-        self, selector: DomainSelector, state_with_strength_context: SessionState
-    ) -> None:
+    def test_empty_request_list(self, selector: DomainSelector, state_with_strength_context: SessionState) -> None:
         """expand_domain_node handles empty request list."""
         state_with_strength_context["domain_expansion_request"] = []
 
@@ -381,9 +357,7 @@ class TestExpandDomainNodeEmptyRequest:
         assert result["is_partial"] is True
         assert result["next_state"] == "synthesize"
 
-    def test_none_request(
-        self, selector: DomainSelector, state_with_strength_context: SessionState
-    ) -> None:
+    def test_none_request(self, selector: DomainSelector, state_with_strength_context: SessionState) -> None:
         """expand_domain_node handles None request."""
         state_with_strength_context["domain_expansion_request"] = None
 

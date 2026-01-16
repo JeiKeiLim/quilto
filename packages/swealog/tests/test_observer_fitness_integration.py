@@ -113,9 +113,7 @@ class TestObserverFitnessIntegration:
     """
 
     @pytest.mark.asyncio
-    async def test_observer_with_strength_pr(
-        self, use_real_ollama: bool, integration_llm_config_path: Path
-    ) -> None:
+    async def test_observer_with_strength_pr(self, use_real_ollama: bool, integration_llm_config_path: Path) -> None:
         """Test Observer with Strength domain PR entry (AC: #8).
 
         Given: Bench press PR log entry with explicit PR mention
@@ -160,23 +158,15 @@ class TestObserverFitnessIntegration:
         assert isinstance(result.updates, list)
 
         # For explicit PR mention, should generate updates
-        assert result.should_update, (
-            "Observer should recognize explicit PR mention and generate updates"
-        )
-        assert len(result.updates) > 0, (
-            "PR entries should generate at least one update"
-        )
+        assert result.should_update, "Observer should recognize explicit PR mention and generate updates"
+        assert len(result.updates) > 0, "PR entries should generate at least one update"
 
         # Check that at least one update is a fact with certain confidence
         categories = [u.category for u in result.updates]
         confidences = [u.confidence for u in result.updates]
 
-        assert "fact" in categories, (
-            "PRs should be recorded as facts (certain information about achievement)"
-        )
-        assert "certain" in confidences, (
-            "Explicit PR mentions should have 'certain' confidence"
-        )
+        assert "fact" in categories, "PRs should be recorded as facts (certain information about achievement)"
+        assert "certain" in confidences, "Explicit PR mentions should have 'certain' confidence"
 
     @pytest.mark.asyncio
     async def test_observer_with_combined_fitness_guidance(
@@ -284,12 +274,8 @@ class TestObserverFitnessIntegration:
         assert isinstance(result.updates, list)
 
         # First marathon is a major milestone - should generate updates
-        assert result.should_update, (
-            "First marathon is a significant milestone - should generate updates"
-        )
-        assert len(result.updates) > 0, (
-            "Marathon milestone should generate at least one update"
-        )
+        assert result.should_update, "First marathon is a significant milestone - should generate updates"
+        assert len(result.updates) > 0, "Marathon milestone should generate at least one update"
 
         # Marathon completion is a fact (achievement)
         categories = [u.category for u in result.updates]
@@ -333,8 +319,7 @@ class TestObserverFitnessIntegration:
             id="2026-01-15_001",
             date=date(2026, 1, 15),
             timestamp=datetime(2026, 1, 15, 10, 0, 0),
-            raw_content="Bench press 185x5x3. Felt some shoulder pain on last set, "
-            "stopped early. Need to watch this.",
+            raw_content="Bench press 185x5x3. Felt some shoulder pain on last set, stopped early. Need to watch this.",
         )
 
         detector = FitnessSignificantEntryDetector()
@@ -350,9 +335,7 @@ class TestObserverFitnessIntegration:
         )
 
         # Detector should flag this as significant (injury mention)
-        assert result is not None, (
-            "Entry with injury mention should be detected as significant"
-        )
+        assert result is not None, "Entry with injury mention should be detected as significant"
 
         # Observer should process and potentially flag injury pattern
         assert isinstance(result.should_update, bool)

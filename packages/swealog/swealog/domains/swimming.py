@@ -23,9 +23,7 @@ class SwimmingLap(BaseModel):
     model_config = ConfigDict(strict=True)
 
     lap_number: int = Field(ge=1)
-    stroke_type: (
-        Literal["freestyle", "backstroke", "breaststroke", "butterfly", "im"] | None
-    ) = None
+    stroke_type: Literal["freestyle", "backstroke", "breaststroke", "butterfly", "im"] | None = None
     duration_seconds: float | None = Field(default=None, ge=0.0)
     notes: str | None = None
 
@@ -48,12 +46,7 @@ class SwimmingInterval(BaseModel):
     repetitions: int = Field(ge=1)
     distance: float = Field(ge=0.0)
     distance_unit: Literal["m", "y", "laps"] | None = None
-    stroke_type: (
-        Literal[
-            "freestyle", "backstroke", "breaststroke", "butterfly", "im", "choice"
-        ]
-        | None
-    ) = None
+    stroke_type: Literal["freestyle", "backstroke", "breaststroke", "butterfly", "im", "choice"] | None = None
     interval_seconds: float | None = Field(default=None, ge=0.0)
     rest_seconds: float | None = Field(default=None, ge=0.0)
     notes: str | None = None
@@ -90,18 +83,8 @@ class SwimmingEntry(BaseModel):
     distance: float | None = Field(default=None, ge=0.0)
     distance_unit: Literal["m", "y", "laps"] | None = None
     duration_minutes: float | None = Field(default=None, ge=0.0)
-    stroke_type: (
-        Literal[
-            "freestyle", "backstroke", "breaststroke", "butterfly", "im", "mixed"
-        ]
-        | None
-    ) = None
-    workout_type: (
-        Literal[
-            "endurance", "sprint", "drill", "technique", "recovery", "race", "open_water"
-        ]
-        | None
-    ) = None
+    stroke_type: Literal["freestyle", "backstroke", "breaststroke", "butterfly", "im", "mixed"] | None = None
+    workout_type: Literal["endurance", "sprint", "drill", "technique", "recovery", "race", "open_water"] | None = None
     pool_length: float | None = Field(default=None, ge=0.0)
     pool_length_unit: Literal["m", "y"] | None = None
     open_water: bool = Field(default=False)

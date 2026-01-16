@@ -442,8 +442,7 @@ async def run_clarifier(
 
     # Collect all gaps from analyzer
     all_gaps = (
-        analyzer_output.sufficiency_evaluation.critical_gaps
-        + analyzer_output.sufficiency_evaluation.nice_to_have_gaps
+        analyzer_output.sufficiency_evaluation.critical_gaps + analyzer_output.sufficiency_evaluation.nice_to_have_gaps
     )
 
     clarifier_input = ClarifierInput(
@@ -543,7 +542,7 @@ def collect_clarification_answers(clarifier_output: ClarifierOutput) -> dict[str
                             continue
 
                     # Free-form answer - store with options context for LLM
-                    options_ctx = ", ".join(f"{i+1}={opt}" for i, opt in enumerate(q.options))
+                    options_ctx = ", ".join(f"{i + 1}={opt}" for i, opt in enumerate(q.options))
                     answers[q.question] = f"{choice} (options were: {options_ctx})"
                     break
                 except (KeyboardInterrupt, EOFError):
@@ -1025,9 +1024,7 @@ async def process_input(
                                 if answers:
                                     clarification_context = format_clarification_context(answers)
                                     # Convert to gap_addressed -> answer format for Evaluator
-                                    user_responses = build_user_responses_for_evaluator(
-                                        answers, clarifier_output
-                                    )
+                                    user_responses = build_user_responses_for_evaluator(answers, clarifier_output)
                                     print_section("Collected Answers")
                                     print(clarification_context)
                         except Exception as e:

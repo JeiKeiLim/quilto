@@ -191,40 +191,28 @@ class GlobalContextManager:
         if context.preferences:
             for entry in context.preferences:
                 # Format: - [date|confidence|source] key: value
-                lines.append(
-                    f"- [{entry.added_date}|{entry.confidence}|{entry.source}] "
-                    f"{entry.key}: {entry.value}"
-                )
+                lines.append(f"- [{entry.added_date}|{entry.confidence}|{entry.source}] {entry.key}: {entry.value}")
         lines.append("")
 
         # Patterns section
         lines.append("## Patterns (likely)")
         if context.patterns:
             for entry in context.patterns:
-                lines.append(
-                    f"- [{entry.added_date}|{entry.confidence}|{entry.source}] "
-                    f"{entry.key}: {entry.value}"
-                )
+                lines.append(f"- [{entry.added_date}|{entry.confidence}|{entry.source}] {entry.key}: {entry.value}")
         lines.append("")
 
         # Facts section
         lines.append("## Facts (certain)")
         if context.facts:
             for entry in context.facts:
-                lines.append(
-                    f"- [{entry.added_date}|{entry.confidence}|{entry.source}] "
-                    f"{entry.key}: {entry.value}"
-                )
+                lines.append(f"- [{entry.added_date}|{entry.confidence}|{entry.source}] {entry.key}: {entry.value}")
         lines.append("")
 
         # Insights section
         lines.append("## Insights (tentative)")
         if context.insights:
             for entry in context.insights:
-                lines.append(
-                    f"- [{entry.added_date}|{entry.confidence}|{entry.source}] "
-                    f"{entry.key}: {entry.value}"
-                )
+                lines.append(f"- [{entry.added_date}|{entry.confidence}|{entry.source}] {entry.key}: {entry.value}")
         lines.append("")
 
         return "\n".join(lines)
@@ -332,18 +320,12 @@ class GlobalContextManager:
 
         # Find next section or end
         next_section = re.search(r"^## ", body[start_idx:], re.MULTILINE)
-        section_content = (
-            body[start_idx : start_idx + next_section.start()]
-            if next_section
-            else body[start_idx:]
-        )
+        section_content = body[start_idx : start_idx + next_section.start()] if next_section else body[start_idx:]
 
         # Parse bullet points
         # New format: - [date|confidence|source] key: value
         # Legacy format: - [YYYY-MM-DD] key: value  OR  - key: value
-        full_pattern = re.compile(
-            r"^\[(\d{4}-\d{2}-\d{2})\|([^|]+)\|([^\]]+)\]\s*(.+)$"
-        )
+        full_pattern = re.compile(r"^\[(\d{4}-\d{2}-\d{2})\|([^|]+)\|([^\]]+)\]\s*(.+)$")
         date_only_pattern = re.compile(r"^\[(\d{4}-\d{2}-\d{2})\]\s*(.+)$")
 
         for line in section_content.split("\n"):
@@ -441,6 +423,7 @@ class GlobalContextManager:
         Returns:
             Modified GlobalContext with archived items removed.
         """
+
         def _entry_date_key(e: ContextEntry) -> str:
             """Sort key for entries by added_date (oldest first)."""
             return e.added_date

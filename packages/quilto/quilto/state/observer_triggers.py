@@ -98,9 +98,7 @@ class ObserverTriggerConfig(BaseModel):
             ValueError: If enable_periodic=True but periodic_interval_minutes is not set.
         """
         if self.enable_periodic and self.periodic_interval_minutes is None:
-            raise ValueError(
-                "periodic_interval_minutes is required when enable_periodic=True"
-            )
+            raise ValueError("periodic_interval_minutes is required when enable_periodic=True")
         return self
 
 
@@ -203,40 +201,28 @@ def serialize_global_context(context: GlobalContext) -> str:
     lines.append("## Preferences (certain)")
     if context.preferences:
         for entry in context.preferences:
-            lines.append(
-                f"- [{entry.added_date}|{entry.confidence}|{entry.source}] "
-                f"{entry.key}: {entry.value}"
-            )
+            lines.append(f"- [{entry.added_date}|{entry.confidence}|{entry.source}] {entry.key}: {entry.value}")
     lines.append("")
 
     # Patterns section
     lines.append("## Patterns (likely)")
     if context.patterns:
         for entry in context.patterns:
-            lines.append(
-                f"- [{entry.added_date}|{entry.confidence}|{entry.source}] "
-                f"{entry.key}: {entry.value}"
-            )
+            lines.append(f"- [{entry.added_date}|{entry.confidence}|{entry.source}] {entry.key}: {entry.value}")
     lines.append("")
 
     # Facts section
     lines.append("## Facts (certain)")
     if context.facts:
         for entry in context.facts:
-            lines.append(
-                f"- [{entry.added_date}|{entry.confidence}|{entry.source}] "
-                f"{entry.key}: {entry.value}"
-            )
+            lines.append(f"- [{entry.added_date}|{entry.confidence}|{entry.source}] {entry.key}: {entry.value}")
     lines.append("")
 
     # Insights section
     lines.append("## Insights (tentative)")
     if context.insights:
         for entry in context.insights:
-            lines.append(
-                f"- [{entry.added_date}|{entry.confidence}|{entry.source}] "
-                f"{entry.key}: {entry.value}"
-            )
+            lines.append(f"- [{entry.added_date}|{entry.confidence}|{entry.source}] {entry.key}: {entry.value}")
     lines.append("")
 
     return "\n".join(lines)
