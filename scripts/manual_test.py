@@ -2,8 +2,14 @@
 """Manual validation script for Quilto/Swealog components.
 
 This script allows hands-on testing of the Router, Parser, Planner, Retriever,
-Analyzer, Clarifier, Synthesizer, and Evaluator agents with Swealog domain modules
-(GeneralFitness, Strength, Nutrition, Running, Swimming).
+Analyzer, Clarifier, Synthesizer, Evaluator, and Observer agents with Swealog
+domain modules (GeneralFitness, Strength, Nutrition, Running, Swimming).
+
+Observer Agent (Epic 7):
+- Runs automatically after query completion (post_query trigger)
+- Runs for significant log entries with PRs, milestones, events (significant_log trigger)
+- Learns patterns and updates global context for personalization
+- Requires --storage-dir to be enabled
 
 Usage:
     # Single input mode - LOG entries
@@ -71,6 +77,9 @@ from quilto.agents import (  # noqa: E402
     EvaluatorInput,
     EvaluatorOutput,
     GapType,
+    ObserverAgent,
+    ObserverInput,
+    ObserverOutput,
     PlannerAgent,
     PlannerInput,
     PlannerOutput,
@@ -81,7 +90,12 @@ from quilto.agents import (  # noqa: E402
     SynthesizerInput,
     SynthesizerOutput,
 )
-from quilto.storage import StorageRepository  # noqa: E402
+from quilto.state.observer_triggers import (  # noqa: E402
+    DefaultSignificantEntryDetector,
+    get_combined_context_guidance,
+    serialize_global_context,
+)
+from quilto.storage import GlobalContextManager, StorageRepository  # noqa: E402
 from swealog.domains import (  # noqa: E402
     GeneralFitnessEntry,
     NutritionEntry,
@@ -821,6 +835,178 @@ async def run_evaluator(
     return result, output
 
 
+async def run_observer_post_query(
+    client: LLMClient,
+    context_manager: GlobalContextManager,
+    query: str,
+    analyzer_output: AnalyzerOutput,
+    response: str,
+    selected_domains: list[str],
+) -> tuple[dict[str, Any], ObserverOutput | None]:
+    """Run Observer agent after query completion.
+
+    Args:
+        client: LLM client.
+        context_manager: GlobalContextManager for context operations.
+        query: The user's query.
+        analyzer_output: AnalyzerOutput from analysis.
+        response: The generated response.
+        selected_domains: List of selected domain names.
+
+    Returns:
+        Tuple of result dict and ObserverOutput (None if no update needed).
+    """
+    observer = ObserverAgent(client)
+
+    # Build active domain context for guidance
+    domain_context = build_active_domain_context(selected_domains)
+    guidance = get_combined_context_guidance(domain_context)
+
+    # Get and serialize current global context
+    context = context_manager.read_context()
+    serialized_context = serialize_global_context(context)
+
+    print_section("Observer Input (post_query)")
+    print("Trigger: post_query")
+    print(f"Query: {query}")
+    print(f"Response length: {len(response)} chars")
+    print(f"Current context version: {context.frontmatter.version}")
+
+    observer_input = ObserverInput(
+        trigger="post_query",
+        current_global_context=serialized_context,
+        context_management_guidance=guidance,
+        query=query,
+        analysis=analyzer_output.model_dump(),
+        response=response,
+    )
+
+    print_section("Running Observer...")
+    output = await observer.observe(observer_input)
+
+    result: dict[str, Any] = {
+        "should_update": output.should_update,
+        "insights_captured": output.insights_captured,
+        "update_count": len(output.updates),
+    }
+
+    if output.updates:
+        result["updates"] = [
+            {
+                "category": u.category,
+                "key": u.key,
+                "value": u.value,
+                "confidence": u.confidence,
+            }
+            for u in output.updates
+        ]
+
+    # Apply updates if needed
+    if output.should_update:
+        updated_context = context_manager.apply_updates(output.updates)
+        result["new_context_version"] = updated_context.frontmatter.version
+        print(f"Context updated to version {updated_context.frontmatter.version}")
+
+    return result, output
+
+
+async def run_observer_significant_log(
+    client: LLMClient,
+    context_manager: GlobalContextManager,
+    raw_input: str,
+    parsed_data: dict[str, Any],
+    selected_domains: list[str],
+) -> tuple[dict[str, Any], ObserverOutput | None]:
+    """Run Observer agent for significant log entries.
+
+    First checks if the entry is significant (PR, milestone, event).
+    Only runs Observer if the entry warrants attention.
+
+    Args:
+        client: LLM client.
+        context_manager: GlobalContextManager for context operations.
+        raw_input: The raw log input.
+        parsed_data: Parsed domain data from the entry.
+        selected_domains: List of selected domain names.
+
+    Returns:
+        Tuple of result dict and ObserverOutput (None if not significant or no update).
+    """
+    from quilto.storage import Entry
+
+    # Create a temporary Entry for significance detection
+    temp_entry = Entry(
+        id="temp",
+        date=datetime.now().date(),
+        timestamp=datetime.now(),
+        raw_content=raw_input,
+        tags=[],
+        domain_data=parsed_data,
+    )
+
+    # Check significance
+    detector = DefaultSignificantEntryDetector()
+    is_significant = detector.is_significant(temp_entry, parsed_data)
+
+    print_section("Observer Significance Check")
+    print(f"Entry: {raw_input[:60]}...")
+    print(f"Is significant: {is_significant}")
+
+    if not is_significant:
+        return {"is_significant": False, "reason": "Entry does not contain PR, milestone, or event indicators"}, None
+
+    # Entry is significant - run Observer
+    observer = ObserverAgent(client)
+
+    # Build active domain context for guidance
+    domain_context = build_active_domain_context(selected_domains)
+    guidance = get_combined_context_guidance(domain_context)
+
+    # Get and serialize current global context
+    context = context_manager.read_context()
+    serialized_context = serialize_global_context(context)
+
+    print_section("Observer Input (significant_log)")
+    print("Trigger: significant_log")
+    print(f"Current context version: {context.frontmatter.version}")
+
+    observer_input = ObserverInput(
+        trigger="significant_log",
+        current_global_context=serialized_context,
+        context_management_guidance=guidance,
+        new_entry=temp_entry.model_dump(),
+    )
+
+    print_section("Running Observer...")
+    output = await observer.observe(observer_input)
+
+    result: dict[str, Any] = {
+        "is_significant": True,
+        "should_update": output.should_update,
+        "insights_captured": output.insights_captured,
+        "update_count": len(output.updates),
+    }
+
+    if output.updates:
+        result["updates"] = [
+            {
+                "category": u.category,
+                "key": u.key,
+                "value": u.value,
+                "confidence": u.confidence,
+            }
+            for u in output.updates
+        ]
+
+    # Apply updates if needed
+    if output.should_update:
+        updated_context = context_manager.apply_updates(output.updates)
+        result["new_context_version"] = updated_context.frontmatter.version
+        print(f"Context updated to version {updated_context.frontmatter.version}")
+
+    return result, output
+
+
 async def run_retry_loop(
     client: LLMClient,
     query: str,
@@ -927,8 +1113,14 @@ async def process_input(
     raw_input: str,
     router_only: bool = False,
     storage: StorageRepository | None = None,
+    context_manager: GlobalContextManager | None = None,
 ) -> None:
-    """Process a single input through Router, Parser, Planner, and/or Retriever."""
+    """Process a single input through Router, Parser, Planner, and/or Retriever.
+
+    If context_manager is provided, also runs Observer agent for learning:
+    - After query flow (post_query trigger)
+    - After log flow with significant entries (significant_log trigger)
+    """
     print_header(f"Processing: {raw_input[:50]}{'...' if len(raw_input) > 50 else ''}")
 
     # Run Router
@@ -955,12 +1147,28 @@ async def process_input(
     # Handle based on input type
     if input_type == InputType.LOG:
         # LOG: Run Parser only
+        parser_result: dict[str, Any] | None = None
         try:
             parser_result = await run_parser(client, raw_input, selected_domains)
             print_section("Parser Output")
             print_json(parser_result)
         except Exception as e:
             print(f"\nParser ERROR: {e}")
+
+        # Run Observer for significant log entries
+        if context_manager and parser_result is not None:
+            try:
+                observer_result, _ = await run_observer_significant_log(
+                    client,
+                    context_manager,
+                    raw_input,
+                    parser_result.get("domain_data", {}),
+                    selected_domains,
+                )
+                print_section("Observer Output")
+                print_json(observer_result)
+            except Exception as e:
+                print(f"\nObserver ERROR: {e}")
 
     elif input_type == InputType.QUERY:
         # QUERY: Run Planner, then Retriever, then Analyzer
@@ -1066,6 +1274,22 @@ async def process_input(
                             )
                             print_section("Evaluator Output")
                             print_json(evaluator_result)
+
+                            # Run Observer after successful query completion
+                            if context_manager:
+                                try:
+                                    observer_result, _ = await run_observer_post_query(
+                                        client,
+                                        context_manager,
+                                        raw_input,
+                                        analyzer_output,
+                                        synthesizer_output.response,
+                                        selected_domains,
+                                    )
+                                    print_section("Observer Output")
+                                    print_json(observer_result)
+                                except Exception as e:
+                                    print(f"\nObserver ERROR: {e}")
                         except Exception as e:
                             print(f"\nEvaluator ERROR: {e}")
                     except Exception as e:
@@ -1079,12 +1303,28 @@ async def process_input(
         query_portion = router_result.get("query_portion", "")
 
         # Run Parser on log portion
+        parser_result_both: dict[str, Any] | None = None
         try:
-            parser_result = await run_parser(client, log_portion, selected_domains)
+            parser_result_both = await run_parser(client, log_portion, selected_domains)
             print_section("Parser Output (log portion)")
-            print_json(parser_result)
+            print_json(parser_result_both)
         except Exception as e:
             print(f"\nParser ERROR: {e}")
+
+        # Run Observer for significant log entries (log portion)
+        if context_manager and parser_result_both is not None:
+            try:
+                observer_result, _ = await run_observer_significant_log(
+                    client,
+                    context_manager,
+                    log_portion,
+                    parser_result_both.get("domain_data", {}),
+                    selected_domains,
+                )
+                print_section("Observer Output (log portion)")
+                print_json(observer_result)
+            except Exception as e:
+                print(f"\nObserver ERROR: {e}")
 
         # Run Planner + Retriever + Analyzer on query portion
         planner_output: PlannerOutput | None = None
@@ -1192,6 +1432,22 @@ async def process_input(
                                 )
                                 print_section("Evaluator Output (query portion)")
                                 print_json(evaluator_result)
+
+                                # Run Observer after successful query completion (query portion)
+                                if context_manager:
+                                    try:
+                                        observer_result, _ = await run_observer_post_query(
+                                            client,
+                                            context_manager,
+                                            query_portion,
+                                            analyzer_output,
+                                            synthesizer_output.response,
+                                            selected_domains,
+                                        )
+                                        print_section("Observer Output (query portion)")
+                                        print_json(observer_result)
+                                    except Exception as e:
+                                        print(f"\nObserver ERROR: {e}")
                             except Exception as e:
                                 print(f"\nEvaluator ERROR: {e}")
                         except Exception as e:
@@ -1203,10 +1459,12 @@ async def process_input(
 
     elif input_type == InputType.CORRECTION:
         # CORRECTION: Run Parser with correction mode
+        # Note: user_correction trigger for Observer would require more context
+        # about what was corrected, which is not available in this simple test script
         try:
-            parser_result = await run_parser(client, raw_input, selected_domains)
+            parser_result_correction = await run_parser(client, raw_input, selected_domains)
             print_section("Parser Output (correction)")
-            print_json(parser_result)
+            print_json(parser_result_correction)
         except Exception as e:
             print(f"\nParser ERROR: {e}")
 
@@ -1215,6 +1473,7 @@ async def interactive_mode(
     client: LLMClient,
     router_only: bool = False,
     storage: StorageRepository | None = None,
+    context_manager: GlobalContextManager | None = None,
 ) -> None:
     """Run in interactive mode, accepting inputs until 'quit'."""
     print_header("Quilto/Swealog Manual Validation")
@@ -1226,6 +1485,12 @@ async def interactive_mode(
         print(f"\nStorage: {storage.base_path}")
     else:
         print("\nStorage: Not configured (use --storage-dir for retrieval)")
+
+    if context_manager:
+        context = context_manager.read_context()
+        print(f"\nObserver: Enabled (context version {context.frontmatter.version})")
+    else:
+        print("\nObserver: Disabled (requires --storage-dir)")
 
     print("\nEnter text to process (or 'quit' to exit):")
     print("Examples:")
@@ -1246,7 +1511,7 @@ async def interactive_mode(
                 print("Goodbye!")
                 break
 
-            await process_input(client, raw_input, router_only, storage)
+            await process_input(client, raw_input, router_only, storage, context_manager)
 
         except KeyboardInterrupt:
             print("\nGoodbye!")
@@ -1324,22 +1589,26 @@ Examples:
         if ollama_config:
             print(f"Ollama API base: {ollama_config.api_base}")
 
-    # Initialize storage if specified
+    # Initialize storage and context manager if specified
     storage: StorageRepository | None = None
+    context_manager: GlobalContextManager | None = None
     if args.storage_dir:
         if not args.storage_dir.exists():
             print(f"WARNING: Storage directory does not exist: {args.storage_dir}")
-            print("Retriever will be skipped.")
+            print("Retriever and Observer will be skipped.")
         else:
             storage = StorageRepository(args.storage_dir)
+            context_manager = GlobalContextManager(storage)
             print(f"Storage directory: {args.storage_dir}")
+            context = context_manager.read_context()
+            print(f"Observer enabled (context version {context.frontmatter.version})")
 
     if args.input:
         # Single input mode
-        await process_input(client, args.input, args.router_only, storage)
+        await process_input(client, args.input, args.router_only, storage, context_manager)
     else:
         # Interactive mode
-        await interactive_mode(client, args.router_only, storage)
+        await interactive_mode(client, args.router_only, storage, context_manager)
 
 
 if __name__ == "__main__":
