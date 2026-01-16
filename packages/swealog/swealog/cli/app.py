@@ -4,6 +4,8 @@ from importlib.metadata import version
 
 import typer
 
+from swealog.cli.import_cmd import import_file
+
 
 def _get_version() -> str:
     """Get swealog version from installed package metadata.
@@ -72,3 +74,7 @@ def serve(
         port=port,
         reload=reload,
     )
+
+
+# Register import command (name="import" since "import" is reserved keyword)
+app.command(name="import")(import_file)
