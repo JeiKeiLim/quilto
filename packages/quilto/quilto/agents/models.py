@@ -898,3 +898,123 @@ class ClarifierOutput(BaseModel):
     questions: list[ClarificationQuestion]
     context_explanation: str = Field(min_length=1)
     fallback_action: str = Field(min_length=1)
+
+
+# =============================================================================
+# Observer Models
+# =============================================================================
+
+
+class ContextUpdate(BaseModel):
+    """A single update to global context.
+
+    Attributes:
+        category: Update category (preference, pattern, fact, insight).
+        key: Unique identifier for this context entry.
+        value: The value to store.
+        confidence: Confidence level (certain, likely, tentative).
+        source: What triggered this update.
+
+    Example:
+        >>> update = ContextUpdate(
+        ...     category="preference",
+        ...     key="unit_preference",
+        ...     value="metric",
+        ...     confidence="certain",
+        ...     source="user_correction: changed lbs to kg"
+        ... )
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    category: Literal["preference", "pattern", "fact", "insight"]
+    key: str = Field(min_length=1)
+    value: str = Field(min_length=1)
+    confidence: Literal["certain", "likely", "tentative"]
+    source: str = Field(min_length=1)
+
+
+class ObserverInput(BaseModel):
+    """Input to Observer agent.
+
+    Attributes:
+        trigger: What triggered this observation.
+        current_global_context: Current context content (empty for new users).
+        context_management_guidance: Domain guidance on what to track.
+        query: Query text (required for post_query).
+        analysis: AnalyzerOutput (required for post_query). Uses Any to avoid circular import.
+        response: Response text (required for post_query).
+        correction: Correction text (required for user_correction).
+        what_was_corrected: Description of correction (required for user_correction).
+        new_entry: Entry object (required for significant_log). Uses Any to avoid circular import.
+
+    Example:
+        >>> observer_input = ObserverInput(
+        ...     trigger="user_correction",
+        ...     current_global_context="# Global Context\n...",
+        ...     context_management_guidance="Track PRs, preferences...",
+        ...     correction="Actually I ran 5km not 3km",
+        ...     what_was_corrected="distance"
+        ... )
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    trigger: Literal["post_query", "user_correction", "significant_log"]
+    current_global_context: str  # Allow empty for new users
+    context_management_guidance: str = Field(min_length=1)
+
+    # post_query fields
+    query: str | None = None
+    analysis: Any | None = None  # AnalyzerOutput at runtime, Any to avoid circular import
+    response: str | None = None
+
+    # user_correction fields
+    correction: str | None = None
+    what_was_corrected: str | None = None
+
+    # significant_log fields
+    new_entry: Any | None = None  # Entry at runtime, Any to avoid circular import
+
+    @model_validator(mode="after")
+    def validate_trigger_fields(self) -> "ObserverInput":
+        """Validate trigger-specific required fields.
+
+        Returns:
+            The validated ObserverInput instance.
+
+        Raises:
+            ValueError: If required fields for trigger type are missing.
+        """
+        if self.trigger == "post_query":
+            if self.query is None or self.analysis is None or self.response is None:
+                raise ValueError("post_query trigger requires query, analysis, and response")
+        elif self.trigger == "user_correction":
+            if self.correction is None or self.what_was_corrected is None:
+                raise ValueError("user_correction trigger requires correction and what_was_corrected")
+        elif self.trigger == "significant_log" and self.new_entry is None:
+            raise ValueError("significant_log trigger requires new_entry")
+        return self
+
+
+class ObserverOutput(BaseModel):
+    """Output from Observer agent.
+
+    Attributes:
+        should_update: Whether context should be updated.
+        updates: List of updates to apply.
+        insights_captured: What was learned (for logging).
+
+    Example:
+        >>> output = ObserverOutput(
+        ...     should_update=True,
+        ...     updates=[update1, update2],
+        ...     insights_captured=["User prefers metric units"]
+        ... )
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    should_update: bool
+    updates: list[ContextUpdate] = Field(default_factory=list)  # pyright: ignore[reportUnknownVariableType]
+    insights_captured: list[str] = Field(default_factory=list)  # pyright: ignore[reportUnknownVariableType]

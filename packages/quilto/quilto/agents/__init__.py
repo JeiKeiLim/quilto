@@ -7,8 +7,9 @@ for query decomposition and retrieval strategy, the RetrieverAgent
 for executing retrieval instructions against storage, the AnalyzerAgent
 for pattern finding and sufficiency assessment, the SynthesizerAgent
 for generating user-facing responses, the EvaluatorAgent
-for quality-checking responses, and the ClarifierAgent for requesting
-missing information from users.
+for quality-checking responses, the ClarifierAgent for requesting
+missing information from users, and the ObserverAgent for learning
+patterns and updating global context.
 """
 
 from quilto.agents.analyzer import AnalyzerAgent
@@ -21,6 +22,7 @@ from quilto.agents.models import (
     ClarificationQuestion,
     ClarifierInput,
     ClarifierOutput,
+    ContextUpdate,
     DependencyType,
     DomainInfo,
     EvaluationDimension,
@@ -31,6 +33,8 @@ from quilto.agents.models import (
     Gap,
     GapType,
     InputType,
+    ObserverInput,
+    ObserverOutput,
     ParserInput,
     ParserOutput,
     PlannerInput,
@@ -48,6 +52,7 @@ from quilto.agents.models import (
     SynthesizerOutput,
     Verdict,
 )
+from quilto.agents.observer import ObserverAgent
 from quilto.agents.parser import ParserAgent
 from quilto.agents.planner import PlannerAgent
 from quilto.agents.retriever import RetrieverAgent, expand_terms
@@ -63,6 +68,7 @@ __all__ = [
     "ClarifierAgent",
     "ClarifierInput",
     "ClarifierOutput",
+    "ContextUpdate",
     "DependencyType",
     "DomainInfo",
     "EvaluationDimension",
@@ -74,6 +80,9 @@ __all__ = [
     "Gap",
     "GapType",
     "InputType",
+    "ObserverAgent",
+    "ObserverInput",
+    "ObserverOutput",
     "ParserAgent",
     "ParserInput",
     "ParserOutput",
