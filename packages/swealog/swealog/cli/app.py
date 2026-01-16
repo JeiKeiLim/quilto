@@ -47,3 +47,28 @@ def main(
     ),
 ) -> None:
     """Swealog - AI-powered fitness logging."""
+
+
+@app.command()
+def serve(
+    host: str = typer.Option("127.0.0.1", help="Host to bind to"),
+    port: int = typer.Option(8000, help="Port to bind to"),
+    reload: bool = typer.Option(False, help="Enable auto-reload for development"),
+) -> None:
+    """Start the Swealog API server.
+
+    Runs uvicorn with the FastAPI application.
+
+    Args:
+        host: Host address to bind the server to.
+        port: Port number to bind the server to.
+        reload: Whether to enable auto-reload for development.
+    """
+    import uvicorn
+
+    uvicorn.run(
+        "swealog.api:app",
+        host=host,
+        port=port,
+        reload=reload,
+    )
