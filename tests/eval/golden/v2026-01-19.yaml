@@ -1,0 +1,1007 @@
+# E2E Evaluation Golden Dataset
+# Version: v2026-01-19
+# Created by: Story 10.1 - Create E2E Evaluation Dataset
+#
+# This dataset contains 50 test cases for pairwise LLM-as-judge evaluation
+# comparing Quilto agent responses to baseline (Claude) responses.
+---
+version: "2026-01-19"
+domain: "fitness"
+case_count: 50
+created_by: "Story 10.1"
+categories:
+  simple: 3
+  complex: 4
+  insufficient: 3
+  retrieval: 10
+  reasoning: 10
+  edge: 10
+  domain: 10
+
+test_cases:
+  # =============================================================================
+  # EXTENDED FROM EXISTING CORPUS (10 cases)
+  # Source: tests/corpus/fitness/expected/query/
+  # =============================================================================
+
+  # --- Simple Category (3 cases) ---
+
+  - id: "simple-bench-progression"
+    category: "simple"
+    source: "tests/corpus/fitness/expected/query/simple-bench-progression.json"
+    query: "How has my bench press progressed?"
+    context_entries: ["2019-01-29", "2019-02-01", "2019-03-12"]
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "weight progression over time"
+        - "weights ranging from 55kg to 85kg across sessions"
+        - "drop sets pattern (starting high, reducing weight)"
+        - "time span covered (Jan-Mar 2019)"
+      should_not:
+        - "fabricate weights not in context"
+        - "claim steady linear progression (data shows variable weights with drop sets)"
+
+  - id: "simple-heaviest-deadlift"
+    category: "simple"
+    source: "tests/corpus/fitness/expected/query/simple-heaviest-deadlift.json"
+    query: "What was my heaviest deadlift?"
+    context_entries: ["2019-01-28"]
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "trap bar deadlift 190kg"
+        - "specific date (2019-01-28)"
+      should_not:
+        - "confuse with conventional deadlift"
+        - "make up heavier weights"
+
+  - id: "simple-september-frequency"
+    category: "simple"
+    source: "tests/corpus/fitness/expected/query/simple-september-frequency.json"
+    query: "Show my workout frequency in September 2019"
+    context_entries:
+      - "2019-09-02"
+      - "2019-09-03"
+      - "2019-09-05"
+      - "2019-09-06"
+      - "2019-09-09"
+      - "2019-09-10"
+      - "2019-09-16"
+      - "2019-09-17"
+      - "2019-09-18"
+      - "2019-09-19"
+      - "2019-09-21"
+      - "2019-09-23"
+      - "2019-09-24"
+      - "2019-09-26"
+      - "2019-09-27"
+      - "2019-09-30"
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "16 workout days in September"
+        - "consistent training pattern"
+        - "multiple consecutive days"
+      should_not:
+        - "claim workouts on days not in context"
+        - "miss any workout days"
+
+  # --- Complex Category (4 cases) ---
+
+  - id: "complex-deadlift-squat-compare"
+    category: "complex"
+    source: "tests/corpus/fitness/expected/query/complex-deadlift-squat-compare.json"
+    query: "Compare my deadlift to squat progression"
+    context_entries: ["2019-04-09", "2019-04-17"]
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "both exercises and their weights"
+        - "relative strength between lifts"
+        - "any progression patterns"
+      should_not:
+        - "compare exercises not in context"
+        - "hallucinate weights"
+
+  - id: "complex-push-vs-pull"
+    category: "complex"
+    source: "tests/corpus/fitness/expected/query/complex-push-vs-pull.json"
+    query: "How do my push exercises compare to pull exercises?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-01-29"
+      - "2019-02-01"
+      - "2019-02-04"
+      - "2019-02-25"
+      - "2019-03-12"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "push exercises (bench press, overhead press)"
+        - "pull exercises (deadlift, rows)"
+        - "volume or strength comparison"
+      should_not:
+        - "misclassify push vs pull movements"
+        - "ignore one category entirely"
+
+  - id: "complex-strongest-lift"
+    category: "complex"
+    source: "tests/corpus/fitness/expected/query/complex-strongest-lift.json"
+    query: "What's my strongest lift and how has it improved?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-01-29"
+      - "2019-01-31"
+      - "2019-02-01"
+      - "2019-02-04"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "identify the heaviest lift (trap bar deadlift 190kg)"
+        - "progression over the time period"
+        - "comparison to other lifts"
+      should_not:
+        - "pick wrong exercise as strongest"
+        - "miss the peak weight"
+
+  - id: "complex-q1-volume-trends"
+    category: "complex"
+    source: "tests/corpus/fitness/expected/query/complex-q1-volume-trends.json"
+    query: "Analyze my training volume trends over the first quarter of 2019"
+    context_entries:
+      - "2019-01-28"
+      - "2019-01-29"
+      - "2019-01-31"
+      - "2019-02-01"
+      - "2019-02-04"
+      - "2019-02-05"
+      - "2019-02-08"
+      - "2019-02-11"
+      - "2019-02-12"
+      - "2019-02-18"
+      - "2019-02-19"
+      - "2019-02-25"
+      - "2019-02-26"
+      - "2019-02-27"
+      - "2019-02-28"
+      - "2019-03-04"
+      - "2019-03-05"
+      - "2019-03-08"
+      - "2019-03-11"
+      - "2019-03-12"
+      - "2019-03-13"
+      - "2019-03-15"
+      - "2019-03-18"
+      - "2019-03-19"
+      - "2019-03-25"
+      - "2019-03-26"
+      - "2019-03-29"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise", "conciseness"]
+    evaluation_hints:
+      should_mention:
+        - "workout frequency by month"
+        - "volume trends (increasing/decreasing/stable)"
+        - "consistency patterns"
+      should_not:
+        - "miss major trends"
+        - "overstate patterns not in data"
+
+  # --- Insufficient Data Category (3 cases) ---
+
+  - id: "insufficient-cardio-progress"
+    category: "insufficient"
+    source: "tests/corpus/fitness/expected/query/insufficient-cardio-progress.json"
+    query: "How is my cardio improving?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-01-29"
+      - "2019-02-01"
+      - "2019-02-04"
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "no cardio data in provided entries"
+        - "entries contain strength training only"
+        - "suggest logging cardio or provide more context"
+      should_not:
+        - "fabricate cardio data"
+        - "pretend to analyze nonexistent cardio"
+
+  - id: "insufficient-year-comparison"
+    category: "insufficient"
+    source: "tests/corpus/fitness/expected/query/insufficient-year-comparison.json"
+    query: "Compare my bench press to last year"
+    context_entries:
+      - "2019-01-29"
+      - "2019-02-01"
+      - "2019-02-27"
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "only 2019 data available"
+        - "cannot compare to 2018 without that data"
+        - "current bench press status from available data"
+      should_not:
+        - "invent 2018 data"
+        - "make year-over-year claims"
+
+  - id: "insufficient-recovery-pattern"
+    category: "insufficient"
+    source: "tests/corpus/fitness/expected/query/insufficient-recovery-pattern.json"
+    query: "What's my recovery pattern?"
+    context_entries:
+      - "2019-09-02"
+      - "2019-09-03"
+      - "2019-09-05"
+      - "2019-09-06"
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "limited data for recovery analysis"
+        - "workout frequency pattern (consecutive days)"
+        - "no explicit recovery metrics logged"
+      should_not:
+        - "claim specific recovery times without data"
+        - "make up sleep or rest day data"
+
+  # =============================================================================
+  # NEW TEST CASES (40 cases)
+  # =============================================================================
+
+  # =============================================================================
+  # RETRIEVAL STRATEGY TESTS (10 cases)
+  # Focus: Date-range, keyword, pattern matching strategies
+  # =============================================================================
+
+  # --- Date-range queries (3 cases) ---
+
+  - id: "retrieval-date-last-week-march"
+    category: "retrieval"
+    query: "What workouts did I do in the first week of March 2019?"
+    context_entries:
+      - "2019-03-04"
+      - "2019-03-05"
+      - "2019-03-08"
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "3 workouts in that week"
+        - "specific exercises from each day"
+        - "dates covered"
+      should_not:
+        - "include entries outside first week of March"
+        - "claim workouts on March 1-3 (no data)"
+
+  - id: "retrieval-date-specific-day"
+    category: "retrieval"
+    query: "What did I do on January 28, 2019?"
+    context_entries: ["2019-01-28"]
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "trap bar deadlift (180-190kg)"
+        - "push press (40-50kg)"
+        - "sets and reps details"
+      should_not:
+        - "include exercises from other days"
+        - "confuse with different dates"
+
+  - id: "retrieval-date-month-range"
+    category: "retrieval"
+    query: "Summarize my February 2019 training"
+    context_entries:
+      - "2019-02-01"
+      - "2019-02-04"
+      - "2019-02-05"
+      - "2019-02-08"
+      - "2019-02-11"
+      - "2019-02-12"
+      - "2019-02-18"
+      - "2019-02-19"
+      - "2019-02-25"
+      - "2019-02-26"
+      - "2019-02-27"
+      - "2019-02-28"
+    rubric_criteria: ["accuracy", "completeness", "conciseness"]
+    evaluation_hints:
+      should_mention:
+        - "12 workout sessions in February"
+        - "key exercises trained"
+        - "training frequency pattern"
+      should_not:
+        - "include January or March entries"
+        - "miss sessions in February"
+
+  # --- Keyword queries (3 cases) ---
+
+  - id: "retrieval-keyword-squat"
+    category: "retrieval"
+    query: "Find all my squat sessions"
+    context_entries:
+      - "2019-04-09"
+      - "2019-04-17"
+      - "2019-09-16"
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "squat exercises from each entry"
+        - "weights used (e.g., 110kg to 140kg)"
+        - "dates of squat sessions"
+      should_not:
+        - "include sessions without squats"
+        - "miss entries with squats"
+
+  - id: "retrieval-keyword-overhead"
+    category: "retrieval"
+    query: "Show me all overhead press workouts"
+    context_entries:
+      - "2019-03-04"
+      - "2019-09-16"
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "overhead press / military press entries"
+        - "weights (43kg, 45-50kg)"
+        - "sets and rep schemes"
+      should_not:
+        - "confuse with bench press"
+        - "include unrelated exercises"
+
+  - id: "retrieval-keyword-back-exercises"
+    category: "retrieval"
+    query: "List all my back exercises"
+    context_entries:
+      - "2019-01-28"
+      - "2019-02-01"
+      - "2019-02-25"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "deadlift variations (trap bar deadlift)"
+        - "row variations (T-bar row)"
+        - "identify as back/pull exercises"
+      should_not:
+        - "include push exercises as back work"
+        - "miss row variations"
+
+  # --- Pattern matching queries (2 cases) ---
+
+  - id: "retrieval-pattern-weekly-trend"
+    category: "retrieval"
+    query: "What's my weekly workout pattern?"
+    context_entries:
+      - "2019-09-02"
+      - "2019-09-03"
+      - "2019-09-05"
+      - "2019-09-06"
+      - "2019-09-09"
+      - "2019-09-10"
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "training on consecutive days"
+        - "rest days between clusters"
+        - "weekly frequency"
+      should_not:
+        - "claim daily training"
+        - "miss the pattern"
+
+  - id: "retrieval-pattern-exercise-rotation"
+    category: "retrieval"
+    query: "How do I rotate between exercises?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-01-29"
+      - "2019-01-31"
+      - "2019-02-01"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "different exercises on different days"
+        - "push/pull split pattern"
+        - "exercise variety"
+      should_not:
+        - "claim same workout every day"
+        - "miss exercise rotation"
+
+  # --- Mixed strategy queries (2 cases) ---
+
+  - id: "retrieval-mixed-heavy-days"
+    category: "retrieval"
+    query: "Which days did I lift the heaviest?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-02-01"
+      - "2019-04-09"
+      - "2019-09-16"
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "identify heaviest weights per session"
+        - "rank or compare the days"
+        - "specific weights achieved"
+      should_not:
+        - "pick random days"
+        - "ignore heavier lifts"
+
+  - id: "retrieval-mixed-consistent-weight"
+    category: "retrieval"
+    query: "When did I maintain consistent weight for an exercise?"
+    context_entries:
+      - "2019-02-25"
+      - "2019-03-04"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "deadlift at 106kg consistent"
+        - "overhead press at 43kg consistent"
+        - "form/technique focus days"
+      should_not:
+        - "claim consistency where weight changed"
+        - "miss the consistency pattern"
+
+  # =============================================================================
+  # MULTI-STEP REASONING TESTS (10 cases)
+  # Focus: Complex analysis, dependencies, correlations
+  # =============================================================================
+
+  # --- Dependent sub-questions (3 cases) ---
+
+  - id: "reasoning-dependent-strongest-progress"
+    category: "reasoning"
+    query: "What's my strongest lift and how often do I train it?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-01-29"
+      - "2019-02-01"
+      - "2019-02-04"
+      - "2019-02-25"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "identify strongest lift (trap bar deadlift)"
+        - "frequency of that exercise"
+        - "connect strength to training frequency"
+      should_not:
+        - "pick wrong strongest lift"
+        - "fail to connect the two questions"
+
+  - id: "reasoning-dependent-weakness-cause"
+    category: "reasoning"
+    query: "Which exercise am I weakest at and why might that be?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-01-29"
+      - "2019-02-01"
+      - "2019-03-04"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "identify relatively weaker lifts"
+        - "possible reasons (training frequency, technique)"
+        - "comparison to stronger lifts"
+      should_not:
+        - "make claims without data support"
+        - "ignore training patterns"
+
+  - id: "reasoning-dependent-optimal-time"
+    category: "reasoning"
+    query: "What time of the training week am I strongest?"
+    context_entries:
+      - "2019-09-02"
+      - "2019-09-03"
+      - "2019-09-05"
+      - "2019-09-06"
+      - "2019-09-09"
+      - "2019-09-10"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "performance variation through the week"
+        - "fatigue accumulation on consecutive days"
+        - "rest day impact if visible"
+      should_not:
+        - "claim patterns not in data"
+        - "ignore day sequencing"
+
+  # --- Cross-date analysis (3 cases) ---
+
+  - id: "reasoning-crossdate-bench-timeline"
+    category: "reasoning"
+    query: "Track my bench press journey from start to most recent"
+    context_entries:
+      - "2019-01-29"
+      - "2019-02-01"
+      - "2019-03-12"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "chronological progression"
+        - "weight changes over time"
+        - "overall trend direction"
+      should_not:
+        - "confuse timeline order"
+        - "miss any bench sessions"
+
+  - id: "reasoning-crossdate-volume-change"
+    category: "reasoning"
+    query: "How has my total training volume changed from January to March 2019?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-01-29"
+      - "2019-01-31"
+      - "2019-02-01"
+      - "2019-03-04"
+      - "2019-03-05"
+      - "2019-03-08"
+    rubric_criteria: ["accuracy", "completeness", "conciseness"]
+    evaluation_hints:
+      should_mention:
+        - "volume comparison between months"
+        - "number of sessions per month"
+        - "trend direction"
+      should_not:
+        - "calculate wrong session counts"
+        - "ignore the time comparison aspect"
+
+  - id: "reasoning-crossdate-seasonal"
+    category: "reasoning"
+    query: "Compare my summer vs fall training intensity"
+    context_entries:
+      - "2019-07-26"
+      - "2019-07-29"
+      - "2019-07-31"
+      - "2019-09-02"
+      - "2019-09-03"
+      - "2019-09-05"
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "July (summer) training details"
+        - "September (fall) training details"
+        - "comparison of intensity/frequency"
+      should_not:
+        - "mix up seasons"
+        - "claim data from months not provided"
+
+  # --- Implicit comparison (2 cases) ---
+
+  - id: "reasoning-implicit-push-balance"
+    category: "reasoning"
+    query: "Is my training balanced?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-01-29"
+      - "2019-02-01"
+      - "2019-02-04"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "push vs pull ratio"
+        - "upper vs lower body"
+        - "muscle group coverage"
+      should_not:
+        - "only mention one aspect"
+        - "claim balance without analysis"
+
+  - id: "reasoning-implicit-progress-rate"
+    category: "reasoning"
+    query: "Am I progressing fast enough?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-02-04"
+      - "2019-02-25"
+      - "2019-03-04"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "actual progress rate from data"
+        - "context for what's typical"
+        - "individual factors that matter"
+      should_not:
+        - "give unqualified yes/no"
+        - "ignore individual circumstances"
+
+  # --- Correlation identification (2 cases) ---
+
+  - id: "reasoning-correlation-fatigue"
+    category: "reasoning"
+    query: "Does my performance drop when I train consecutive days?"
+    context_entries:
+      - "2019-09-02"
+      - "2019-09-03"
+      - "2019-09-05"
+      - "2019-09-06"
+      - "2019-09-16"
+      - "2019-09-17"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "compare consecutive vs non-consecutive"
+        - "any observable performance patterns"
+        - "fatigue considerations"
+      should_not:
+        - "claim correlation without evidence"
+        - "ignore the consecutive pattern"
+
+  - id: "reasoning-correlation-exercise-pairs"
+    category: "reasoning"
+    query: "Which exercises do I tend to pair together?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-01-29"
+      - "2019-02-01"
+      - "2019-09-16"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "exercises done on same day"
+        - "any consistent pairings"
+        - "push/pull or upper/lower patterns"
+      should_not:
+        - "claim pairings that don't exist"
+        - "miss obvious combinations"
+
+  # =============================================================================
+  # EDGE CASE TESTS (10 cases)
+  # Focus: Ambiguity, sparse data, out-of-domain, boundaries
+  # =============================================================================
+
+  # --- Ambiguous input (3 cases) ---
+
+  - id: "edge-ambiguous-best-workout"
+    category: "edge"
+    query: "What was my best workout?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-02-01"
+      - "2019-03-04"
+    rubric_criteria: ["accuracy"]
+    evaluation_hints:
+      should_mention:
+        - "clarify what 'best' means"
+        - "offer multiple interpretations (heaviest, most volume, etc.)"
+        - "provide answer for each interpretation"
+      should_not:
+        - "assume single definition of best"
+        - "pick arbitrarily"
+
+  - id: "edge-ambiguous-leg-day"
+    category: "edge"
+    query: "How was leg day?"
+    context_entries:
+      - "2019-04-09"
+      - "2019-04-17"
+      - "2019-09-16"
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "ask which leg day or show all"
+        - "squat sessions from context"
+        - "relevant details for each"
+      should_not:
+        - "assume which day user means"
+        - "miss leg exercises"
+
+  - id: "edge-ambiguous-heavy"
+    category: "edge"
+    query: "Did I go heavy today?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-02-25"
+    rubric_criteria: ["accuracy"]
+    evaluation_hints:
+      should_mention:
+        - "need to know which 'today'"
+        - "offer to compare both days"
+        - "relative heaviness context"
+      should_not:
+        - "assume which day"
+        - "ignore the ambiguity"
+
+  # --- Sparse data scenarios (3 cases) ---
+
+  - id: "edge-sparse-single-entry"
+    category: "edge"
+    query: "Analyze my training progress"
+    context_entries: ["2019-03-04"]
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "only one entry available"
+        - "cannot show progress with single data point"
+        - "what's in the available entry"
+      should_not:
+        - "fabricate additional data"
+        - "claim progress or regression"
+
+  - id: "edge-sparse-large-gap"
+    category: "edge"
+    query: "How have I trained this year?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-07-26"
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "6 month gap in data"
+        - "limited view of the year"
+        - "what's known from the two entries"
+      should_not:
+        - "fill in missing months"
+        - "claim comprehensive view"
+
+  - id: "edge-sparse-no-target-exercise"
+    category: "edge"
+    query: "How's my bicep training going?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-02-01"
+      - "2019-03-04"
+    rubric_criteria: ["accuracy"]
+    evaluation_hints:
+      should_mention:
+        - "no direct bicep exercises in data"
+        - "compound exercises that involve biceps indirectly"
+        - "suggest logging isolation work"
+      should_not:
+        - "fabricate bicep workouts"
+        - "pretend to analyze nonexistent data"
+
+  # --- Out-of-domain hints (2 cases) ---
+
+  - id: "edge-outdomain-diet-mention"
+    category: "edge"
+    query: "How does my diet affect my lifting?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-02-01"
+    rubric_criteria: ["accuracy", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "no diet data in workout logs"
+        - "general principles about diet and lifting"
+        - "what workout data shows"
+      should_not:
+        - "fabricate dietary information"
+        - "ignore the question entirely"
+
+  - id: "edge-outdomain-sleep-impact"
+    category: "edge"
+    query: "Am I sleeping enough based on my training?"
+    context_entries:
+      - "2019-09-02"
+      - "2019-09-03"
+      - "2019-09-05"
+    rubric_criteria: ["accuracy", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "no sleep data logged"
+        - "training volume/frequency as indirect indicator"
+        - "general sleep recommendations for lifters"
+      should_not:
+        - "claim specific sleep hours"
+        - "ignore recovery context"
+
+  # --- Boundary cases (2 cases) ---
+
+  - id: "edge-boundary-exact-date"
+    category: "edge"
+    query: "What did I do exactly on September 1, 2019?"
+    context_entries: ["2019-09-02", "2019-09-03"]
+    rubric_criteria: ["accuracy"]
+    evaluation_hints:
+      should_mention:
+        - "no entry for September 1"
+        - "nearest entries (Sep 2, Sep 3)"
+        - "offer those as alternatives"
+      should_not:
+        - "claim Sep 1 data exists"
+        - "confuse with adjacent dates"
+
+  - id: "edge-boundary-year-transition"
+    category: "edge"
+    query: "Compare my December 2018 and January 2019 training"
+    context_entries:
+      - "2019-01-28"
+      - "2019-01-29"
+      - "2019-01-31"
+    rubric_criteria: ["accuracy", "completeness"]
+    evaluation_hints:
+      should_mention:
+        - "no December 2018 data available"
+        - "January 2019 data summary"
+        - "cannot make comparison"
+      should_not:
+        - "fabricate December data"
+        - "pretend comparison is possible"
+
+  # =============================================================================
+  # DOMAIN EXPERTISE TESTS (10 cases)
+  # Focus: Fitness terminology, training principles, exercise knowledge
+  # =============================================================================
+
+  # --- Fitness terminology (3 cases) ---
+
+  - id: "domain-term-progressive-overload"
+    category: "domain"
+    query: "Am I applying progressive overload correctly?"
+    context_entries:
+      - "2019-01-29"
+      - "2019-02-01"
+      - "2019-03-12"
+    rubric_criteria: ["accuracy", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "definition or demonstration of progressive overload"
+        - "analyze weight/rep progression from data"
+        - "assessment of overload application"
+      should_not:
+        - "misdefine progressive overload"
+        - "ignore the principle in analysis"
+
+  - id: "domain-term-rpe"
+    category: "domain"
+    query: "What RPE does my training seem to be at?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-02-01"
+    rubric_criteria: ["accuracy", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "RPE explanation (Rate of Perceived Exertion)"
+        - "indicators from workout notes (heavy, struggling, etc.)"
+        - "estimated intensity level"
+      should_not:
+        - "claim exact RPE without data"
+        - "misunderstand RPE concept"
+
+  - id: "domain-term-1rm"
+    category: "domain"
+    query: "What might my 1RM be for deadlift?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-02-25"
+    rubric_criteria: ["accuracy", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "1RM estimation formula or concept"
+        - "calculation from working weights/reps"
+        - "caveat that it's an estimate"
+      should_not:
+        - "claim exact 1RM without testing"
+        - "use wrong formula/calculation"
+
+  # --- Exercise knowledge (3 cases) ---
+
+  - id: "domain-exercise-muscle-groups"
+    category: "domain"
+    query: "What muscle groups am I training most?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-01-29"
+      - "2019-02-01"
+      - "2019-02-04"
+    rubric_criteria: ["accuracy", "completeness", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "correct muscle group mappings"
+        - "frequency of each muscle group"
+        - "push muscles (chest, shoulders, triceps)"
+        - "pull muscles (back, biceps)"
+        - "legs (quads, hamstrings, glutes)"
+      should_not:
+        - "misidentify muscle groups"
+        - "miss major muscle groups trained"
+
+  - id: "domain-exercise-movement-patterns"
+    category: "domain"
+    query: "Analyze my movement pattern coverage"
+    context_entries:
+      - "2019-01-28"
+      - "2019-01-29"
+      - "2019-02-01"
+      - "2019-03-04"
+    rubric_criteria: ["accuracy", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "hinge pattern (deadlift)"
+        - "push pattern (press variations)"
+        - "squat/pull patterns if present"
+        - "any missing patterns"
+      should_not:
+        - "misclassify movement patterns"
+        - "skip pattern analysis"
+
+  - id: "domain-exercise-compound-isolation"
+    category: "domain"
+    query: "Am I doing enough compound movements?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-01-29"
+      - "2019-02-01"
+    rubric_criteria: ["accuracy", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "compound vs isolation distinction"
+        - "identify compounds (deadlift, bench, press)"
+        - "ratio assessment"
+      should_not:
+        - "misclassify compound/isolation"
+        - "ignore the question focus"
+
+  # --- Training principles (2 cases) ---
+
+  - id: "domain-principle-recovery"
+    category: "domain"
+    query: "Am I getting enough recovery between sessions?"
+    context_entries:
+      - "2019-09-02"
+      - "2019-09-03"
+      - "2019-09-05"
+      - "2019-09-06"
+      - "2019-09-09"
+    rubric_criteria: ["accuracy", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "recovery principles (48-72 hours between same muscles)"
+        - "consecutive training day analysis"
+        - "exercise selection on back-to-back days"
+      should_not:
+        - "ignore consecutive day impact"
+        - "give generic advice without data analysis"
+
+  - id: "domain-principle-periodization"
+    category: "domain"
+    query: "Does my training show any periodization?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-02-01"
+      - "2019-02-25"
+      - "2019-03-04"
+      - "2019-03-12"
+    rubric_criteria: ["accuracy", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "periodization concept explanation"
+        - "look for volume/intensity cycles"
+        - "assessment based on data patterns"
+      should_not:
+        - "claim periodization without evidence"
+        - "misdefine periodization"
+
+  # --- Nutrition-related (2 cases) ---
+
+  - id: "domain-nutrition-protein-timing"
+    category: "domain"
+    query: "Based on my training, when should I eat protein?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-02-01"
+    rubric_criteria: ["domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "general protein timing principles"
+        - "connection to workout intensity"
+        - "no specific meal data available"
+      should_not:
+        - "fabricate meal times"
+        - "give overly specific advice without data"
+
+  - id: "domain-nutrition-calorie-needs"
+    category: "domain"
+    query: "How many calories do I need based on my training?"
+    context_entries:
+      - "2019-01-28"
+      - "2019-02-01"
+      - "2019-02-04"
+    rubric_criteria: ["accuracy", "domain_expertise"]
+    evaluation_hints:
+      should_mention:
+        - "training volume indicators"
+        - "general calorie principles for lifters"
+        - "limitations without body weight/composition data"
+      should_not:
+        - "give specific calorie number without data"
+        - "ignore training intensity context"

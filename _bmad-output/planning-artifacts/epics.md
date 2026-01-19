@@ -1148,3 +1148,148 @@ So that **users can interact with Swealog via terminal**.
 **Then** `swealog log "bench 185x5"` logs an entry
 **And** `swealog ask "why was my bench heavy?"` runs a query
 **And** `swealog import ~/fitness-logs/` imports historical data
+
+---
+
+## Epic 9: CLI Developer Experience
+
+*--debug flag and .env configuration support*
+
+**Status:** In Progress (see sprint-status.yaml)
+
+---
+
+## Epic 10: Agent Quality Evaluation Infrastructure
+
+*E2E evaluation system with LLM-as-judge comparing Quilto responses to Claude baseline*
+
+**Research Source:** `research/technical-llm-agent-quality-evaluation-research-2026-01-19.md`
+
+**Quilto:** DeepEval integration, pairwise evaluation pipeline, LLM-as-judge with position swap, pytest CI/CD integration
+
+**Swealog:** Fitness-specific evaluation dataset, domain-appropriate rubric criteria
+
+**Success Metrics:**
+- Win rate vs Claude: >40% initially, improve over time
+- Evaluation coverage: 100% of query categories
+- Evaluation cost: <$50/month
+- CI evaluation time: <5 min per PR
+
+**Known Issue to Address:** Retrieval strategy should try date-range first, keyword fallback (Planner orchestration fix)
+
+---
+
+### Story 10.1: Create E2E Evaluation Dataset
+
+As a **Quilto developer**,
+I want **an E2E evaluation dataset extending existing query test cases**,
+So that **pairwise evaluation can compare Quilto responses to Claude baseline**.
+
+**Acceptance Criteria:**
+
+**Given** the existing 10 query test cases in `tests/corpus/fitness/expected/query/`
+**When** I extend them for E2E evaluation
+**Then** a new `tests/eval/` directory is created with versioned golden dataset
+**And** each case includes: query, context_entries, rubric criteria
+**And** 40 additional test cases are created covering: retrieval strategy, multi-step reasoning, edge cases
+**And** total of 50 E2E test cases exist (10 extended + 40 new)
+**And** format is YAML with source reference to original corpus where applicable
+
+**Dataset Structure:**
+```
+tests/eval/
+├── golden/
+│   ├── v2026-01-19.yaml           # 50 versioned test cases
+│   └── baseline_responses/         # Claude responses (Story 10.2)
+└── rubric.yaml                     # Evaluation criteria definitions
+```
+
+---
+
+### Story 10.2: Generate Claude Baseline Responses
+
+As a **Quilto developer**,
+I want **Claude responses generated for all 50 E2E test cases**,
+So that **pairwise comparison has a high-quality baseline**.
+
+**Acceptance Criteria:**
+
+**Given** the 50 E2E test cases from Story 10.1
+**When** I run the baseline generation script
+**Then** Claude responses are generated for each test case
+**And** responses are stored in `tests/eval/golden/baseline_responses/`
+**And** responses are versioned with dataset version tag
+**And** generation script is idempotent (skips existing responses)
+**And** Claude receives same context as Quilto would (retrieved entries)
+
+---
+
+### Story 10.3: Implement Pairwise LLM-as-Judge
+
+As a **Quilto developer**,
+I want **a pairwise LLM-as-judge evaluation with position swap**,
+So that **Quilto vs Claude comparison is unbiased and reliable**.
+
+**Acceptance Criteria:**
+
+**Given** a test case with Quilto response and Claude baseline
+**When** LLM-as-judge evaluates them
+**Then** evaluation runs twice: (Quilto, Claude) and (Claude, Quilto) ordering
+**And** only consistent wins are counted (both orderings agree)
+**And** rubric covers: accuracy, completeness, conciseness, domain expertise
+**And** judge returns: winner (A/B/Tie), scores per criterion, reasoning
+**And** DeepEval custom metric wraps the pairwise logic
+
+**Bias Mitigation:**
+- Position swap mandatory (40% inconsistency without it)
+- Anonymized responses (Response A / Response B)
+- Consistent wins only counting
+
+---
+
+### Story 10.4: Integrate Evaluation with pytest CI/CD
+
+As a **Quilto developer**,
+I want **automated E2E evaluation running on PRs via GitHub Actions**,
+So that **quality regressions are caught before merge**.
+
+**Acceptance Criteria:**
+
+**Given** the pairwise evaluation from Story 10.3
+**When** a PR is opened
+**Then** GitHub Actions runs `pytest tests/eval/`
+**And** evaluation reports win-rate vs Claude baseline
+**And** PR fails if win-rate drops below threshold (configurable)
+**And** evaluation cost is tracked and reported
+**And** results are cached to avoid re-running unchanged tests
+
+**CI/CD Configuration:**
+```yaml
+# .github/workflows/llm-eval.yml
+- pytest tests/eval/ --tb=short
+- Report win-rate in PR comment
+- Fail if regression detected
+```
+
+---
+
+### Story 10.5: Fix Retrieval Strategy Priority
+
+As a **Quilto developer**,
+I want **Planner to instruct date-range retrieval first with keyword fallback**,
+So that **queries with temporal context retrieve correctly**.
+
+**Acceptance Criteria:**
+
+**Given** a query with temporal context (e.g., "last week", "in January")
+**When** Planner generates retrieval instructions
+**Then** strategy prioritizes date-range search first
+**And** falls back to keyword search if date-range returns insufficient results
+**And** retrieval strategy priority is configurable
+**And** E2E evaluation includes test cases validating this behavior
+
+**Root Cause:** This is a Planner orchestration issue, not Retriever issue. Planner generates `retrieval_instructions` that Retriever executes.
+
+**Files to Modify:**
+- Planner agent prompt/logic
+- Possibly `PlannerOutput` schema for strategy priority

@@ -2,7 +2,9 @@
 
 from swealog.cli.app import app
 from swealog.cli.ask_cmd import ask
-from swealog.cli.debug import DebugLogger
+from swealog.cli.auto_cmd import auto
+from swealog.cli.debug import DebugLogger, create_debug_callback
+from swealog.cli.flows import execute_log_flow
 from swealog.cli.import_cmd import (
     BatchImporter,
     BatchImportError,
@@ -37,14 +39,17 @@ __all__ = [
     "BatchImportError",
     "BatchResult",
     "DebugLogger",
+    "create_debug_callback",
     "EXIT_ERROR",
     "EXIT_SUCCESS",
     "EXIT_USAGE_ERROR",
     "RawEntry",
     "app",
     "ask",
+    "auto",
     "collect_import_files",
     "console",
+    "execute_log_flow",
     "get_dependencies",
     "import_file",
     "load_cli_config",

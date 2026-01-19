@@ -47,7 +47,9 @@ _CONFIDENCE_INSUFFICIENT = 0.4
 _CONFIDENCE_ADJUSTMENT = 0.1
 
 # Type alias for debug callback signature
-DebugCallback = Callable[[str, str, str, float], None]
+# (agent_name, event, data, elapsed_time)
+# data can be: input summary string (for "start"), full output dict (for "output"), empty (for "end")
+DebugCallback = Callable[[str, str, Any, float], None]
 
 
 class _DebugTimer:
@@ -75,17 +77,17 @@ class _DebugTimer:
         elapsed = time.perf_counter() - start
         result["elapsed"] = elapsed
         if self._callback:
-            self._callback(agent_name, "end", "", elapsed)
+            self._callback(agent_name, "end", None, elapsed)
 
-    def log_output(self, agent_name: str, output_summary: str) -> None:
+    def log_output(self, agent_name: str, output_data: Any) -> None:
         """Log agent output.
 
         Args:
             agent_name: Name of the agent.
-            output_summary: Brief description of output.
+            output_data: Full output data (dict from model_dump() or any serializable).
         """
         if self._callback:
-            self._callback(agent_name, "output", output_summary, 0.0)
+            self._callback(agent_name, "output", output_data, 0.0)
 
 
 async def execute_query_pipeline(
@@ -122,12 +124,7 @@ async def execute_query_pipeline(
     router_input = RouterInput(raw_input=query, available_domains=domain_infos)
     with timer.track("Router", f'"{query[:50]}..."' if len(query) > 50 else f'"{query}"'):
         router_output = await router_agent.classify(router_input)
-    timer.log_output(
-        "Router",
-        f"input_type={router_output.input_type.value}, "
-        f"domains={router_output.selected_domains}, "
-        f"confidence={router_output.confidence:.2f}",
-    )
+    timer.log_output("Router", router_output.model_dump())
 
     # Build active domain context from selected domains
     active_context = selector.build_active_context(router_output.selected_domains)
@@ -137,7 +134,7 @@ async def execute_query_pipeline(
     planner_input = PlannerInput(query=query, domain_context=active_context)
     with timer.track("Planner", "query_type inference"):
         planner_output = await planner.plan(planner_input)
-    timer.log_output("Planner", f"query_type={planner_output.query_type}")
+    timer.log_output("Planner", planner_output.model_dump())
 
     # Step 3: Retrieve entries
     retriever = RetrieverAgent(storage)
@@ -148,7 +145,7 @@ async def execute_query_pipeline(
     )
     with timer.track("Retriever", f"instructions={len(planner_output.retrieval_instructions)} filters"):
         retriever_output = await retriever.retrieve(retriever_input)
-    timer.log_output("Retriever", f"entries={len(retriever_output.entries)}")
+    timer.log_output("Retriever", retriever_output.model_dump())
 
     # Collect source entry IDs
     sources: list[str] = [entry.id for entry in retriever_output.entries]
@@ -171,7 +168,7 @@ async def execute_query_pipeline(
         )
         with timer.track("Analyzer", f"entries={len(retriever_output.entries)}"):
             analysis = await analyzer.analyze(analyzer_input)
-        timer.log_output("Analyzer", f"verdict={analysis.verdict.value}")
+        timer.log_output("Analyzer", analysis.model_dump())
 
         # Check if we need to generate partial response
         if analysis.verdict == Verdict.INSUFFICIENT and retry_count == MAX_RETRIES:
@@ -189,7 +186,7 @@ async def execute_query_pipeline(
         )
         with timer.track("Synthesizer", f"verdict={analysis.verdict.value}"):
             synthesizer_output = await synthesizer.synthesize(synthesizer_input)
-        timer.log_output("Synthesizer", f"response_len={len(synthesizer_output.response)}")
+        timer.log_output("Synthesizer", synthesizer_output.model_dump())
 
         # Step 6: Evaluate response
         evaluator = EvaluatorAgent(llm_client)
@@ -204,7 +201,7 @@ async def execute_query_pipeline(
         )
         with timer.track("Evaluator", f"attempt={retry_count + 1}"):
             evaluation = await evaluator.evaluate(evaluator_input)
-        timer.log_output("Evaluator", f"verdict={evaluation.overall_verdict.value}")
+        timer.log_output("Evaluator", evaluation.model_dump())
 
         # Check if passed
         if evaluator.is_passed(evaluation):

@@ -6,6 +6,7 @@ import typer
 from dotenv import load_dotenv
 
 from swealog.cli.ask_cmd import ask
+from swealog.cli.auto_cmd import auto
 from swealog.cli.import_cmd import import_file
 from swealog.cli.log_cmd import log
 
@@ -84,6 +85,7 @@ def serve(
 # Register import command (name="import" since "import" is reserved keyword)
 app.command(name="import")(import_file)
 
-# Register log and ask commands
+# Register log, ask, and auto commands
 app.command()(log)
 app.command()(ask)
+app.command()(auto)

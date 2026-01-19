@@ -5,37 +5,13 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from rich.console import Console
 
 from swealog.api.routes.query import execute_query_pipeline
+from swealog.cli.debug import create_debug_callback
 from swealog.cli.output import print_error, print_info, print_panel, print_warning
 from swealog.cli.utils import EXIT_ERROR, get_dependencies, run_async
 
 logger = logging.getLogger(__name__)
-_console = Console()
-
-
-def _create_debug_callback(enabled: bool):
-    """Create a debug callback for the query pipeline.
-
-    Args:
-        enabled: Whether debug output is enabled.
-
-    Returns:
-        Callback function or None if disabled.
-    """
-    if not enabled:
-        return None
-
-    def callback(agent_name: str, event: str, summary: str, elapsed: float) -> None:
-        if event == "start":
-            _console.print(f"[cyan][{agent_name}][/cyan] input: {summary}")
-        elif event == "output":
-            _console.print(f"[cyan][{agent_name}][/cyan] output: {summary}")
-        elif event == "end":
-            _console.print(f"[cyan][{agent_name}][/cyan] [dim]time: {elapsed:.2f}s[/dim]")
-
-    return callback
 
 
 @run_async
@@ -53,7 +29,7 @@ async def ask(
     """
     try:
         llm_client, storage, domains = get_dependencies(config, storage_path)
-        debug_callback = _create_debug_callback(debug)
+        debug_callback = create_debug_callback(debug)
 
         # Reuse API pipeline logic
         result = await execute_query_pipeline(

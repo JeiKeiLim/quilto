@@ -44,9 +44,7 @@ class TestLogCommand:
             patch("swealog.cli.log_cmd.get_dependencies", return_value=mock_dependencies),
             patch("swealog.cli.log_cmd.DomainSelector") as mock_selector,
             patch("swealog.cli.log_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.log_cmd.ParserAgent") as mock_parser_cls,
-            patch("swealog.cli.log_cmd.ParserInput"),
-            patch("swealog.cli.log_cmd.Entry"),
+            patch("swealog.cli.log_cmd.execute_log_flow") as mock_log_flow,
         ):
             mock_selector.return_value.get_domain_infos.return_value = []
             mock_router_cls.return_value.classify = AsyncMock(
@@ -58,19 +56,13 @@ class TestLogCommand:
                     confidence=0.9,
                 )
             )
-            mock_parser_cls.return_value.parse = AsyncMock(
-                return_value=MagicMock(
-                    date="2026-01-16",
-                    timestamp="2026-01-16T12:00:00",
-                    domain_data={},
-                    is_correction=False,
-                )
-            )
+            mock_log_flow.return_value = "2026-01-16_12-00-00"
 
             result = runner.invoke(app, ["log", "bench 185x5"])
 
             assert result.exit_code == 0
             assert "Logged entry:" in result.output
+            mock_log_flow.assert_called_once()
 
     def test_log_query_suggests_ask(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
@@ -80,7 +72,6 @@ class TestLogCommand:
             patch("swealog.cli.log_cmd.get_dependencies", return_value=mock_dependencies),
             patch("swealog.cli.log_cmd.DomainSelector") as mock_selector,
             patch("swealog.cli.log_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.log_cmd.RouterInput"),
         ):
             mock_selector.return_value.get_domain_infos.return_value = []
             mock_router_cls.return_value.classify = AsyncMock(
@@ -103,9 +94,7 @@ class TestLogCommand:
             patch("swealog.cli.log_cmd.get_dependencies", return_value=mock_dependencies),
             patch("swealog.cli.log_cmd.DomainSelector") as mock_selector,
             patch("swealog.cli.log_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.log_cmd.ParserAgent") as mock_parser_cls,
-            patch("swealog.cli.log_cmd.ParserInput"),
-            patch("swealog.cli.log_cmd.Entry"),
+            patch("swealog.cli.log_cmd.execute_log_flow") as mock_log_flow,
         ):
             mock_selector.return_value.get_domain_infos.return_value = []
             mock_router_cls.return_value.classify = AsyncMock(
@@ -117,14 +106,7 @@ class TestLogCommand:
                     confidence=0.9,
                 )
             )
-            mock_parser_cls.return_value.parse = AsyncMock(
-                return_value=MagicMock(
-                    date="2026-01-16",
-                    timestamp="2026-01-16T12:00:00",
-                    domain_data={},
-                    is_correction=False,
-                )
-            )
+            mock_log_flow.return_value = "2026-01-16_12-00-00"
 
             result = runner.invoke(app, ["log", "bench 185x5, how does this compare?"])
 
@@ -144,16 +126,11 @@ class TestLogCommand:
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
         """Log with CORRECTION input handles correction mode."""
-        _mock_client, mock_storage, _mock_domains = mock_dependencies
-        mock_storage.get_entries_by_pattern.return_value = []
-
         with (
             patch("swealog.cli.log_cmd.get_dependencies", return_value=mock_dependencies),
             patch("swealog.cli.log_cmd.DomainSelector") as mock_selector,
             patch("swealog.cli.log_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.log_cmd.ParserAgent") as mock_parser_cls,
-            patch("swealog.cli.log_cmd.ParserInput"),
-            patch("swealog.cli.log_cmd.Entry"),
+            patch("swealog.cli.log_cmd.execute_log_flow") as mock_log_flow,
         ):
             mock_selector.return_value.get_domain_infos.return_value = []
             mock_router_cls.return_value.classify = AsyncMock(
@@ -165,19 +142,16 @@ class TestLogCommand:
                     confidence=0.9,
                 )
             )
-            mock_parser_cls.return_value.parse = AsyncMock(
-                return_value=MagicMock(
-                    date="2026-01-15",
-                    timestamp="2026-01-15T12:00:00",
-                    domain_data={},
-                    is_correction=True,
-                )
-            )
+            mock_log_flow.return_value = "2026-01-16_12-00-00"
 
             result = runner.invoke(app, ["log", "actually it was 195x5 yesterday"])
 
             assert result.exit_code == 0
             assert "Logged entry:" in result.output
+            # Verify correction mode was passed
+            call_kwargs = mock_log_flow.call_args.kwargs
+            assert call_kwargs.get("is_correction") is True
+            assert call_kwargs.get("correction_target") == "yesterday"
 
     def test_log_with_config_option(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
@@ -187,9 +161,7 @@ class TestLogCommand:
             patch("swealog.cli.log_cmd.get_dependencies", return_value=mock_dependencies) as mock_get_deps,
             patch("swealog.cli.log_cmd.DomainSelector") as mock_selector,
             patch("swealog.cli.log_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.log_cmd.ParserAgent") as mock_parser_cls,
-            patch("swealog.cli.log_cmd.ParserInput"),
-            patch("swealog.cli.log_cmd.Entry"),
+            patch("swealog.cli.log_cmd.execute_log_flow") as mock_log_flow,
         ):
             mock_selector.return_value.get_domain_infos.return_value = []
             mock_router_cls.return_value.classify = AsyncMock(
@@ -201,14 +173,7 @@ class TestLogCommand:
                     confidence=0.9,
                 )
             )
-            mock_parser_cls.return_value.parse = AsyncMock(
-                return_value=MagicMock(
-                    date="2026-01-16",
-                    timestamp="2026-01-16T12:00:00",
-                    domain_data={},
-                    is_correction=False,
-                )
-            )
+            mock_log_flow.return_value = "2026-01-16_12-00-00"
 
             result = runner.invoke(app, ["log", "--config", "/custom/config.yaml", "test entry"])
 
@@ -226,9 +191,7 @@ class TestLogCommand:
             patch("swealog.cli.log_cmd.get_dependencies", return_value=mock_dependencies) as mock_get_deps,
             patch("swealog.cli.log_cmd.DomainSelector") as mock_selector,
             patch("swealog.cli.log_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.log_cmd.ParserAgent") as mock_parser_cls,
-            patch("swealog.cli.log_cmd.ParserInput"),
-            patch("swealog.cli.log_cmd.Entry"),
+            patch("swealog.cli.log_cmd.execute_log_flow") as mock_log_flow,
         ):
             mock_selector.return_value.get_domain_infos.return_value = []
             mock_router_cls.return_value.classify = AsyncMock(
@@ -240,14 +203,7 @@ class TestLogCommand:
                     confidence=0.9,
                 )
             )
-            mock_parser_cls.return_value.parse = AsyncMock(
-                return_value=MagicMock(
-                    date="2026-01-16",
-                    timestamp="2026-01-16T12:00:00",
-                    domain_data={},
-                    is_correction=False,
-                )
-            )
+            mock_log_flow.return_value = "2026-01-16_12-00-00"
 
             result = runner.invoke(app, ["log", "--storage", "/custom/storage", "test entry"])
 

@@ -1,0 +1,115 @@
+# Evaluation Rubric for Quilto Agent Quality Assessment
+# Used by LLM-as-judge for pairwise comparison
+#
+# Each criterion has:
+# - description: What this criterion measures
+# - scoring: Guidance for good/medium/poor performance
+# - weight: Relative importance (1.0 = standard, higher = more important)
+
+criteria:
+  accuracy:
+    description: "Factual correctness based on retrieved data"
+    weight: 1.5  # Higher weight - accuracy is critical
+    scoring:
+      good: |
+        All facts match logged data exactly. No fabrication or hallucination.
+        Dates, weights, sets, reps are accurate when mentioned.
+        Does not claim data exists that isn't in context.
+      medium: |
+        Core facts are correct but minor inaccuracies exist.
+        May have slight misremembering of specific numbers.
+        Main conclusions are still valid.
+      poor: |
+        Significant factual errors or hallucinated data.
+        Claims workout data that doesn't exist.
+        Provides incorrect weights, dates, or exercise names.
+
+  completeness:
+    description: "All aspects of query addressed"
+    weight: 1.0
+    scoring:
+      good: |
+        Answers all explicit questions in the query.
+        Addresses implicit sub-questions where relevant.
+        Provides sufficient detail without being asked.
+      medium: |
+        Addresses the main question but misses nuances.
+        May need follow-up questions for full understanding.
+        Partial coverage of multi-part queries.
+      poor: |
+        Fails to answer the core question.
+        Misses critical aspects of what was asked.
+        Response is tangential or off-topic.
+
+  conciseness:
+    description: "No unnecessary verbosity"
+    weight: 0.8  # Lower weight - brevity is nice but not critical
+    scoring:
+      good: |
+        Direct and relevant response without padding.
+        Information density is appropriate.
+        No repetition or filler phrases.
+      medium: |
+        Some unnecessary elaboration or hedging.
+        Could be more direct but still readable.
+        Minor repetition present.
+      poor: |
+        Excessive verbosity obscures the answer.
+        Significant off-topic content.
+        Repetitive or padded response.
+
+  domain_expertise:
+    description: "Appropriate fitness terminology and knowledge"
+    weight: 1.0
+    scoring:
+      good: |
+        Uses correct fitness terminology (sets, reps, 1RM, progressive overload, etc.).
+        Shows understanding of training concepts (recovery, periodization, muscle groups).
+        Provides contextually appropriate fitness insights.
+      medium: |
+        Basic terminology used correctly.
+        Misses opportunities for deeper fitness insights.
+        Generic advice that could apply to any domain.
+      poor: |
+        Incorrect terminology or fitness misconceptions.
+        Provides advice that contradicts training principles.
+        Fails to recognize exercise types or muscle groups.
+
+# Criteria groupings for different test case types
+criterion_profiles:
+  # Simple queries need accuracy and basic completeness
+  simple:
+    required: ["accuracy", "completeness"]
+    optional: ["domain_expertise"]
+
+  # Complex queries need all criteria
+  complex:
+    required: ["accuracy", "completeness", "domain_expertise"]
+    optional: ["conciseness"]
+
+  # Insufficient data queries test how model handles gaps
+  insufficient:
+    required: ["accuracy", "completeness"]
+    optional: []
+    notes: "Should acknowledge data limitations honestly"
+
+  # Retrieval tests focus on accuracy of retrieved data
+  retrieval:
+    required: ["accuracy", "completeness"]
+    optional: ["conciseness"]
+
+  # Reasoning tests need completeness and domain knowledge
+  reasoning:
+    required: ["accuracy", "completeness", "domain_expertise"]
+    optional: ["conciseness"]
+
+  # Edge cases test accuracy under ambiguity
+  edge:
+    required: ["accuracy"]
+    optional: ["completeness"]
+    notes: "May appropriately ask for clarification"
+
+  # Domain expertise is primary focus
+  domain:
+    required: ["domain_expertise", "accuracy"]
+    optional: ["completeness", "conciseness"]

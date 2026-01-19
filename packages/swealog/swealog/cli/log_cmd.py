@@ -1,21 +1,18 @@
 """CLI command for logging fitness entries."""
 
 import logging
-from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
 import typer
 from quilto import (
     DomainSelector,
-    Entry,
-    ParserAgent,
-    ParserInput,
     RouterAgent,
     RouterInput,
 )
 
 from swealog.cli.debug import DebugLogger
+from swealog.cli.flows import execute_log_flow
 from swealog.cli.output import print_error, print_info, print_success
 from swealog.cli.utils import EXIT_ERROR, EXIT_SUCCESS, get_dependencies, run_async
 
@@ -46,13 +43,7 @@ async def log(
         router_input = RouterInput(raw_input=text, available_domains=selector.get_domain_infos())
         with dbg.agent("Router", f'"{text[:50]}..."' if len(text) > 50 else f'"{text}"') as timing:
             router_output = await router.classify(router_input)
-        dbg.log_output(
-            "Router",
-            f"input_type={router_output.input_type.value}, "
-            f"domains={router_output.selected_domains}, "
-            f"confidence={router_output.confidence:.2f}",
-            timing["elapsed"],
-        )
+        dbg.log_output("Router", router_output.model_dump(), timing["elapsed"])
 
         # Handle QUERY-only
         if router_output.input_type.value == "QUERY":
@@ -60,54 +51,20 @@ async def log(
             print_info(f'Try: swealog ask "{text}"')
             raise typer.Exit(EXIT_SUCCESS)
 
-        # Parse and store
-        entry_id = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        timestamp = datetime.now()
-
-        # Build parser context from selected domains
-        selected_domains = [d for d in domains if d.name in router_output.selected_domains] or domains
-        domain_schemas = {d.name: d.log_schema for d in selected_domains}
-        vocabulary: dict[str, str] = {}
-        for d in selected_domains:
-            vocabulary.update(d.vocabulary)
-
         # Handle correction mode
         is_correction = router_output.input_type.value == "CORRECTION"
-        recent_entries: list[Entry] = []
-        if is_correction:
-            recent_entries = storage.get_entries_by_pattern("**/*.md")[-10:]
 
-        # Parse
-        parser = ParserAgent(llm_client)
-        parser_input = ParserInput(
-            raw_input=text,
-            timestamp=timestamp,
-            domain_schemas=domain_schemas,
-            vocabulary=vocabulary,
-            correction_mode=is_correction,
+        # Execute log flow using shared function
+        entry_id = await execute_log_flow(
+            text=text,
+            llm_client=llm_client,
+            storage=storage,
+            domains=domains,
+            dbg=dbg,
+            selected_domains=router_output.selected_domains,
+            is_correction=is_correction,
             correction_target=router_output.correction_target,
-            recent_entries=recent_entries,
         )
-        with dbg.agent("Parser", f"domains={list(domain_schemas.keys())}") as timing:
-            parser_output = await parser.parse(parser_input)
-        dbg.log_output(
-            "Parser",
-            f"date={parser_output.date}, fields={len(parser_output.domain_data)}",
-            timing["elapsed"],
-        )
-
-        # Create and save entry
-        entry = Entry(
-            id=entry_id,
-            date=parser_output.date,
-            timestamp=parser_output.timestamp,
-            raw_content=text,
-            parsed_data=parser_output.domain_data,
-        )
-        if is_correction and parser_output.is_correction:
-            storage.save_entry(entry, correction=parser_output)
-        else:
-            storage.save_entry(entry)
 
         # Output
         print_success(f"Logged entry: {entry_id}")

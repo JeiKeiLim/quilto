@@ -54,7 +54,7 @@ class TestDebugLogger:
         assert timing["elapsed"] == 0.0  # No timing when disabled
 
     def test_agent_context_manager_enabled(self) -> None:
-        """Enabled logger prints input only (output/time via log_output per AC5)."""
+        """Enabled logger prints separator and input (output/time via log_output)."""
         logger = DebugLogger(enabled=True)
 
         output_lines: list[str] = []
@@ -64,10 +64,11 @@ class TestDebugLogger:
         ):
             pass
 
-        # Context manager only prints input line now (timing deferred to log_output)
-        assert len(output_lines) == 1
-        assert "[Router]" in output_lines[0]
-        assert "input: test input" in output_lines[0]
+        # Context manager prints separator line then input line
+        assert len(output_lines) == 2
+        assert "====" in output_lines[0]  # Separator
+        assert "[Router]" in output_lines[1]
+        assert "input: test input" in output_lines[1]
         # Elapsed time should be populated
         assert timing["elapsed"] >= 0.0
 
@@ -82,30 +83,34 @@ class TestDebugLogger:
         assert len(output_lines) == 0
 
     def test_log_output_enabled(self) -> None:
-        """Enabled logger prints output."""
+        """Enabled logger prints output header and data."""
         logger = DebugLogger(enabled=True)
 
         output_lines: list[str] = []
         with patch.object(console, "print", side_effect=_capture_to_list(output_lines)):
             logger.log_output("Router", "test output")
 
-        assert len(output_lines) == 1
+        # Output is now: "[Router] output:" then "  test output" (for string data)
+        assert len(output_lines) == 2
         assert "[Router]" in output_lines[0]
-        assert "output: test output" in output_lines[0]
+        assert "output:" in output_lines[0]
+        assert "test output" in output_lines[1]
 
     def test_log_output_with_elapsed(self) -> None:
-        """Enabled logger prints output and timing when elapsed provided."""
+        """Enabled logger prints output header, data, and timing when elapsed provided."""
         logger = DebugLogger(enabled=True)
 
         output_lines: list[str] = []
         with patch.object(console, "print", side_effect=_capture_to_list(output_lines)):
             logger.log_output("Router", "test output", elapsed=0.85)
 
-        assert len(output_lines) == 2
+        # Output is now: "[Router] output:" then "  test output" then "[Router] time: ..."
+        assert len(output_lines) == 3
         assert "[Router]" in output_lines[0]
-        assert "output: test output" in output_lines[0]
-        assert "[Router]" in output_lines[1]
-        assert "time: 0.85s" in output_lines[1]
+        assert "output:" in output_lines[0]
+        assert "test output" in output_lines[1]
+        assert "[Router]" in output_lines[2]
+        assert "time: 0.85s" in output_lines[2]
 
 
 class TestDotEnvLoading:
@@ -179,9 +184,7 @@ class TestDebugFlagLog:
             patch("swealog.cli.log_cmd.get_dependencies", return_value=mock_dependencies),
             patch("swealog.cli.log_cmd.DomainSelector") as mock_selector,
             patch("swealog.cli.log_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.log_cmd.ParserAgent") as mock_parser_cls,
-            patch("swealog.cli.log_cmd.ParserInput"),
-            patch("swealog.cli.log_cmd.Entry"),
+            patch("swealog.cli.log_cmd.execute_log_flow") as mock_log_flow,
         ):
             mock_selector.return_value.get_domain_infos.return_value = []
             mock_router_cls.return_value.classify = AsyncMock(
@@ -193,21 +196,13 @@ class TestDebugFlagLog:
                     confidence=0.92,
                 )
             )
-            mock_parser_cls.return_value.parse = AsyncMock(
-                return_value=MagicMock(
-                    date="2026-01-16",
-                    timestamp="2026-01-16T12:00:00",
-                    domain_data={},
-                    is_correction=False,
-                )
-            )
+            mock_log_flow.return_value = "2026-01-16_12-00-00"
 
             result = runner.invoke(app, ["log", "--debug", "bench 185x5"])
 
             assert result.exit_code == 0
-            # Debug output should show agent names
+            # Debug output should show Router agent name
             assert "[Router]" in result.output
-            assert "[Parser]" in result.output
             # Should still show success message
             assert "Logged entry:" in result.output
 
@@ -219,9 +214,7 @@ class TestDebugFlagLog:
             patch("swealog.cli.log_cmd.get_dependencies", return_value=mock_dependencies),
             patch("swealog.cli.log_cmd.DomainSelector") as mock_selector,
             patch("swealog.cli.log_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.log_cmd.ParserAgent") as mock_parser_cls,
-            patch("swealog.cli.log_cmd.ParserInput"),
-            patch("swealog.cli.log_cmd.Entry"),
+            patch("swealog.cli.log_cmd.execute_log_flow") as mock_log_flow,
         ):
             mock_selector.return_value.get_domain_infos.return_value = []
             mock_router_cls.return_value.classify = AsyncMock(
@@ -233,14 +226,7 @@ class TestDebugFlagLog:
                     confidence=0.9,
                 )
             )
-            mock_parser_cls.return_value.parse = AsyncMock(
-                return_value=MagicMock(
-                    date="2026-01-16",
-                    timestamp="2026-01-16T12:00:00",
-                    domain_data={},
-                    is_correction=False,
-                )
-            )
+            mock_log_flow.return_value = "2026-01-16_12-00-00"
 
             result = runner.invoke(app, ["log", "-d", "test"])
 
@@ -255,9 +241,7 @@ class TestDebugFlagLog:
             patch("swealog.cli.log_cmd.get_dependencies", return_value=mock_dependencies),
             patch("swealog.cli.log_cmd.DomainSelector") as mock_selector,
             patch("swealog.cli.log_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.log_cmd.ParserAgent") as mock_parser_cls,
-            patch("swealog.cli.log_cmd.ParserInput"),
-            patch("swealog.cli.log_cmd.Entry"),
+            patch("swealog.cli.log_cmd.execute_log_flow") as mock_log_flow,
         ):
             mock_selector.return_value.get_domain_infos.return_value = []
             mock_router_cls.return_value.classify = AsyncMock(
@@ -269,14 +253,7 @@ class TestDebugFlagLog:
                     confidence=0.9,
                 )
             )
-            mock_parser_cls.return_value.parse = AsyncMock(
-                return_value=MagicMock(
-                    date="2026-01-16",
-                    timestamp="2026-01-16T12:00:00",
-                    domain_data={},
-                    is_correction=False,
-                )
-            )
+            mock_log_flow.return_value = "2026-01-16_12-00-00"
 
             result = runner.invoke(app, ["log", "test"])
 
@@ -415,11 +392,13 @@ class TestDebugOutputFormat:
     """Tests for AC5: Debug output format."""
 
     def test_debug_format_matches_spec(self) -> None:
-        """Debug output matches expected format from AC5.
+        """Debug output matches expected format showing full JSON.
 
-        AC5 specifies:
+        Format now shows:
+            ============...
             [Router] input: "bench 185x5"
-            [Router] output: input_type=LOG, domains=[strength], confidence=0.92
+            [Router] output:
+            <JSON data>
             [Router] time: 0.8s
         """
         logger = DebugLogger(enabled=True)
@@ -430,19 +409,26 @@ class TestDebugOutputFormat:
                 pass
             # Simulate realistic elapsed time
             timing["elapsed"] = 0.8
-            logger.log_output("Router", "input_type=LOG, domains=[strength], confidence=0.92", timing["elapsed"])
+            # Pass dict data like real usage
+            logger.log_output(
+                "Router",
+                {"input_type": "LOG", "domains": ["strength"], "confidence": 0.92},
+                timing["elapsed"],
+            )
 
-        # Check format matches AC5: input → output → time
-        assert len(output_lines) == 3
-        # Line 1: Input
-        assert "[Router]" in output_lines[0]
-        assert 'input: "bench 185x5"' in output_lines[0]
-        # Line 2: Output (per AC5, output comes BEFORE time)
+        # Check format: separator → input → output header → JSON (Syntax object) → time
+        assert len(output_lines) == 5
+        # Line 1: Separator
+        assert "====" in output_lines[0]
+        # Line 2: Input
         assert "[Router]" in output_lines[1]
-        assert "output:" in output_lines[1]
-        assert "input_type=LOG" in output_lines[1]
-        assert "confidence=0.92" in output_lines[1]
-        # Line 3: Time
+        assert 'input: "bench 185x5"' in output_lines[1]
+        # Line 3: Output header
         assert "[Router]" in output_lines[2]
-        assert "time:" in output_lines[2]
-        assert "0.80s" in output_lines[2]
+        assert "output:" in output_lines[2]
+        # Line 4: JSON data (Rich Syntax object for syntax highlighting)
+        assert "Syntax" in output_lines[3]  # Rich Syntax object
+        # Line 5: Time
+        assert "[Router]" in output_lines[4]
+        assert "time:" in output_lines[4]
+        assert "0.80s" in output_lines[4]
