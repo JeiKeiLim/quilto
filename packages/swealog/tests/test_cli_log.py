@@ -55,6 +55,7 @@ class TestLogCommand:
                     selected_domains=["GeneralFitness"],
                     query_portion=None,
                     correction_target=None,
+                    confidence=0.9,
                 )
             )
             mock_parser_cls.return_value.parse = AsyncMock(
@@ -85,6 +86,7 @@ class TestLogCommand:
             mock_router_cls.return_value.classify = AsyncMock(
                 return_value=MagicMock(
                     input_type=MagicMock(value="QUERY"),
+                    confidence=0.9,
                 )
             )
 
@@ -112,6 +114,7 @@ class TestLogCommand:
                     selected_domains=["GeneralFitness"],
                     query_portion="how does this compare?",
                     correction_target=None,
+                    confidence=0.9,
                 )
             )
             mock_parser_cls.return_value.parse = AsyncMock(
@@ -159,6 +162,7 @@ class TestLogCommand:
                     selected_domains=["GeneralFitness"],
                     query_portion=None,
                     correction_target="yesterday",
+                    confidence=0.9,
                 )
             )
             mock_parser_cls.return_value.parse = AsyncMock(
@@ -194,6 +198,7 @@ class TestLogCommand:
                     selected_domains=["GeneralFitness"],
                     query_portion=None,
                     correction_target=None,
+                    confidence=0.9,
                 )
             )
             mock_parser_cls.return_value.parse = AsyncMock(
@@ -232,6 +237,7 @@ class TestLogCommand:
                     selected_domains=["GeneralFitness"],
                     query_portion=None,
                     correction_target=None,
+                    confidence=0.9,
                 )
             )
             mock_parser_cls.return_value.parse = AsyncMock(

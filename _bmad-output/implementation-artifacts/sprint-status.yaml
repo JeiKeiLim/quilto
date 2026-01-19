@@ -138,5 +138,5 @@ development_status:
 
   # Epic 9: Developer Experience (Post-MVP)
   # Focus: Improve dogfooding and development workflow
-  epic-9: backlog
-  9-1-cli-developer-experience: ready-for-dev  # --debug flag + .env support
+  epic-9: in-progress
+  9-1-cli-developer-experience: done  # --debug flag + .env support

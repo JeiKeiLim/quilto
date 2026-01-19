@@ -2,6 +2,7 @@
 
 from swealog.cli.app import app
 from swealog.cli.ask_cmd import ask
+from swealog.cli.debug import DebugLogger
 from swealog.cli.import_cmd import (
     BatchImporter,
     BatchImportError,
@@ -35,6 +36,7 @@ __all__ = [
     "BatchImporter",
     "BatchImportError",
     "BatchResult",
+    "DebugLogger",
     "EXIT_ERROR",
     "EXIT_SUCCESS",
     "EXIT_USAGE_ERROR",

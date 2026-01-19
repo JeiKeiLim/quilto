@@ -1,6 +1,6 @@
 # Story 9.1: CLI Developer Experience Improvements
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -57,45 +57,45 @@ The CLI is optimized for end users (clean success/error messages), but the prima
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add python-dotenv dependency (AC: 3, 4)
-  - [ ] Add `python-dotenv>=1.0.0` to swealog/pyproject.toml dependencies
-  - [ ] Run `uv sync` to update lockfile
+- [x] Task 1: Add python-dotenv dependency (AC: 3, 4)
+  - [x] Add `python-dotenv>=1.0.0` to swealog/pyproject.toml dependencies
+  - [x] Run `uv sync` to update lockfile
 
-- [ ] Task 2: Implement .env auto-loading (AC: 3, 4)
-  - [ ] Import `load_dotenv` from `dotenv` in `cli/app.py`
-  - [ ] Call `load_dotenv()` in the app callback (runs before any command)
-  - [ ] Verify it's silent when no .env file exists
+- [x] Task 2: Implement .env auto-loading (AC: 3, 4)
+  - [x] Import `load_dotenv` from `dotenv` in `cli/app.py`
+  - [x] Call `load_dotenv()` in the app callback (runs before any command)
+  - [x] Verify it's silent when no .env file exists
 
-- [ ] Task 3: Create DebugLogger helper (AC: 5)
-  - [ ] Create `cli/debug.py` module
-  - [ ] Create `DebugLogger` class with methods:
+- [x] Task 3: Create DebugLogger helper (AC: 5)
+  - [x] Create `cli/debug.py` module
+  - [x] Create `DebugLogger` class with methods:
     - `log_agent_start(agent_name: str, input_summary: str)`
     - `log_agent_end(agent_name: str, output_summary: str, elapsed: float)`
-  - [ ] Use rich formatting (cyan for agent name, dim for timing)
-  - [ ] Export from `cli/__init__.py`
+  - [x] Use rich formatting (cyan for agent name, dim for timing)
+  - [x] Export from `cli/__init__.py`
 
-- [ ] Task 4: Add --debug flag to log command (AC: 1, 5)
-  - [ ] Add `--debug` / `-d` flag to `log_cmd.py`
-  - [ ] Wrap RouterAgent.classify() with debug logging
-  - [ ] Wrap ParserAgent.parse() with debug logging
-  - [ ] Pass debug flag through get_dependencies or as parameter
+- [x] Task 4: Add --debug flag to log command (AC: 1, 5)
+  - [x] Add `--debug` / `-d` flag to `log_cmd.py`
+  - [x] Wrap RouterAgent.classify() with debug logging
+  - [x] Wrap ParserAgent.parse() with debug logging
+  - [x] Pass debug flag through get_dependencies or as parameter
 
-- [ ] Task 5: Add --debug flag to ask command (AC: 2, 5)
-  - [ ] Add `--debug` / `-d` flag to `ask_cmd.py`
-  - [ ] Modify `execute_query_pipeline()` to accept optional debug callback
-  - [ ] Or: Create CLI-specific wrapper that adds debug logging around pipeline
-  - [ ] Log all 6 agents in sequence with timing
+- [x] Task 5: Add --debug flag to ask command (AC: 2, 5)
+  - [x] Add `--debug` / `-d` flag to `ask_cmd.py`
+  - [x] Modify `execute_query_pipeline()` to accept optional debug callback
+  - [x] Or: Create CLI-specific wrapper that adds debug logging around pipeline
+  - [x] Log all 6 agents in sequence with timing
 
-- [ ] Task 6: Write unit tests (AC: 1-5)
-  - [ ] Test .env loading with temp .env file
-  - [ ] Test .env missing doesn't error
-  - [ ] Test --debug flag produces expected output patterns
-  - [ ] Test debug output includes agent names and timing
-  - [ ] Use CliRunner with captured output
+- [x] Task 6: Write unit tests (AC: 1-5)
+  - [x] Test .env loading with temp .env file
+  - [x] Test .env missing doesn't error
+  - [x] Test --debug flag produces expected output patterns
+  - [x] Test debug output includes agent names and timing
+  - [x] Use CliRunner with captured output
 
-- [ ] Task 7: Update CLI help text
-  - [ ] Add examples showing --debug usage
-  - [ ] Document .env file support in help or README
+- [x] Task 7: Update CLI help text
+  - [x] Add examples showing --debug usage
+  - [x] Document .env file support in help or README
 
 ## Dev Notes
 
@@ -268,12 +268,55 @@ make test-ollama
 
 ### Agent Model Used
 
-TBD
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Completion Notes List
 
-TBD
+- Added `python-dotenv>=1.0.0` to swealog package dependencies
+- Implemented `.env` auto-loading in CLI app callback (silent when missing)
+- Created `DebugLogger` class in `cli/debug.py` with context manager API
+- Added `--debug` / `-d` flag to both `log` and `ask` commands
+- Modified `execute_query_pipeline()` to accept optional debug callback for timing all 6 agents
+- Created comprehensive test suite in `test_cli_debug.py` (14 tests)
+- Updated existing tests in `test_cli_log.py` to include `confidence` attribute in mocks
+- CLI help text automatically shows examples via docstrings
+
+### Change Log
+
+- 2026-01-19: Implemented Story 9.1 - CLI Developer Experience (--debug + .env)
 
 ### File List
 
-TBD
+**New Files:**
+- `packages/swealog/swealog/cli/debug.py` - DebugLogger helper class
+- `packages/swealog/tests/test_cli_debug.py` - Unit tests for debug functionality
+
+**Modified Files:**
+- `packages/swealog/pyproject.toml` - Added python-dotenv dependency
+- `packages/swealog/swealog/cli/__init__.py` - Export DebugLogger
+- `packages/swealog/swealog/cli/app.py` - Added load_dotenv() call
+- `packages/swealog/swealog/cli/log_cmd.py` - Added --debug flag with debug logging
+- `packages/swealog/swealog/cli/ask_cmd.py` - Added --debug flag with debug callback
+- `packages/swealog/swealog/api/routes/query.py` - Added debug_callback parameter to execute_query_pipeline
+- `packages/swealog/tests/test_cli_log.py` - Added confidence attribute to router mocks
+- `uv.lock` - Updated lockfile (auto-generated from uv sync)
+
+### Known Limitations
+
+- **AC3 .env interpolation**: Tests verify .env is loaded but do not verify ${VAR_NAME} interpolation works in llm-config.yaml. This depends on the quilto config module which handles interpolation. The .env loading is verified but end-to-end interpolation testing would require llm-config.yaml setup.
+
+### Senior Developer Review (AI)
+
+**Date:** 2026-01-19
+**Reviewer:** Claude Opus 4.5 (adversarial review)
+
+**Issues Found & Fixed:**
+- H1: Fixed AC5 output format - changed DebugLogger to print input→output→time (was input→time→output)
+- H2: Added tests for _DebugTimer class in query pipeline (4 new tests)
+- H3: Added confidence to Router output in ask command pipeline
+- M1: Added uv.lock to File List
+- M2: Created DebugCallback type alias in query.py for cleaner signatures
+- M3: Fixed weak test assertion (OR→AND) in test_no_debug_flag_no_debug_output
+- M4: Documented .env interpolation test limitation above
+
+**Tests:** All 18 tests pass (14 debug + 4 timer tests)

@@ -1,6 +1,9 @@
 """POST /query endpoint for processing user queries."""
 
 import logging
+import time
+from collections.abc import Callable, Generator
+from contextlib import contextmanager
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -43,12 +46,54 @@ _CONFIDENCE_PARTIAL = 0.6
 _CONFIDENCE_INSUFFICIENT = 0.4
 _CONFIDENCE_ADJUSTMENT = 0.1
 
+# Type alias for debug callback signature
+DebugCallback = Callable[[str, str, str, float], None]
+
+
+class _DebugTimer:
+    """Internal helper for timing agent execution with optional callback."""
+
+    def __init__(self, callback: DebugCallback | None = None) -> None:
+        self._callback = callback
+
+    @contextmanager
+    def track(self, agent_name: str, input_summary: str) -> Generator[dict[str, float]]:
+        """Track agent execution time.
+
+        Args:
+            agent_name: Name of the agent being tracked.
+            input_summary: Brief description of input.
+
+        Yields:
+            Dict that will contain 'elapsed' after context exits.
+        """
+        result: dict[str, float] = {"elapsed": 0.0}
+        if self._callback:
+            self._callback(agent_name, "start", input_summary, 0.0)
+        start = time.perf_counter()
+        yield result
+        elapsed = time.perf_counter() - start
+        result["elapsed"] = elapsed
+        if self._callback:
+            self._callback(agent_name, "end", "", elapsed)
+
+    def log_output(self, agent_name: str, output_summary: str) -> None:
+        """Log agent output.
+
+        Args:
+            agent_name: Name of the agent.
+            output_summary: Brief description of output.
+        """
+        if self._callback:
+            self._callback(agent_name, "output", output_summary, 0.0)
+
 
 async def execute_query_pipeline(
     query: str,
     llm_client: LLMClient,
     storage: StorageRepository,
     domains: list[DomainModule],
+    debug_callback: DebugCallback | None = None,
 ) -> dict[str, Any]:
     """Execute the full query pipeline.
 
@@ -60,18 +105,29 @@ async def execute_query_pipeline(
         llm_client: LLM client for agents.
         storage: Storage repository for entries.
         domains: Available domain modules.
+        debug_callback: Optional callback for debug logging.
+            Called with (agent_name, event, summary, elapsed_time).
+            event is "start", "output", or "end".
 
     Returns:
         Dict with response, sources, confidence, and is_partial.
     """
-    # Initialize domain selector
+    # Initialize domain selector and debug timer
     selector = DomainSelector(domains)
     domain_infos = selector.get_domain_infos()
+    timer = _DebugTimer(debug_callback)
 
     # Step 1: Route query
     router_agent = RouterAgent(llm_client)
     router_input = RouterInput(raw_input=query, available_domains=domain_infos)
-    router_output = await router_agent.classify(router_input)
+    with timer.track("Router", f'"{query[:50]}..."' if len(query) > 50 else f'"{query}"'):
+        router_output = await router_agent.classify(router_input)
+    timer.log_output(
+        "Router",
+        f"input_type={router_output.input_type.value}, "
+        f"domains={router_output.selected_domains}, "
+        f"confidence={router_output.confidence:.2f}",
+    )
 
     # Build active domain context from selected domains
     active_context = selector.build_active_context(router_output.selected_domains)
@@ -79,7 +135,9 @@ async def execute_query_pipeline(
     # Step 2: Plan retrieval
     planner = PlannerAgent(llm_client)
     planner_input = PlannerInput(query=query, domain_context=active_context)
-    planner_output = await planner.plan(planner_input)
+    with timer.track("Planner", "query_type inference"):
+        planner_output = await planner.plan(planner_input)
+    timer.log_output("Planner", f"query_type={planner_output.query_type}")
 
     # Step 3: Retrieve entries
     retriever = RetrieverAgent(storage)
@@ -88,7 +146,9 @@ async def execute_query_pipeline(
         vocabulary=active_context.vocabulary,
         max_entries=100,
     )
-    retriever_output = await retriever.retrieve(retriever_input)
+    with timer.track("Retriever", f"instructions={len(planner_output.retrieval_instructions)} filters"):
+        retriever_output = await retriever.retrieve(retriever_input)
+    timer.log_output("Retriever", f"entries={len(retriever_output.entries)}")
 
     # Collect source entry IDs
     sources: list[str] = [entry.id for entry in retriever_output.entries]
@@ -109,7 +169,9 @@ async def execute_query_pipeline(
             retrieval_summary=retriever_output.retrieval_summary,
             domain_context=active_context,
         )
-        analysis = await analyzer.analyze(analyzer_input)
+        with timer.track("Analyzer", f"entries={len(retriever_output.entries)}"):
+            analysis = await analyzer.analyze(analyzer_input)
+        timer.log_output("Analyzer", f"verdict={analysis.verdict.value}")
 
         # Check if we need to generate partial response
         if analysis.verdict == Verdict.INSUFFICIENT and retry_count == MAX_RETRIES:
@@ -125,7 +187,9 @@ async def execute_query_pipeline(
             response_style="concise",
             is_partial=is_partial,
         )
-        synthesizer_output = await synthesizer.synthesize(synthesizer_input)
+        with timer.track("Synthesizer", f"verdict={analysis.verdict.value}"):
+            synthesizer_output = await synthesizer.synthesize(synthesizer_input)
+        timer.log_output("Synthesizer", f"response_len={len(synthesizer_output.response)}")
 
         # Step 6: Evaluate response
         evaluator = EvaluatorAgent(llm_client)
@@ -138,7 +202,9 @@ async def execute_query_pipeline(
             evaluation_rules=active_context.evaluation_rules,
             attempt_number=retry_count + 1,
         )
-        evaluation = await evaluator.evaluate(evaluator_input)
+        with timer.track("Evaluator", f"attempt={retry_count + 1}"):
+            evaluation = await evaluator.evaluate(evaluator_input)
+        timer.log_output("Evaluator", f"verdict={evaluation.overall_verdict.value}")
 
         # Check if passed
         if evaluator.is_passed(evaluation):

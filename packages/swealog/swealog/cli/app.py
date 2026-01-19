@@ -3,6 +3,7 @@
 from importlib.metadata import version
 
 import typer
+from dotenv import load_dotenv
 
 from swealog.cli.ask_cmd import ask
 from swealog.cli.import_cmd import import_file
@@ -51,6 +52,8 @@ def main(
     ),
 ) -> None:
     """Swealog - AI-powered fitness logging."""
+    # Load .env file if present (silent if missing)
+    load_dotenv()
 
 
 @app.command()

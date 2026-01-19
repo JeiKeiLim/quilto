@@ -15,6 +15,7 @@ from quilto import (
     RouterInput,
 )
 
+from swealog.cli.debug import DebugLogger
 from swealog.cli.output import print_error, print_info, print_success
 from swealog.cli.utils import EXIT_ERROR, EXIT_SUCCESS, get_dependencies, run_async
 
@@ -26,8 +27,15 @@ async def log(
     text: Annotated[str, typer.Argument(help="Fitness log entry text")],
     config: Annotated[Path | None, typer.Option("--config", "-c", help="Path to llm-config.yaml")] = None,
     storage_path: Annotated[Path | None, typer.Option("--storage", "-s", help="Path to storage directory")] = None,
+    debug: Annotated[bool, typer.Option("--debug", "-d", help="Show debug output with agent timing")] = False,
 ) -> None:
-    """Log a fitness entry via CLI."""
+    """Log a fitness entry via CLI.
+
+    Example:
+        swealog log "bench 185x5"
+        swealog log --debug "ran 5k in 25min"
+    """
+    dbg = DebugLogger(enabled=debug)
     try:
         # Initialize via shared helper
         llm_client, storage, domains = get_dependencies(config, storage_path)
@@ -36,7 +44,15 @@ async def log(
         # Route input
         router = RouterAgent(llm_client)
         router_input = RouterInput(raw_input=text, available_domains=selector.get_domain_infos())
-        router_output = await router.classify(router_input)
+        with dbg.agent("Router", f'"{text[:50]}..."' if len(text) > 50 else f'"{text}"') as timing:
+            router_output = await router.classify(router_input)
+        dbg.log_output(
+            "Router",
+            f"input_type={router_output.input_type.value}, "
+            f"domains={router_output.selected_domains}, "
+            f"confidence={router_output.confidence:.2f}",
+            timing["elapsed"],
+        )
 
         # Handle QUERY-only
         if router_output.input_type.value == "QUERY":
@@ -72,7 +88,13 @@ async def log(
             correction_target=router_output.correction_target,
             recent_entries=recent_entries,
         )
-        parser_output = await parser.parse(parser_input)
+        with dbg.agent("Parser", f"domains={list(domain_schemas.keys())}") as timing:
+            parser_output = await parser.parse(parser_input)
+        dbg.log_output(
+            "Parser",
+            f"date={parser_output.date}, fields={len(parser_output.domain_data)}",
+            timing["elapsed"],
+        )
 
         # Create and save entry
         entry = Entry(

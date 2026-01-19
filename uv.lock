@@ -1517,6 +1517,7 @@ version = "0.1.0"
 source = { editable = "packages/swealog" }
 dependencies = [
     { name = "fastapi" },
+    { name = "python-dotenv" },
     { name = "quilto" },
     { name = "rich" },
     { name = "typer" },
@@ -1526,6 +1527,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "quilto", editable = "packages/quilto" },
     { name = "rich", specifier = ">=13.9.0" },
     { name = "typer", specifier = ">=0.15.0" },
