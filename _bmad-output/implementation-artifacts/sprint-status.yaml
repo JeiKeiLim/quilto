@@ -148,7 +148,7 @@ development_status:
   # Research: research/technical-llm-agent-quality-evaluation-research-2026-01-19.md
   epic-10: in-progress
   10-1-create-e2e-evaluation-dataset: done  # Extend existing 10 query cases + 40 new
-  10-2-generate-claude-baseline-responses: backlog
+  10-2-generate-claude-baseline-responses: done
   10-3-implement-pairwise-llm-as-judge: backlog  # Position swap, DeepEval
   10-4-integrate-evaluation-with-pytest-cicd: backlog
   10-5-fix-retrieval-strategy-priority: backlog  # Date-range first, keyword fallback

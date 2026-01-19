@@ -1,11 +1,12 @@
 """Tests for E2E evaluation dataset validation."""
 
+import json
 from pathlib import Path
 
 import pytest
 import yaml
 
-from tests.eval.schema import GoldenDataset, Rubric
+from tests.eval.schema import BaselineResponse, GoldenDataset, Rubric
 
 EVAL_DIR = Path(__file__).parent
 GOLDEN_DIR = EVAL_DIR / "golden"
@@ -133,3 +134,51 @@ class TestGoldenDatasetValidation:
                 assert expected_count == actual_count, (
                     f"Category {cat} mismatch in {golden_path.name}: metadata={expected_count}, actual={actual_count}"
                 )
+
+
+class TestBaselineResponseValidation:
+    """Tests for baseline response validation."""
+
+    @pytest.fixture
+    def baseline_dir(self) -> Path:
+        """Get the baseline responses directory."""
+        return GOLDEN_DIR / "baseline_responses"
+
+    @pytest.mark.skipif(
+        not list((GOLDEN_DIR / "baseline_responses/v2026-01-19").glob("*.json"))
+        if (GOLDEN_DIR / "baseline_responses/v2026-01-19").exists()
+        else True,
+        reason="Baseline responses not yet generated",
+    )
+    def test_baseline_responses_complete(self) -> None:
+        """Verify all test cases have valid baseline responses."""
+        dataset_path = GOLDEN_DIR / "v2026-01-19.yaml"
+        with open(dataset_path) as f:
+            data = yaml.safe_load(f)
+
+        dataset = GoldenDataset.model_validate(data)
+        responses_dir = GOLDEN_DIR / "baseline_responses/v2026-01-19"
+
+        for case in dataset.test_cases:
+            response_file = responses_dir / f"{case.id}.json"
+            assert response_file.exists(), f"Missing baseline for {case.id}"
+
+            # Validate schema
+            response_data = json.loads(response_file.read_text())
+            response = BaselineResponse.model_validate(response_data)
+            assert response.test_case_id == case.id
+
+    @pytest.mark.skipif(
+        not list((GOLDEN_DIR / "baseline_responses/v2026-01-19").glob("*.json"))
+        if (GOLDEN_DIR / "baseline_responses/v2026-01-19").exists()
+        else True,
+        reason="Baseline responses not yet generated",
+    )
+    def test_baseline_responses_have_content(self) -> None:
+        """Verify baseline responses contain actual response text."""
+        responses_dir = GOLDEN_DIR / "baseline_responses/v2026-01-19"
+
+        for response_file in responses_dir.glob("*.json"):
+            response_data = json.loads(response_file.read_text())
+            response = BaselineResponse.model_validate(response_data)
+            assert len(response.response) > 10, f"Response too short for {response.test_case_id}"

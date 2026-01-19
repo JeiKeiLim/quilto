@@ -1,0 +1,18 @@
+{
+  "test_case_id": "insufficient-year-comparison",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:32:25.416453+00:00",
+  "query": "Compare my bench press to last year",
+  "context_entries": [
+    "2019-01-29",
+    "2019-02-01",
+    "2019-02-27"
+  ],
+  "context_provided": "## Workout on 2019-01-29\n\n벤치프레스 80키로에서 시작해서 드랍세트로 60키로까지 내려감. 첫세트 80키로 6개 하고 점점 무게 내리면서 마지막 3세트는 60키로로 8개씩 진행함. 총 6세트. 그다음 싯업 120개 해서 마무리함.\n\n---\n\n## Workout on 2019-02-01\n\n인클라인 벤치프레스 80키로로 첫세트 했는데 2개밖에 못함. 너무 무거웠음. 바로 70키로로 내려서 5세트 드랍세트로 55키로까지 진행. 그리고나서 티바로우 5세트. 70키로에서 77.5까지 올렸다가 다시 67.5까지 내림. 오늘 등이 좀 뻣뻣했나 그립이 잘 안잡혔음.\n\n---\n\n## Workout on 2019-02-27\n\n벤치프레스 80키로 2세트 하고 70키로로 낮춰서 3세트 더함. 80키로 두번째 세트에서 4개밖에 못함. 좀 피곤했나 봄. 총 5세트.",
+  "response": "I cannot compare your bench press to last year because all the workout logs you've provided are from 2019 (January-February). To make a comparison with \"last year,\" I would need workout data from 2018.\n\nHowever, I can tell you about your bench press performance during the logged period in early 2019:\n\n**Your 2019 Bench Press Performance:**\n- **January 29**: Started at 80kg for 6 reps, then drop sets down to 60kg for 8 reps (6 total sets)\n- **February 1**: Incline bench press at 80kg (only 2 reps), dropped to 70kg, continued drop sets to 55kg\n- **February 27**: 80kg for 2 sets, but only managed 4 reps in the second set due to fatigue, then dropped to 70kg for 3 more sets\n\nYour 80kg working weight appears consistent during this period, though your rep count varied based on fatigue levels and whether you were doing regular or incline bench press."
+}

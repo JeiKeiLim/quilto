@@ -1,0 +1,18 @@
+{
+  "test_case_id": "simple-bench-progression",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:31:24.739535+00:00",
+  "query": "How has my bench press progressed?",
+  "context_entries": [
+    "2019-01-29",
+    "2019-02-01",
+    "2019-03-12"
+  ],
+  "context_provided": "## Workout on 2019-01-29\n\n벤치프레스 80키로에서 시작해서 드랍세트로 60키로까지 내려감. 첫세트 80키로 6개 하고 점점 무게 내리면서 마지막 3세트는 60키로로 8개씩 진행함. 총 6세트. 그다음 싯업 120개 해서 마무리함.\n\n---\n\n## Workout on 2019-02-01\n\n인클라인 벤치프레스 80키로로 첫세트 했는데 2개밖에 못함. 너무 무거웠음. 바로 70키로로 내려서 5세트 드랍세트로 55키로까지 진행. 그리고나서 티바로우 5세트. 70키로에서 77.5까지 올렸다가 다시 67.5까지 내림. 오늘 등이 좀 뻣뻣했나 그립이 잘 안잡혔음.\n\n---\n\n## Workout on 2019-03-12\n\n벤치프레스 85키로로 시작했는데 4개밖에 못함. 77.5에서 70까지 점점 내려가면서 5세트 마무리. 오늘 가슴 힘이 안나네. 그다음 레터럴레이즈 덤벨 20키로씩 시작해서 25까지 올려서 4세트 10개씩. 크런치도 4세트 하고 마무리.",
+  "response": "Based on your workout logs, here's how your bench press has progressed:\n\n**Bench Press Progression:**\n\n**January 29, 2019:**\n- Started at 80kg for 6 reps (first set)\n- Used drop sets down to 60kg for final 3 sets (8 reps each)\n- Total: 6 sets\n\n**March 12, 2019:**\n- Started at 85kg for 4 reps (first set) \n- Used drop sets from 77.5kg down to 70kg\n- Total: 5 sets\n\n**Key Observations:**\n- Your starting weight increased from 80kg to 85kg (+5kg improvement)\n- However, your rep count at the higher weight decreased (6 reps at 80kg vs 4 reps at 85kg)\n- You noted feeling weaker on March 12th (\"가슴 힘이 안나네\" - chest strength wasn't there)\n\n**Note:** You also did incline bench press on February 1st (started at 80kg for 2 reps, dropped to 70kg), but this is a different exercise variation from your regular bench press.\n\nOverall, you showed strength progression by increasing your starting weight, though the March session suggests you may have been having an off day or the weight jump was challenging."
+}

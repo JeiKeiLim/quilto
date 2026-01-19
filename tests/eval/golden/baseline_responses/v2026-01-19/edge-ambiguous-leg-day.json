@@ -1,0 +1,18 @@
+{
+  "test_case_id": "edge-ambiguous-leg-day",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:35:12.529034+00:00",
+  "query": "How was leg day?",
+  "context_entries": [
+    "2019-04-09",
+    "2019-04-17",
+    "2019-09-16"
+  ],
+  "context_provided": "## Workout on 2019-04-09\n\n데드리프트 110키로 4세트 진행. 마지막 세트에서 3개밖에 못함. 좀 지쳤나. 그다음 프론트 스쿼트 50키로에서 60까지 올려서 3세트 마무리.\n\n---\n\n## Workout on 2019-04-17\n\n스쿼트 120키로 4개하고 100으로 내려서 2세트 더함. 스모 데드리프트 100키로 3세트 진행. 그다음 밀리터리프레스 32키로 정도로 4세트 고반복. 바벨컬도 같이 32키로에서 27키로까지 4세트 진행함. 오늘 하체랑 어깨 이두 다 했네.\n\n---\n\n## Workout on 2019-09-16\n\n스쿼트 110키로에서 140까지 올려봤는데 1개밖에 안됨. 110까지 드랍해서 5세트 마무리. 밀리터리프레스 45키로에서 50까지 올렸다가 36까지 드랍해서 5세트.",
+  "response": "Based on your workout logs, you had two main leg-focused sessions:\n\n**April 17, 2019 leg day:**\n- Squats: 120kg for 4 reps, then dropped to 100kg for 2 more sets\n- Sumo deadlifts: 100kg for 3 sets\n- You also did shoulders and biceps that day\n\n**September 16, 2019 leg day:**\n- Squats: Attempted 140kg but only managed 1 rep, then dropped back to 110kg for 5 sets\n- Also did military press (45-50kg range)\n\nYour April 9th workout included deadlifts (110kg, 4 sets) and front squats (50-60kg, 3 sets), but seemed more deadlift-focused.\n\nThe September session shows you were pushing your limits - attempting a heavy 140kg squat but having to scale back. Both leg days included good volume with multiple sets after your heavy attempts."
+}

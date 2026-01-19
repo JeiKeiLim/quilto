@@ -1,0 +1,19 @@
+{
+  "test_case_id": "retrieval-pattern-exercise-rotation",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:33:29.848177+00:00",
+  "query": "How do I rotate between exercises?",
+  "context_entries": [
+    "2019-01-28",
+    "2019-01-29",
+    "2019-01-31",
+    "2019-02-01"
+  ],
+  "context_provided": "## Workout on 2019-01-28\n\n트랩바 데드리프트 180키로에서 시작해서 190키로까지 올렸다가 다시 180으로 내려옴. 총 5세트 하고 렙수는 8, 6, 4, 6, 6개씩 진행함. 190 할때 좀 무거웠음. 그리고나서 푸쉬프레스 5세트 진행. 40키로로 웜업하고 50키로로 올려서 했는데 마지막에 45키로로 좀 낮춤. 어깨가 좀 힘들었음.\n\n---\n\n## Workout on 2019-01-29\n\n벤치프레스 80키로에서 시작해서 드랍세트로 60키로까지 내려감. 첫세트 80키로 6개 하고 점점 무게 내리면서 마지막 3세트는 60키로로 8개씩 진행함. 총 6세트. 그다음 싯업 120개 해서 마무리함.\n\n---\n\n## Workout on 2019-01-31\n\n프론트 스쿼트 90키로로 시작해서 5세트 진행함. 처음 2세트 90키로 하다가 좀 무거워서 85, 80으로 낮춤. 렙수는 8, 5, 5, 8, 8개. 이어서 시티드 프레스 5세트 함. 45키로에서 시작해서 40키로까지 드랍. 어깨가 좀 피곤했음.\n\n---\n\n## Workout on 2019-02-01\n\n인클라인 벤치프레스 80키로로 첫세트 했는데 2개밖에 못함. 너무 무거웠음. 바로 70키로로 내려서 5세트 드랍세트로 55키로까지 진행. 그리고나서 티바로우 5세트. 70키로에서 77.5까지 올렸다가 다시 67.5까지 내림. 오늘 등이 좀 뻣뻣했나 그립이 잘 안잡혔음.",
+  "response": "Based on your workout logs, I can see you're already implementing some exercise rotation patterns, though your question about \"how to rotate between exercises\" could mean a few different things. Let me address what I can observe from your data:\n\n**Your Current Rotation Pattern (Jan 28 - Feb 1):**\n- **Day 1 (1/28):** Lower body focus - Trap bar deadlifts + Push press\n- **Day 2 (1/29):** Upper body focus - Bench press + Sit-ups  \n- **Day 3 (1/31):** Lower body focus - Front squats + Seated press\n- **Day 4 (2/1):** Upper body focus - Incline bench press + T-bar rows\n\nYou're alternating between lower body dominant days and upper body dominant days, which is a solid approach.\n\n**What I can observe about your rotation strategy:**\n- You're varying the main movement patterns (deadlift → bench → squat → incline bench)\n- You're including both compound movements and accessory work\n- You're working different muscle groups on consecutive days\n\nHowever, your logs don't contain specific information about:\n- Your planned rotation schedule\n- How you decide which exercises to do next\n- Whether you follow a structured program\n\nTo give you more specific advice on exercise rotation, I'd need to know what aspect you're asking about - are you looking for guidance on daily exercise order, weekly programming, or something else?"
+}

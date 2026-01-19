@@ -1,0 +1,16 @@
+{
+  "test_case_id": "simple-heaviest-deadlift",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:31:28.238052+00:00",
+  "query": "What was my heaviest deadlift?",
+  "context_entries": [
+    "2019-01-28"
+  ],
+  "context_provided": "## Workout on 2019-01-28\n\n트랩바 데드리프트 180키로에서 시작해서 190키로까지 올렸다가 다시 180으로 내려옴. 총 5세트 하고 렙수는 8, 6, 4, 6, 6개씩 진행함. 190 할때 좀 무거웠음. 그리고나서 푸쉬프레스 5세트 진행. 40키로로 웜업하고 50키로로 올려서 했는데 마지막에 45키로로 좀 낮춤. 어깨가 좀 힘들었음.",
+  "response": "Based on your workout logs, your heaviest deadlift was **190kg** using a trap bar (트랩바 데드리프트).\n\nThis was performed on January 28, 2019, where you started at 180kg, worked up to 190kg, then dropped back down to 180kg. You noted that the 190kg felt quite heavy (\"190 할때 좀 무거웠음\")."
+}

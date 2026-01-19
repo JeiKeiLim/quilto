@@ -1,0 +1,18 @@
+{
+  "test_case_id": "edge-outdomain-sleep-impact",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:35:48.502367+00:00",
+  "query": "Am I sleeping enough based on my training?",
+  "context_entries": [
+    "2019-09-02",
+    "2019-09-03",
+    "2019-09-05"
+  ],
+  "context_provided": "## Workout on 2019-09-02\n\n스모 데드리프트 140키로 2세트 하고 130으로 맞춰서 5세트 진행. 아놀드프레스 40키로씩에서 45까지 올려봤는데 5개밖에 안됨. 30까지 드랍해서 5세트 마무리.\n\n---\n\n## Workout on 2019-09-03\n\n벤치프레스 80키로 3개, 85키로 2개밖에 못함. 오늘 힘이 별로 안나네. 70키로로 맞춰서 5세트 마무리. 웨이티드 풀업 7.5키로에서 시작해서 맨몸까지 3세트.\n\n---\n\n## Workout on 2019-09-05\n\n프론트 스쿼트 80키로에서 85까지 올려봤는데 3개밖에 안됨. 80으로 맞춰서 5세트 진행. 푸쉬프레스 41키로에서 50까지 올려서 5세트.",
+  "response": "Based on your workout logs, I cannot determine if you're sleeping enough because **your workout entries don't contain any sleep data or information about your sleep patterns**.\n\nHowever, I can observe some potential signs from your training performance that might be related to recovery:\n\n**Concerning patterns in your logs:**\n- **September 3rd**: You specifically noted \"오늘 힘이 별로 안나네\" (not much strength today) when your bench press performance dropped significantly (only 2 reps at 85kg vs. your apparent capability)\n- **Performance inconsistencies**: Your strength seems to fluctuate between sessions\n\n**What I'd need to assess sleep adequacy:**\n- Actual sleep duration and quality data\n- How you feel upon waking\n- Energy levels throughout the day\n- Recovery between sessions\n\n**Recommendation**: Start tracking your sleep hours, sleep quality, and how rested you feel each morning alongside your workouts. This will help identify if poor sleep is contributing to days when your strength feels off, like you experienced on September 3rd.\n\nYour workout logs show good training consistency, but adding sleep data would give a much clearer picture of your recovery status."
+}

@@ -1,0 +1,20 @@
+{
+  "test_case_id": "domain-principle-periodization",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:37:06.454998+00:00",
+  "query": "Does my training show any periodization?",
+  "context_entries": [
+    "2019-01-28",
+    "2019-02-01",
+    "2019-02-25",
+    "2019-03-04",
+    "2019-03-12"
+  ],
+  "context_provided": "## Workout on 2019-01-28\n\n트랩바 데드리프트 180키로에서 시작해서 190키로까지 올렸다가 다시 180으로 내려옴. 총 5세트 하고 렙수는 8, 6, 4, 6, 6개씩 진행함. 190 할때 좀 무거웠음. 그리고나서 푸쉬프레스 5세트 진행. 40키로로 웜업하고 50키로로 올려서 했는데 마지막에 45키로로 좀 낮춤. 어깨가 좀 힘들었음.\n\n---\n\n## Workout on 2019-02-01\n\n인클라인 벤치프레스 80키로로 첫세트 했는데 2개밖에 못함. 너무 무거웠음. 바로 70키로로 내려서 5세트 드랍세트로 55키로까지 진행. 그리고나서 티바로우 5세트. 70키로에서 77.5까지 올렸다가 다시 67.5까지 내림. 오늘 등이 좀 뻣뻣했나 그립이 잘 안잡혔음.\n\n---\n\n## Workout on 2019-02-25\n\n데드리프트만 함. 106키로 정도로 6세트 6개씩 일정하게 진행. 무게가 적당해서 폼에 집중할수있었음. 허리 부담없이 깔끔하게 마무리.\n\n---\n\n## Workout on 2019-03-04\n\n오버헤드프레스 43키로 5세트 6개씩 진행함. 일정한 무게로 폼 연습. 어깨가 조금 뻐근했는데 큰 무리없이 마무리함.\n\n---\n\n## Workout on 2019-03-12\n\n벤치프레스 85키로로 시작했는데 4개밖에 못함. 77.5에서 70까지 점점 내려가면서 5세트 마무리. 오늘 가슴 힘이 안나네. 그다음 레터럴레이즈 덤벨 20키로씩 시작해서 25까지 올려서 4세트 10개씩. 크런치도 4세트 하고 마무리.",
+  "response": "Based on your workout logs from January to March 2019, I can see some elements that suggest periodization, but the data is limited to fully assess a structured periodization plan:\n\n**Evidence of Periodization:**\n\n1. **Deload/Recovery Phases:** \n   - February 25th: You dropped to much lighter deadlifts (106kg vs 180-190kg in January) with focus on form\n   - March 4th: Consistent, moderate weight overhead press (43kg) for form practice\n\n2. **Load Variation:**\n   - Your weights fluctuate significantly between sessions (e.g., deadlifts from 180-190kg down to 106kg, then bench press varying from 70-85kg)\n   - You adjust weights within sessions based on performance\n\n**Limitations in the Data:**\n- Only 5 workout entries over ~6 weeks\n- No clear progression phases or planned cycles visible\n- Appears more reactive (adjusting based on daily feel) rather than planned periodization\n\n**What I can't determine from this data:**\n- Whether this follows a structured periodization program\n- Long-term progression patterns\n- Planned mesocycle or macrocycle structure\n\nYour training shows **some periodization characteristics** with deload periods and load variation, but I'd need more consistent data over a longer timeframe to confirm if this follows a structured periodization model versus intuitive training adjustments."
+}

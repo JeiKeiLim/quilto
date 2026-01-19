@@ -1,0 +1,17 @@
+{
+  "test_case_id": "complex-deadlift-squat-compare",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:31:43.184765+00:00",
+  "query": "Compare my deadlift to squat progression",
+  "context_entries": [
+    "2019-04-09",
+    "2019-04-17"
+  ],
+  "context_provided": "## Workout on 2019-04-09\n\n데드리프트 110키로 4세트 진행. 마지막 세트에서 3개밖에 못함. 좀 지쳤나. 그다음 프론트 스쿼트 50키로에서 60까지 올려서 3세트 마무리.\n\n---\n\n## Workout on 2019-04-17\n\n스쿼트 120키로 4개하고 100으로 내려서 2세트 더함. 스모 데드리프트 100키로 3세트 진행. 그다음 밀리터리프레스 32키로 정도로 4세트 고반복. 바벨컬도 같이 32키로에서 27키로까지 4세트 진행함. 오늘 하체랑 어깨 이두 다 했네.",
+  "response": "Based on your workout logs, here's a comparison of your deadlift and squat progression:\n\n**Deadlift:**\n- April 9: Conventional deadlift at 110kg for 4 sets (struggled on last set with only 3 reps)\n- April 17: Sumo deadlift at 100kg for 3 sets\n\n**Squat:**\n- April 9: Front squat progressed from 50kg to 60kg for 3 sets\n- April 17: Back squat at 120kg for 4 reps, then dropped to 100kg for 2 more sets\n\n**Key Observations:**\n- Your back squat (120kg) appears stronger than your deadlift (110kg conventional, 100kg sumo)\n- There's a significant difference between your front squat (50-60kg) and back squat (120kg), which is normal\n- You switched from conventional to sumo deadlift between sessions and reduced the weight by 10kg\n\nHowever, the data is limited to just 8 days apart, so it's difficult to assess true progression trends. The weight differences could be due to fatigue, technique variations, or different training focuses rather than actual strength changes."
+}

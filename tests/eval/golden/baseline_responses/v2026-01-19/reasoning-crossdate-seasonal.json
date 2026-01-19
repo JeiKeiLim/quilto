@@ -1,0 +1,21 @@
+{
+  "test_case_id": "reasoning-crossdate-seasonal",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:34:28.524861+00:00",
+  "query": "Compare my summer vs fall training intensity",
+  "context_entries": [
+    "2019-07-26",
+    "2019-07-29",
+    "2019-07-31",
+    "2019-09-02",
+    "2019-09-03",
+    "2019-09-05"
+  ],
+  "context_provided": "## Workout on 2019-07-26\n\n프론트 스쿼트 50키로에서 55까지 올려서 5세트 고반복으로 진행함. 첫세트 13개까지 해봄. 가볍게 폼 연습.\n\n---\n\n## Workout on 2019-07-29\n\n덤벨 벤치프레스 45키로씩 시작해서 35까지 드랍하면서 5세트 진행. 풀업 맨몸으로 3세트 함. 7, 5, 3개 점점 줄어듬. 오늘 좀 피곤했나.\n\n---\n\n## Workout on 2019-07-31\n\n아침에 데드리프트 110키로 5세트 진행. 마지막 세트에서 4개밖에 못해서 90으로 내려서 8개로 마무리함. 짧게 끝냄.\n\n---\n\n## Workout on 2019-09-02\n\n스모 데드리프트 140키로 2세트 하고 130으로 맞춰서 5세트 진행. 아놀드프레스 40키로씩에서 45까지 올려봤는데 5개밖에 안됨. 30까지 드랍해서 5세트 마무리.\n\n---\n\n## Workout on 2019-09-03\n\n벤치프레스 80키로 3개, 85키로 2개밖에 못함. 오늘 힘이 별로 안나네. 70키로로 맞춰서 5세트 마무리. 웨이티드 풀업 7.5키로에서 시작해서 맨몸까지 3세트.\n\n---\n\n## Workout on 2019-09-05\n\n프론트 스쿼트 80키로에서 85까지 올려봤는데 3개밖에 안됨. 80으로 맞춰서 5세트 진행. 푸쉬프레스 41키로에서 50까지 올려서 5세트.",
+  "response": "Based on your workout logs, I can compare your summer (July) vs fall (September) training intensity:\n\n**Summer Training (July 2019):**\n- Front squats: 50-55kg for high reps (13 reps in first set)\n- Dumbbell bench press: 45kg dumbbells, dropped to 35kg\n- Deadlifts: 110kg for 5 sets\n- Focus appeared to be on form practice and higher repetitions\n\n**Fall Training (September 2019):**\n- Front squats: 80-85kg (60% heavier than summer)\n- Sumo deadlifts: 140kg, then 130kg (18-27% heavier than summer)\n- Bench press: 80-85kg attempts\n- Added weighted pull-ups (7.5kg additional weight)\n- Push press: 41-50kg\n\n**Key Differences:**\n- **Significantly higher weights in fall**: Your deadlifts increased from 110kg to 130-140kg, and front squats jumped from 50-55kg to 80-85kg\n- **Lower rep ranges in fall**: Summer focused on higher reps (13+ reps), while fall showed more strength-focused lower rep work (2-5 reps)\n- **More advanced exercises**: Fall included sumo deadlifts, weighted pull-ups, and push press variations\n\nYour fall training shows a clear progression toward heavier, strength-focused training compared to the lighter, form-focused summer sessions."
+}

@@ -1,0 +1,21 @@
+{
+  "test_case_id": "retrieval-pattern-weekly-trend",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:33:20.851252+00:00",
+  "query": "What's my weekly workout pattern?",
+  "context_entries": [
+    "2019-09-02",
+    "2019-09-03",
+    "2019-09-05",
+    "2019-09-06",
+    "2019-09-09",
+    "2019-09-10"
+  ],
+  "context_provided": "## Workout on 2019-09-02\n\n스모 데드리프트 140키로 2세트 하고 130으로 맞춰서 5세트 진행. 아놀드프레스 40키로씩에서 45까지 올려봤는데 5개밖에 안됨. 30까지 드랍해서 5세트 마무리.\n\n---\n\n## Workout on 2019-09-03\n\n벤치프레스 80키로 3개, 85키로 2개밖에 못함. 오늘 힘이 별로 안나네. 70키로로 맞춰서 5세트 마무리. 웨이티드 풀업 7.5키로에서 시작해서 맨몸까지 3세트.\n\n---\n\n## Workout on 2019-09-05\n\n프론트 스쿼트 80키로에서 85까지 올려봤는데 3개밖에 안됨. 80으로 맞춰서 5세트 진행. 푸쉬프레스 41키로에서 50까지 올려서 5세트.\n\n---\n\n## Workout on 2019-09-06\n\n벤치프레스 85키로 3개, 90키로 도전해봤는데 2개밖에 안됨. 70키로까지 드랍해서 5세트 마무리. 최대중량 도전 실패.\n\n---\n\n## Workout on 2019-09-09\n\n데드리프트 140키로 5개 하고 150 도전해봤는데 1개밖에 안됨. 130으로 맞춰서 5세트 마무리. 밀리터리프레스 36키로에서 45까지 올렸다가 다시 36으로 5세트 진행.\n\n---\n\n## Workout on 2019-09-10\n\n벤치프레스 90키로 3개, 95키로 도전해봤는데 1개밖에 안됨. 70키로까지 드랍해서 6세트 마무리. 95키로는 아직 무리네.",
+  "response": "Based on your workout logs from September 2-10, 2019, here's your weekly workout pattern:\n\n**Workout Frequency:** You trained 6 times over 9 days, which averages to about 4-5 workouts per week.\n\n**Weekly Schedule Pattern:**\n- **Monday (9/2):** Lower body focus - Sumo deadlifts, Arnold press\n- **Tuesday (9/3):** Upper body focus - Bench press, weighted pull-ups  \n- **Wednesday (9/4):** Rest day\n- **Thursday (9/5):** Lower body focus - Front squats, push press\n- **Friday (9/6):** Upper body focus - Bench press\n- **Weekend (9/7-8):** Rest days\n- **Monday (9/9):** Lower body focus - Deadlifts, military press\n- **Tuesday (9/10):** Upper body focus - Bench press\n\n**Training Split:** You follow an alternating upper/lower body split with 1-2 rest days between sessions. Your pattern shows:\n- Lower body days feature deadlift variations and overhead pressing\n- Upper body days consistently include bench press as the main lift\n- You typically take weekends off\n- Monday/Tuesday appear to be your most consistent training days\n\n**Volume:** Most sessions include 5-6 sets of main exercises, often starting with heavy attempts before dropping to working weight."
+}

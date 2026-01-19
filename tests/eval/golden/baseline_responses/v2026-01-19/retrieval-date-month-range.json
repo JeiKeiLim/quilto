@@ -1,0 +1,27 @@
+{
+  "test_case_id": "retrieval-date-month-range",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:32:57.135727+00:00",
+  "query": "Summarize my February 2019 training",
+  "context_entries": [
+    "2019-02-01",
+    "2019-02-04",
+    "2019-02-05",
+    "2019-02-08",
+    "2019-02-11",
+    "2019-02-12",
+    "2019-02-18",
+    "2019-02-19",
+    "2019-02-25",
+    "2019-02-26",
+    "2019-02-27",
+    "2019-02-28"
+  ],
+  "context_provided": "## Workout on 2019-02-01\n\n인클라인 벤치프레스 80키로로 첫세트 했는데 2개밖에 못함. 너무 무거웠음. 바로 70키로로 내려서 5세트 드랍세트로 55키로까지 진행. 그리고나서 티바로우 5세트. 70키로에서 77.5까지 올렸다가 다시 67.5까지 내림. 오늘 등이 좀 뻣뻣했나 그립이 잘 안잡혔음.\n\n---\n\n## Workout on 2019-02-04\n\n스모 데드리프트 5세트 진행함. 120키로로 웜업하고 140까지 올려서 2세트 하고 다시 120-130 사이로 조절. 140 4개밖에 못해서 좀 아쉬움. 푸쉬프레스는 60키로로 시작했는데 어깨가 버티질 못해서 50키로까지 내려감. 총 5세트.\n\n---\n\n## Workout on 2019-02-05\n\n머신 체스트프레스 5세트 함. 85키로 정도에서 시작해서 95키로까지 올렸는데 4개밖에 못함. 좀 무거웠음. 다시 내려서 74키로까지. 이어서 머신 로우도 5세트 진행. 82키로에서 88키로 사이로 왔다갔다 하면서 함. 마지막에 76키로로 마무리.\n\n---\n\n## Workout on 2019-02-08\n\n플로어프레스 60키로에서 12개로 시작해서 65키로로 올려봤는데 8개밖에 못함. 다시 60키로대로 맞춰서 5세트 진행. 그다음 원암 덤벨로우 30키로씩 들고 10세트나 함. 후반에 27.5키로로 좀 내렸음. 등이 많이 피곤해짐.\n\n---\n\n## Workout on 2019-02-11\n\n오늘은 가볍게 고반복으로 함. 프론트 스쿼트 48키로로 6세트 12개씩 진행함. 무게가 가벼워서 숨은 차는데 근육 자극은 적었음. 푸쉬프레스도 38키로 정도로 6세트 12개씩. 어깨 펌핑용으로 딱이었음.\n\n---\n\n## Workout on 2019-02-12\n\n플로어프레스 57키로 6세트 12개씩 일정하게 진행함. 어제 쉬어서 그런가 컨디션 좋았음. 원암 로우는 30키로씩 들고 무려 12세트 12개씩 다 채움. 팔이 터질것같았는데 끝까지 해냄.\n\n---\n\n## Workout on 2019-02-18\n\n프론트 스쿼트 52키로로 6세트 12개씩 동일하게 진행. 무게가 가벼워서 숨만 차고 근육피로는 적었음. 푸쉬프레스는 41키로로 시작했는데 두번째 세트부터 힘이 빠져서 점점 무게를 내림. 마지막엔 30키로까지 내려감. 어깨가 좀 약한듯.\n\n---\n\n## Workout on 2019-02-19\n\n플로어프레스 61키로 6세트 진행함. 처음 2세트는 12개씩 잘 되다가 중간에 좀 힘들어서 57키로로 낮추고 마지막에 52키로로 마무리. 그다음 원암 로우 32키로씩 12세트함. 진짜 많이 했네. 중간에 30키로, 27.5, 25까지 계속 드랍함. 등이 완전 펌핑됨.\n\n---\n\n## Workout on 2019-02-25\n\n데드리프트만 함. 106키로 정도로 6세트 6개씩 일정하게 진행. 무게가 적당해서 폼에 집중할수있었음. 허리 부담없이 깔끔하게 마무리.\n\n---\n\n## Workout on 2019-02-26\n\n풀업 20키로 매달고 5세트 6개씩 진행함. 웨이티드 풀업 연습중. 무게가 좀 무거워서 렙수가 안늘어남. 그래도 꾸준히 하면 늘겠지.\n\n---\n\n## Workout on 2019-02-27\n\n벤치프레스 80키로 2세트 하고 70키로로 낮춰서 3세트 더함. 80키로 두번째 세트에서 4개밖에 못함. 좀 피곤했나 봄. 총 5세트.\n\n---\n\n## Workout on 2019-02-28\n\n프론트 스쿼트 65키로 좀 넘게 해서 4세트만 함. 렙수는 8, 6, 8, 12개. 마지막 세트에서 갑자기 힘이 나서 12개까지 밀어봄. 짧게 끝냄.",
+  "response": "Based on your February 2019 workout logs, here's a summary of your training:\n\n## Training Overview\nYou trained **12 times** throughout February 2019, maintaining a consistent 2-3 sessions per week schedule.\n\n## Primary Exercise Focus\n**Upper Body Dominant:**\n- **Chest:** Floor press, incline bench press, machine chest press, bench press\n- **Back:** T-bar rows, machine rows, one-arm dumbbell rows, weighted pull-ups\n- **Shoulders:** Push press (struggled with shoulder strength)\n\n**Lower Body:**\n- **Legs:** Front squats (lighter, high-rep focus)\n- **Deadlifts:** Sumo deadlifts and conventional deadlifts\n\n## Weight Progression & Performance\n- **Incline Bench:** Started at 80kg (too heavy), worked primarily with 70kg\n- **Deadlifts:** Ranged from 106kg to 140kg\n- **Floor Press:** 52-65kg range\n- **Front Squats:** 48-65kg (focused on higher reps)\n- **Weighted Pull-ups:** 20kg added weight\n\n## Training Patterns\n- **Early February:** Heavier weights, lower reps (5 sets)\n- **Mid-February:** Shifted to lighter weights, higher reps (6 sets of 12 reps)\n- **Late February:** Mixed approach with some strength work\n\n## Notable Observations\n- You frequently had to reduce weights mid-workout due to fatigue\n- Shoulder strength was a limiting factor in push press\n- You experimented with high-volume training (up to 12 sets for one-arm rows)\n- Form and technique were prioritized, especially with deadlifts at 106kg\n\nYour February training showed good consistency with a focus on finding appropriate working weights across different movement patterns."
+}

@@ -1,0 +1,19 @@
+{
+  "test_case_id": "insufficient-recovery-pattern",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:32:33.207262+00:00",
+  "query": "What's my recovery pattern?",
+  "context_entries": [
+    "2019-09-02",
+    "2019-09-03",
+    "2019-09-05",
+    "2019-09-06"
+  ],
+  "context_provided": "## Workout on 2019-09-02\n\n스모 데드리프트 140키로 2세트 하고 130으로 맞춰서 5세트 진행. 아놀드프레스 40키로씩에서 45까지 올려봤는데 5개밖에 안됨. 30까지 드랍해서 5세트 마무리.\n\n---\n\n## Workout on 2019-09-03\n\n벤치프레스 80키로 3개, 85키로 2개밖에 못함. 오늘 힘이 별로 안나네. 70키로로 맞춰서 5세트 마무리. 웨이티드 풀업 7.5키로에서 시작해서 맨몸까지 3세트.\n\n---\n\n## Workout on 2019-09-05\n\n프론트 스쿼트 80키로에서 85까지 올려봤는데 3개밖에 안됨. 80으로 맞춰서 5세트 진행. 푸쉬프레스 41키로에서 50까지 올려서 5세트.\n\n---\n\n## Workout on 2019-09-06\n\n벤치프레스 85키로 3개, 90키로 도전해봤는데 2개밖에 안됨. 70키로까지 드랍해서 5세트 마무리. 최대중량 도전 실패.",
+  "response": "Based on your workout logs, I can see some concerning patterns in your recovery:\n\n**Recovery Issues Identified:**\n\n1. **Insufficient Rest Between Sessions**: You worked out on consecutive days (Sept 2-3 and Sept 5-6), which appears to have negatively impacted your performance.\n\n2. **Performance Decline with Back-to-Back Training**: \n   - Sept 3: You noted \"오늘 힘이 별로 안나네\" (not much strength today) after training the previous day\n   - Sept 6: Failed your max attempt (90kg bench press - only 2 reps) after training the day before\n\n3. **Strength Drops**: Your bench press performance declined from 80kg x 3 reps on Sept 3 to needing to drop to 70kg for working sets on both Sept 3 and Sept 6.\n\n**Recovery Pattern Summary**: Your logs suggest you may not be allowing adequate recovery time between intense sessions. The back-to-back training days consistently resulted in reduced strength output and failed attempts at heavier weights.\n\n**Note**: These logs only cover 5 days, so I cannot assess your longer-term recovery patterns or sleep/nutrition factors that also affect recovery."
+}

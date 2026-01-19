@@ -1,0 +1,31 @@
+{
+  "test_case_id": "simple-september-frequency",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:31:36.139478+00:00",
+  "query": "Show my workout frequency in September 2019",
+  "context_entries": [
+    "2019-09-02",
+    "2019-09-03",
+    "2019-09-05",
+    "2019-09-06",
+    "2019-09-09",
+    "2019-09-10",
+    "2019-09-16",
+    "2019-09-17",
+    "2019-09-18",
+    "2019-09-19",
+    "2019-09-21",
+    "2019-09-23",
+    "2019-09-24",
+    "2019-09-26",
+    "2019-09-27",
+    "2019-09-30"
+  ],
+  "context_provided": "## Workout on 2019-09-02\n\n스모 데드리프트 140키로 2세트 하고 130으로 맞춰서 5세트 진행. 아놀드프레스 40키로씩에서 45까지 올려봤는데 5개밖에 안됨. 30까지 드랍해서 5세트 마무리.\n\n---\n\n## Workout on 2019-09-03\n\n벤치프레스 80키로 3개, 85키로 2개밖에 못함. 오늘 힘이 별로 안나네. 70키로로 맞춰서 5세트 마무리. 웨이티드 풀업 7.5키로에서 시작해서 맨몸까지 3세트.\n\n---\n\n## Workout on 2019-09-05\n\n프론트 스쿼트 80키로에서 85까지 올려봤는데 3개밖에 안됨. 80으로 맞춰서 5세트 진행. 푸쉬프레스 41키로에서 50까지 올려서 5세트.\n\n---\n\n## Workout on 2019-09-06\n\n벤치프레스 85키로 3개, 90키로 도전해봤는데 2개밖에 안됨. 70키로까지 드랍해서 5세트 마무리. 최대중량 도전 실패.\n\n---\n\n## Workout on 2019-09-09\n\n데드리프트 140키로 5개 하고 150 도전해봤는데 1개밖에 안됨. 130으로 맞춰서 5세트 마무리. 밀리터리프레스 36키로에서 45까지 올렸다가 다시 36으로 5세트 진행.\n\n---\n\n## Workout on 2019-09-10\n\n벤치프레스 90키로 3개, 95키로 도전해봤는데 1개밖에 안됨. 70키로까지 드랍해서 6세트 마무리. 95키로는 아직 무리네.\n\n---\n\n## Workout on 2019-09-16\n\n스쿼트 110키로에서 140까지 올려봤는데 1개밖에 안됨. 110까지 드랍해서 5세트 마무리. 밀리터리프레스 45키로에서 50까지 올렸다가 36까지 드랍해서 5세트.\n\n---\n\n## Workout on 2019-09-17\n\n벤치프레스 90키로 3개, 85키로 2개. 무거운 무게에서 힘이 안나서 65키로까지 드랍해서 5세트 마무리.\n\n---\n\n## Workout on 2019-09-18\n\n바벨컬 27키로에서 18까지 드랍하면서 5세트 진행. 레터럴레이즈 20키로씩에서 25까지 올려서 5세트. 팔이랑 어깨 펌핑됨.\n\n---\n\n## Workout on 2019-09-19\n\n스쿼트 150키로 도전해봤는데 0개. 실패함. 100키로까지 드랍해서 6세트 마무리. 아놀드프레스 50키로씩 시작해서 40까지 드랍해서 5세트.\n\n---\n\n## Workout on 2019-09-21\n\n웨이티드 풀업 8키로 매달고 5세트 진행. 렙수는 4, 6, 6, 5, 4개. 벤치프레스 90키로 3개, 95 1개 하고 75까지 드랍해서 5세트.\n\n---\n\n## Workout on 2019-09-23\n\n스쿼트 150키로 2개로 시작해서 110까지 드랍하면서 5세트. 밀리터리프레스 50키로에서 41까지 드랍해서 5세트 진행.\n\n---\n\n## Workout on 2019-09-24\n\n벤치프레스 100키로 2개 하고 70까지 드랍해서 6세트 진행. 100키로 들 수 있었음!\n\n---\n\n## Workout on 2019-09-26\n\n데드리프트 180키로 1개 들어봄. 무거웠음. 130까지 드랍해서 6세트 마무리.\n\n---\n\n## Workout on 2019-09-27\n\n아침 운동함. 벤치프레스 105키로 1개 들어봄! 75까지 드랍해서 6세트 마무리.\n\n---\n\n## Workout on 2019-09-30\n\n스쿼트 160키로 1개, 165 도전했는데 실패. 110까지 드랍해서 6세트 마무리. 밀리터리프레스 50키로에서 45까지 3세트만 진행.",
+  "response": "Based on your workout logs, here's your workout frequency for September 2019:\n\n**Total Workouts:** 16 sessions\n\n**Workout Distribution:**\n- Week 1 (Sep 1-7): 4 workouts (Sep 2, 3, 5, 6)\n- Week 2 (Sep 8-14): 3 workouts (Sep 9, 10, 16)\n- Week 3 (Sep 15-21): 5 workouts (Sep 16, 17, 18, 19, 21)\n- Week 4 (Sep 22-28): 3 workouts (Sep 23, 24, 26, 27)\n- Week 5 (Sep 29-30): 1 workout (Sep 30)\n\n**Average:** About 4 workouts per week\n\n**Notable patterns:**\n- Most consistent in the first week (4 consecutive days)\n- Your most active period was September 16-21 with 5 workouts in 6 days\n- You had some rest days scattered throughout, with the longest gap being September 11-15 (5 days off)\n- You ended the month strong with personal records, including a 105kg bench press on September 27\n\nOverall, you maintained a very consistent training schedule with 16 workouts across 30 days."
+}

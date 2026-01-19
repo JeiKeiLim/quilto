@@ -1,0 +1,18 @@
+{
+  "test_case_id": "retrieval-keyword-back-exercises",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:33:12.086018+00:00",
+  "query": "List all my back exercises",
+  "context_entries": [
+    "2019-01-28",
+    "2019-02-01",
+    "2019-02-25"
+  ],
+  "context_provided": "## Workout on 2019-01-28\n\n트랩바 데드리프트 180키로에서 시작해서 190키로까지 올렸다가 다시 180으로 내려옴. 총 5세트 하고 렙수는 8, 6, 4, 6, 6개씩 진행함. 190 할때 좀 무거웠음. 그리고나서 푸쉬프레스 5세트 진행. 40키로로 웜업하고 50키로로 올려서 했는데 마지막에 45키로로 좀 낮춤. 어깨가 좀 힘들었음.\n\n---\n\n## Workout on 2019-02-01\n\n인클라인 벤치프레스 80키로로 첫세트 했는데 2개밖에 못함. 너무 무거웠음. 바로 70키로로 내려서 5세트 드랍세트로 55키로까지 진행. 그리고나서 티바로우 5세트. 70키로에서 77.5까지 올렸다가 다시 67.5까지 내림. 오늘 등이 좀 뻣뻣했나 그립이 잘 안잡혔음.\n\n---\n\n## Workout on 2019-02-25\n\n데드리프트만 함. 106키로 정도로 6세트 6개씩 일정하게 진행. 무게가 적당해서 폼에 집중할수있었음. 허리 부담없이 깔끔하게 마무리.",
+  "response": "Based on your workout logs, here are all the back exercises you performed:\n\n**Back Exercises:**\n\n1. **트랩바 데드리프트 (Trap Bar Deadlift)** - 2019-01-28\n   - Weight: 180kg → 190kg → 180kg\n   - Sets: 5 sets\n   - Reps: 8, 6, 4, 6, 6\n\n2. **티바로우 (T-Bar Row)** - 2019-02-01\n   - Weight: 70kg → 77.5kg → 67.5kg\n   - Sets: 5 sets\n\n3. **데드리프트 (Deadlift)** - 2019-02-25\n   - Weight: 106kg\n   - Sets: 6 sets of 6 reps each\n\nYou performed back exercises on 3 different workout days, with deadlift variations being your primary back movement and T-bar rows for additional back training."
+}

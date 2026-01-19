@@ -1,0 +1,17 @@
+{
+  "test_case_id": "edge-sparse-large-gap",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:35:29.260112+00:00",
+  "query": "How have I trained this year?",
+  "context_entries": [
+    "2019-01-28",
+    "2019-07-26"
+  ],
+  "context_provided": "## Workout on 2019-01-28\n\n트랩바 데드리프트 180키로에서 시작해서 190키로까지 올렸다가 다시 180으로 내려옴. 총 5세트 하고 렙수는 8, 6, 4, 6, 6개씩 진행함. 190 할때 좀 무거웠음. 그리고나서 푸쉬프레스 5세트 진행. 40키로로 웜업하고 50키로로 올려서 했는데 마지막에 45키로로 좀 낮춤. 어깨가 좀 힘들었음.\n\n---\n\n## Workout on 2019-07-26\n\n프론트 스쿼트 50키로에서 55까지 올려서 5세트 고반복으로 진행함. 첫세트 13개까지 해봄. 가볍게 폼 연습.",
+  "response": "Based on your workout logs, I can only see data from **2019**, not from this year. The logs show two workouts from 2019:\n\n**January 28, 2019:**\n- Trap bar deadlifts: 5 sets, progressed from 180kg to 190kg then back to 180kg (8, 6, 4, 6, 6 reps)\n- Push press: 5 sets, warmed up at 40kg, worked up to 50kg, finished at 45kg\n\n**July 26, 2019:**\n- Front squats: 5 sets at 50-55kg, high reps (first set: 13 reps), focusing on form practice\n\nI don't have any workout data from the current year to analyze your training patterns. To understand how you've trained this year, I would need your recent workout logs."
+}

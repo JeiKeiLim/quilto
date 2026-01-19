@@ -1,0 +1,17 @@
+{
+  "test_case_id": "retrieval-keyword-overhead",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:33:06.872373+00:00",
+  "query": "Show me all overhead press workouts",
+  "context_entries": [
+    "2019-03-04",
+    "2019-09-16"
+  ],
+  "context_provided": "## Workout on 2019-03-04\n\n오버헤드프레스 43키로 5세트 6개씩 진행함. 일정한 무게로 폼 연습. 어깨가 조금 뻐근했는데 큰 무리없이 마무리함.\n\n---\n\n## Workout on 2019-09-16\n\n스쿼트 110키로에서 140까지 올려봤는데 1개밖에 안됨. 110까지 드랍해서 5세트 마무리. 밀리터리프레스 45키로에서 50까지 올렸다가 36까지 드랍해서 5세트.",
+  "response": "Based on your workout logs, here are your overhead press workouts:\n\n## March 4, 2019\n- **Overhead Press (오버헤드프레스)**: 43kg for 5 sets of 6 reps\n- Notes: Focused on form practice with consistent weight. Experienced some shoulder stiffness but completed without major issues.\n\n## September 16, 2019\n- **Military Press (밀리터리프레스)**: Started at 45kg, increased to 50kg, then dropped to 36kg for 5 sets\n- Notes: This was part of a workout that also included squats.\n\nYou have 2 overhead press sessions logged, showing progression from 43kg to attempting 50kg over about 6 months."
+}

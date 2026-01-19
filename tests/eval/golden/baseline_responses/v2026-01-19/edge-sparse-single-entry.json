@@ -1,0 +1,16 @@
+{
+  "test_case_id": "edge-sparse-single-entry",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:35:24.339559+00:00",
+  "query": "Analyze my training progress",
+  "context_entries": [
+    "2019-03-04"
+  ],
+  "context_provided": "## Workout on 2019-03-04\n\n오버헤드프레스 43키로 5세트 6개씩 진행함. 일정한 무게로 폼 연습. 어깨가 조금 뻐근했는데 큰 무리없이 마무리함.",
+  "response": "Based on your workout log from March 4, 2019, here's what I can analyze:\n\n**Overhead Press Performance:**\n- Weight: 43kg\n- Volume: 5 sets × 6 reps = 30 total reps\n- Focus: Form practice with consistent weight\n\n**Training Notes:**\n- You maintained the same weight across all sets, indicating a focus on technique refinement rather than progressive overload\n- You experienced some shoulder stiffness but completed the workout without major issues\n\n**Limitations of Analysis:**\nI can only analyze this single workout entry. To provide a meaningful progress analysis, I would need:\n- Multiple workout sessions over time\n- Progression in weight, reps, or sets\n- Comparison data from previous or subsequent sessions\n\nFor a complete training progress assessment, please provide additional workout logs spanning several weeks or months."
+}

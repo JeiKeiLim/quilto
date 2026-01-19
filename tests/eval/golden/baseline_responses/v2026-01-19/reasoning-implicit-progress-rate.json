@@ -1,0 +1,19 @@
+{
+  "test_case_id": "reasoning-implicit-progress-rate",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:34:45.034113+00:00",
+  "query": "Am I progressing fast enough?",
+  "context_entries": [
+    "2019-01-28",
+    "2019-02-04",
+    "2019-02-25",
+    "2019-03-04"
+  ],
+  "context_provided": "## Workout on 2019-01-28\n\n트랩바 데드리프트 180키로에서 시작해서 190키로까지 올렸다가 다시 180으로 내려옴. 총 5세트 하고 렙수는 8, 6, 4, 6, 6개씩 진행함. 190 할때 좀 무거웠음. 그리고나서 푸쉬프레스 5세트 진행. 40키로로 웜업하고 50키로로 올려서 했는데 마지막에 45키로로 좀 낮춤. 어깨가 좀 힘들었음.\n\n---\n\n## Workout on 2019-02-04\n\n스모 데드리프트 5세트 진행함. 120키로로 웜업하고 140까지 올려서 2세트 하고 다시 120-130 사이로 조절. 140 4개밖에 못해서 좀 아쉬움. 푸쉬프레스는 60키로로 시작했는데 어깨가 버티질 못해서 50키로까지 내려감. 총 5세트.\n\n---\n\n## Workout on 2019-02-25\n\n데드리프트만 함. 106키로 정도로 6세트 6개씩 일정하게 진행. 무게가 적당해서 폼에 집중할수있었음. 허리 부담없이 깔끔하게 마무리.\n\n---\n\n## Workout on 2019-03-04\n\n오버헤드프레스 43키로 5세트 6개씩 진행함. 일정한 무게로 폼 연습. 어깨가 조금 뻐근했는데 큰 무리없이 마무리함.",
+  "response": "Based on your workout logs from January to March 2019, I can see some concerning patterns regarding your progression:\n\n**Deadlift Progress:**\n- January 28: Trap bar deadlift up to 190kg\n- February 4: Sumo deadlift only reached 140kg (significant drop)\n- February 25: Regular deadlift at just 106kg\n- This shows a **declining trend** rather than progression\n\n**Overhead/Push Press:**\n- January 28: Push press at 50kg (dropped to 45kg due to shoulder fatigue)\n- February 4: Started at 60kg but had to drop to 50kg due to shoulder issues\n- March 4: Overhead press at only 43kg\n\n**Key Concerns:**\n1. **Inconsistent exercise variations** make it hard to track true progress\n2. **Declining weights** across the board over 5+ weeks\n3. **Recurring shoulder issues** limiting your pressing movements\n4. **Frequent mid-workout weight reductions** suggesting poor load management\n\n**Assessment:** Based on this data alone, you're not progressing fast enough - in fact, you appear to be regressing. However, I don't have enough context about your training goals, program structure, or whether you were recovering from injury/deload periods to give a complete assessment of whether this pace is appropriate for your situation."
+}

@@ -1,0 +1,21 @@
+{
+  "test_case_id": "reasoning-correlation-fatigue",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:34:52.292248+00:00",
+  "query": "Does my performance drop when I train consecutive days?",
+  "context_entries": [
+    "2019-09-02",
+    "2019-09-03",
+    "2019-09-05",
+    "2019-09-06",
+    "2019-09-16",
+    "2019-09-17"
+  ],
+  "context_provided": "## Workout on 2019-09-02\n\n스모 데드리프트 140키로 2세트 하고 130으로 맞춰서 5세트 진행. 아놀드프레스 40키로씩에서 45까지 올려봤는데 5개밖에 안됨. 30까지 드랍해서 5세트 마무리.\n\n---\n\n## Workout on 2019-09-03\n\n벤치프레스 80키로 3개, 85키로 2개밖에 못함. 오늘 힘이 별로 안나네. 70키로로 맞춰서 5세트 마무리. 웨이티드 풀업 7.5키로에서 시작해서 맨몸까지 3세트.\n\n---\n\n## Workout on 2019-09-05\n\n프론트 스쿼트 80키로에서 85까지 올려봤는데 3개밖에 안됨. 80으로 맞춰서 5세트 진행. 푸쉬프레스 41키로에서 50까지 올려서 5세트.\n\n---\n\n## Workout on 2019-09-06\n\n벤치프레스 85키로 3개, 90키로 도전해봤는데 2개밖에 안됨. 70키로까지 드랍해서 5세트 마무리. 최대중량 도전 실패.\n\n---\n\n## Workout on 2019-09-16\n\n스쿼트 110키로에서 140까지 올려봤는데 1개밖에 안됨. 110까지 드랍해서 5세트 마무리. 밀리터리프레스 45키로에서 50까지 올렸다가 36까지 드랍해서 5세트.\n\n---\n\n## Workout on 2019-09-17\n\n벤치프레스 90키로 3개, 85키로 2개. 무거운 무게에서 힘이 안나서 65키로까지 드랍해서 5세트 마무리.",
+  "response": "Based on your workout logs, **yes, your performance appears to drop when training consecutive days**.\n\nHere's the evidence from your data:\n\n**Consecutive Day Performance Drops:**\n\n1. **September 2-3**: \n   - Sept 2: Sumo deadlift at 140kg for 2 sets, then 130kg for 5 sets\n   - Sept 3: Bench press struggled - only managed 3 reps at 80kg and 2 reps at 85kg, noting \"오늘 힘이 별로 안나네\" (don't have much strength today)\n\n2. **September 5-6**:\n   - Sept 5: Front squat reached 85kg for 3 reps, completed 5 sets at 80kg\n   - Sept 6: Bench press performance declined - only 3 reps at 85kg, failed at 90kg with just 2 reps, had to drop to 70kg, noting \"최대중량 도전 실패\" (max weight attempt failed)\n\n3. **September 16-17**:\n   - Sept 16: Squat reached 140kg for 1 rep, military press up to 50kg\n   - Sept 17: Bench press struggled again - 3 reps at 90kg, 2 reps at 85kg, had to drop to 65kg due to lack of strength\n\n**Pattern**: On consecutive training days, you consistently struggled with heavier weights and had to drop down significantly to complete your sets, particularly noticeable in your bench press performance."
+}

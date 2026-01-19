@@ -113,3 +113,24 @@ class Rubric(BaseModel):
 
     criteria: dict[str, RubricCriterion]
     criterion_profiles: dict[str, CriterionProfile]
+
+
+class ModelParams(BaseModel):
+    """Parameters used for model generation."""
+
+    max_tokens: int
+    temperature: float
+
+
+class BaselineResponse(BaseModel):
+    """A baseline response from Claude for a test case."""
+
+    test_case_id: str = Field(..., min_length=1)
+    dataset_version: str
+    model: str
+    model_params: ModelParams
+    generated_at: str  # ISO 8601 format
+    query: str
+    context_entries: list[str]
+    context_provided: str
+    response: str

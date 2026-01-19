@@ -1,0 +1,18 @@
+{
+  "test_case_id": "retrieval-date-last-week-march",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:32:39.814616+00:00",
+  "query": "What workouts did I do in the first week of March 2019?",
+  "context_entries": [
+    "2019-03-04",
+    "2019-03-05",
+    "2019-03-08"
+  ],
+  "context_provided": "## Workout on 2019-03-04\n\n오버헤드프레스 43키로 5세트 6개씩 진행함. 일정한 무게로 폼 연습. 어깨가 조금 뻐근했는데 큰 무리없이 마무리함.\n\n---\n\n## Workout on 2019-03-05\n\n랫풀다운 80키로에서 85키로까지 올려봤는데 4개밖에 안됨. 다시 75키로로 내려서 마무리. 총 5세트. 그다음 싯업 5세트. 처음엔 맨몸 12개 하고 점점 무게 올려서 20키로까지 추가해서 진행함.\n\n---\n\n## Workout on 2019-03-08\n\n스쿼트 120키로에서 시작해서 130까지 올려봤는데 3개밖에 못함. 125로 맞추고 5세트 마무리. 바벨컬도 4세트 함. 30키로에서 22키로까지 드랍세트로 진행. 마지막에 아놀드프레스 덤벨 20키로씩 시작해서 35까지 올림. 어깨 펌핑 좋았음.",
+  "response": "Based on your workout logs, here's what you did in the first week of March 2019:\n\n**March 4, 2019:**\n- Overhead Press: 43kg, 5 sets of 6 reps each\n- Focused on form practice with consistent weight\n- Noted some shoulder stiffness but completed without major issues\n\n**March 5, 2019:**\n- Lat Pulldowns: Started at 80kg, tried 85kg (only managed 4 reps), finished at 75kg for 5 sets total\n- Sit-ups: 5 sets, progressing from bodyweight (12 reps) to adding 20kg weight\n\n**March 8, 2019:**\n- Squats: Started at 120kg, attempted 130kg (only managed 3 reps), settled at 125kg for 5 sets\n- Barbell Curls: 4 sets with drop sets from 30kg down to 22kg\n- Arnold Press: Started with 20kg dumbbells, worked up to 35kg, noted good shoulder pump\n\nYou had 3 workout sessions during the first week of March 2019, covering upper body pressing movements, back/lat work, core training, legs, and arms."
+}

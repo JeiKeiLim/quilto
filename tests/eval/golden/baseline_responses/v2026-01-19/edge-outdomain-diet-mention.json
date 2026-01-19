@@ -1,0 +1,17 @@
+{
+  "test_case_id": "edge-outdomain-diet-mention",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:35:40.417207+00:00",
+  "query": "How does my diet affect my lifting?",
+  "context_entries": [
+    "2019-01-28",
+    "2019-02-01"
+  ],
+  "context_provided": "## Workout on 2019-01-28\n\n트랩바 데드리프트 180키로에서 시작해서 190키로까지 올렸다가 다시 180으로 내려옴. 총 5세트 하고 렙수는 8, 6, 4, 6, 6개씩 진행함. 190 할때 좀 무거웠음. 그리고나서 푸쉬프레스 5세트 진행. 40키로로 웜업하고 50키로로 올려서 했는데 마지막에 45키로로 좀 낮춤. 어깨가 좀 힘들었음.\n\n---\n\n## Workout on 2019-02-01\n\n인클라인 벤치프레스 80키로로 첫세트 했는데 2개밖에 못함. 너무 무거웠음. 바로 70키로로 내려서 5세트 드랍세트로 55키로까지 진행. 그리고나서 티바로우 5세트. 70키로에서 77.5까지 올렸다가 다시 67.5까지 내림. 오늘 등이 좀 뻣뻣했나 그립이 잘 안잡혔음.",
+  "response": "Based on your workout logs, I cannot provide information about how your diet affects your lifting performance. \n\nYour logs contain detailed information about your exercises, weights, sets, and reps from January 28th and February 1st, 2019, but they don't include any dietary information such as:\n- What you ate before workouts\n- Your overall nutrition patterns\n- Meal timing\n- Caloric intake\n- Macronutrient breakdown\n\nTo understand the relationship between your diet and lifting performance, I would need workout logs that also include information about your eating habits, meal timing, or notes about how you felt nutritionally before/during workouts.\n\nYour current logs do show performance variations (like struggling with 80kg incline bench press on Feb 1st and having grip issues), but without dietary context, I cannot determine if nutrition played a role in these performance changes."
+}

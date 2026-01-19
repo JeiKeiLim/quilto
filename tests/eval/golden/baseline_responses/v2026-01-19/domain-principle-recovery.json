@@ -1,0 +1,20 @@
+{
+  "test_case_id": "domain-principle-recovery",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:36:56.397435+00:00",
+  "query": "Am I getting enough recovery between sessions?",
+  "context_entries": [
+    "2019-09-02",
+    "2019-09-03",
+    "2019-09-05",
+    "2019-09-06",
+    "2019-09-09"
+  ],
+  "context_provided": "## Workout on 2019-09-02\n\n스모 데드리프트 140키로 2세트 하고 130으로 맞춰서 5세트 진행. 아놀드프레스 40키로씩에서 45까지 올려봤는데 5개밖에 안됨. 30까지 드랍해서 5세트 마무리.\n\n---\n\n## Workout on 2019-09-03\n\n벤치프레스 80키로 3개, 85키로 2개밖에 못함. 오늘 힘이 별로 안나네. 70키로로 맞춰서 5세트 마무리. 웨이티드 풀업 7.5키로에서 시작해서 맨몸까지 3세트.\n\n---\n\n## Workout on 2019-09-05\n\n프론트 스쿼트 80키로에서 85까지 올려봤는데 3개밖에 안됨. 80으로 맞춰서 5세트 진행. 푸쉬프레스 41키로에서 50까지 올려서 5세트.\n\n---\n\n## Workout on 2019-09-06\n\n벤치프레스 85키로 3개, 90키로 도전해봤는데 2개밖에 안됨. 70키로까지 드랍해서 5세트 마무리. 최대중량 도전 실패.\n\n---\n\n## Workout on 2019-09-09\n\n데드리프트 140키로 5개 하고 150 도전해봤는데 1개밖에 안됨. 130으로 맞춰서 5세트 마무리. 밀리터리프레스 36키로에서 45까지 올렸다가 다시 36으로 5세트 진행.",
+  "response": "Based on your workout logs, your recovery appears to be **insufficient** between sessions. Here's what the data shows:\n\n## Recovery Time Analysis:\n- **Sept 2-3**: Only **1 day** between workouts\n- **Sept 3-5**: **2 days** recovery\n- **Sept 5-6**: Only **1 day** between workouts  \n- **Sept 6-9**: **3 days** recovery\n\n## Performance Indicators Suggesting Poor Recovery:\n\n**September 3rd** (after only 1 day rest):\n- You noted \"오늘 힘이 별로 안나네\" (no strength today)\n- Bench press: Could only manage 2 reps at 85kg vs typical performance\n\n**September 6th** (after only 1 day rest):\n- Failed maximum weight attempt on bench press\n- Had to drop significantly to 70kg to complete sets\n- You specifically noted \"최대중량 도전 실패\" (max weight challenge failed)\n\n## Better Recovery Pattern:\nYour **September 9th** session (after 3 days rest) showed better performance:\n- Successfully completed deadlift sets at 140kg\n- Attempted higher weights more successfully\n\n**Recommendation**: Based on this data, you need **at least 2-3 days** between intense sessions. The single-day recovery periods clearly impacted your strength and performance."
+}

@@ -1,0 +1,21 @@
+{
+  "test_case_id": "reasoning-dependent-optimal-time",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:34:04.283169+00:00",
+  "query": "What time of the training week am I strongest?",
+  "context_entries": [
+    "2019-09-02",
+    "2019-09-03",
+    "2019-09-05",
+    "2019-09-06",
+    "2019-09-09",
+    "2019-09-10"
+  ],
+  "context_provided": "## Workout on 2019-09-02\n\n스모 데드리프트 140키로 2세트 하고 130으로 맞춰서 5세트 진행. 아놀드프레스 40키로씩에서 45까지 올려봤는데 5개밖에 안됨. 30까지 드랍해서 5세트 마무리.\n\n---\n\n## Workout on 2019-09-03\n\n벤치프레스 80키로 3개, 85키로 2개밖에 못함. 오늘 힘이 별로 안나네. 70키로로 맞춰서 5세트 마무리. 웨이티드 풀업 7.5키로에서 시작해서 맨몸까지 3세트.\n\n---\n\n## Workout on 2019-09-05\n\n프론트 스쿼트 80키로에서 85까지 올려봤는데 3개밖에 안됨. 80으로 맞춰서 5세트 진행. 푸쉬프레스 41키로에서 50까지 올려서 5세트.\n\n---\n\n## Workout on 2019-09-06\n\n벤치프레스 85키로 3개, 90키로 도전해봤는데 2개밖에 안됨. 70키로까지 드랍해서 5세트 마무리. 최대중량 도전 실패.\n\n---\n\n## Workout on 2019-09-09\n\n데드리프트 140키로 5개 하고 150 도전해봤는데 1개밖에 안됨. 130으로 맞춰서 5세트 마무리. 밀리터리프레스 36키로에서 45까지 올렸다가 다시 36으로 5세트 진행.\n\n---\n\n## Workout on 2019-09-10\n\n벤치프레스 90키로 3개, 95키로 도전해봤는데 1개밖에 안됨. 70키로까지 드랍해서 6세트 마무리. 95키로는 아직 무리네.",
+  "response": "Based on your workout logs, I can analyze your strength patterns by looking at the dates and performance:\n\n**Monday appears to be when you're strongest.**\n\nHere's the evidence from your logs:\n\n**Monday workouts (Sept 2 & Sept 9):**\n- Sept 2: Successfully completed sumo deadlifts at 140kg for 2 sets, then 130kg for 5 sets\n- Sept 9: Completed deadlifts at 140kg for 5 reps, attempted 150kg (got 1 rep)\n\n**Tuesday workouts (Sept 3 & Sept 10):**\n- Sept 3: Bench press struggled at 85kg (only 2 reps), noted \"오늘 힘이 별로 안나네\" (not much strength today)\n- Sept 10: Bench press at 90kg for 3 reps, failed at 95kg attempt\n\n**Other days:**\n- Sept 5 (Thursday): Front squat struggled at 85kg (only 3 reps)\n- Sept 6 (Friday): Bench press failed at 90kg attempt (only 2 reps)\n\nYour Monday sessions show the highest absolute weights and better performance, particularly with deadlifts at 140kg. Your Tuesday sessions consistently show struggles and you even noted feeling weak on Sept 3. This suggests you're strongest at the beginning of your training week and may experience fatigue as the week progresses."
+}

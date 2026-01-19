@@ -1,0 +1,17 @@
+{
+  "test_case_id": "edge-ambiguous-heavy",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:35:18.014122+00:00",
+  "query": "Did I go heavy today?",
+  "context_entries": [
+    "2019-01-28",
+    "2019-02-25"
+  ],
+  "context_provided": "## Workout on 2019-01-28\n\n트랩바 데드리프트 180키로에서 시작해서 190키로까지 올렸다가 다시 180으로 내려옴. 총 5세트 하고 렙수는 8, 6, 4, 6, 6개씩 진행함. 190 할때 좀 무거웠음. 그리고나서 푸쉬프레스 5세트 진행. 40키로로 웜업하고 50키로로 올려서 했는데 마지막에 45키로로 좀 낮춤. 어깨가 좀 힘들었음.\n\n---\n\n## Workout on 2019-02-25\n\n데드리프트만 함. 106키로 정도로 6세트 6개씩 일정하게 진행. 무게가 적당해서 폼에 집중할수있었음. 허리 부담없이 깔끔하게 마무리.",
+  "response": "I can see your workout logs from January 28, 2019 and February 25, 2019, but I don't have any workout data from today to determine if you went heavy.\n\nTo answer whether you went heavy today, I would need to see your workout log from today's date. Could you provide your current workout entry?\n\nFrom your historical data, I can see that:\n- On 2019-01-28: You went heavy with trap bar deadlifts (180-190kg) and noted that 190kg felt heavy\n- On 2019-02-25: You used moderate weight (106kg deadlifts) focusing on form rather than heavy lifting"
+}

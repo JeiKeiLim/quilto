@@ -1,0 +1,18 @@
+{
+  "test_case_id": "domain-exercise-compound-isolation",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:36:48.125256+00:00",
+  "query": "Am I doing enough compound movements?",
+  "context_entries": [
+    "2019-01-28",
+    "2019-01-29",
+    "2019-02-01"
+  ],
+  "context_provided": "## Workout on 2019-01-28\n\n트랩바 데드리프트 180키로에서 시작해서 190키로까지 올렸다가 다시 180으로 내려옴. 총 5세트 하고 렙수는 8, 6, 4, 6, 6개씩 진행함. 190 할때 좀 무거웠음. 그리고나서 푸쉬프레스 5세트 진행. 40키로로 웜업하고 50키로로 올려서 했는데 마지막에 45키로로 좀 낮춤. 어깨가 좀 힘들었음.\n\n---\n\n## Workout on 2019-01-29\n\n벤치프레스 80키로에서 시작해서 드랍세트로 60키로까지 내려감. 첫세트 80키로 6개 하고 점점 무게 내리면서 마지막 3세트는 60키로로 8개씩 진행함. 총 6세트. 그다음 싯업 120개 해서 마무리함.\n\n---\n\n## Workout on 2019-02-01\n\n인클라인 벤치프레스 80키로로 첫세트 했는데 2개밖에 못함. 너무 무거웠음. 바로 70키로로 내려서 5세트 드랍세트로 55키로까지 진행. 그리고나서 티바로우 5세트. 70키로에서 77.5까지 올렸다가 다시 67.5까지 내림. 오늘 등이 좀 뻣뻣했나 그립이 잘 안잡혔음.",
+  "response": "Based on your workout logs from January 28 - February 1, 2019, **yes, you are doing a good amount of compound movements**. Here's what I see:\n\n**Compound movements you performed:**\n- **Trap bar deadlifts** (Jan 28): 5 sets, 180-190kg - excellent posterior chain compound movement\n- **Push press** (Jan 28): 5 sets, 40-50kg - great full-body compound exercise\n- **Bench press** (Jan 29): 6 sets, 60-80kg - classic upper body compound\n- **Incline bench press** (Feb 1): 5 sets, 55-80kg - compound chest/shoulder movement\n- **T-bar rows** (Feb 1): 5 sets, 67.5-77.5kg - compound back exercise\n\n**Analysis:**\n- 5 out of your 6 total exercises were compound movements (83%)\n- You're hitting major movement patterns: hip hinge (deadlift), vertical press (push press), horizontal press (bench), and horizontal pull (rows)\n- Only isolation work was sit-ups (120 reps)\n\n**What you're doing well:** You're prioritizing heavy, multi-joint exercises that work multiple muscle groups efficiently.\n\n**Minor suggestion:** Consider adding a squat variation to complete the fundamental movement patterns, as I don't see any squatting movements in these three sessions."
+}

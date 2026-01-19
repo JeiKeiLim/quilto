@@ -1,0 +1,18 @@
+{
+  "test_case_id": "reasoning-crossdate-bench-timeline",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:34:12.458153+00:00",
+  "query": "Track my bench press journey from start to most recent",
+  "context_entries": [
+    "2019-01-29",
+    "2019-02-01",
+    "2019-03-12"
+  ],
+  "context_provided": "## Workout on 2019-01-29\n\n벤치프레스 80키로에서 시작해서 드랍세트로 60키로까지 내려감. 첫세트 80키로 6개 하고 점점 무게 내리면서 마지막 3세트는 60키로로 8개씩 진행함. 총 6세트. 그다음 싯업 120개 해서 마무리함.\n\n---\n\n## Workout on 2019-02-01\n\n인클라인 벤치프레스 80키로로 첫세트 했는데 2개밖에 못함. 너무 무거웠음. 바로 70키로로 내려서 5세트 드랍세트로 55키로까지 진행. 그리고나서 티바로우 5세트. 70키로에서 77.5까지 올렸다가 다시 67.5까지 내림. 오늘 등이 좀 뻣뻣했나 그립이 잘 안잡혔음.\n\n---\n\n## Workout on 2019-03-12\n\n벤치프레스 85키로로 시작했는데 4개밖에 못함. 77.5에서 70까지 점점 내려가면서 5세트 마무리. 오늘 가슴 힘이 안나네. 그다음 레터럴레이즈 덤벨 20키로씩 시작해서 25까지 올려서 4세트 10개씩. 크런치도 4세트 하고 마무리.",
+  "response": "Based on your workout logs, here's your bench press journey:\n\n## Bench Press Progress Timeline\n\n**January 29, 2019:**\n- Started at 80kg for 6 reps (first set)\n- Used drop sets down to 60kg\n- Completed 6 total sets, finishing with 3 sets of 8 reps at 60kg\n\n**February 1, 2019:**\n- Switched to **incline bench press** at 80kg but only managed 2 reps\n- Dropped to 70kg and continued with drop sets down to 55kg\n- Completed 5 sets total\n\n**March 12, 2019:**\n- **Increased starting weight to 85kg** but only achieved 4 reps\n- Used drop sets from 77.5kg down to 70kg\n- Completed 5 sets total\n- Noted feeling weaker in chest strength that day\n\n## Key Observations:\n- **Weight progression:** You increased your starting weight from 80kg to 85kg over ~6 weeks\n- **Volume consistency:** Maintained 5-6 sets per session using drop set methodology\n- **Strength fluctuation:** Performance varied by day, with some sessions feeling stronger than others\n- **Exercise variation:** Incorporated both flat and incline bench press\n\nYour approach shows consistent training with progressive overload attempts, though strength varied session to session."
+}

@@ -1,0 +1,21 @@
+{
+  "test_case_id": "complex-push-vs-pull",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:31:51.882800+00:00",
+  "query": "How do my push exercises compare to pull exercises?",
+  "context_entries": [
+    "2019-01-28",
+    "2019-01-29",
+    "2019-02-01",
+    "2019-02-04",
+    "2019-02-25",
+    "2019-03-12"
+  ],
+  "context_provided": "## Workout on 2019-01-28\n\n트랩바 데드리프트 180키로에서 시작해서 190키로까지 올렸다가 다시 180으로 내려옴. 총 5세트 하고 렙수는 8, 6, 4, 6, 6개씩 진행함. 190 할때 좀 무거웠음. 그리고나서 푸쉬프레스 5세트 진행. 40키로로 웜업하고 50키로로 올려서 했는데 마지막에 45키로로 좀 낮춤. 어깨가 좀 힘들었음.\n\n---\n\n## Workout on 2019-01-29\n\n벤치프레스 80키로에서 시작해서 드랍세트로 60키로까지 내려감. 첫세트 80키로 6개 하고 점점 무게 내리면서 마지막 3세트는 60키로로 8개씩 진행함. 총 6세트. 그다음 싯업 120개 해서 마무리함.\n\n---\n\n## Workout on 2019-02-01\n\n인클라인 벤치프레스 80키로로 첫세트 했는데 2개밖에 못함. 너무 무거웠음. 바로 70키로로 내려서 5세트 드랍세트로 55키로까지 진행. 그리고나서 티바로우 5세트. 70키로에서 77.5까지 올렸다가 다시 67.5까지 내림. 오늘 등이 좀 뻣뻣했나 그립이 잘 안잡혔음.\n\n---\n\n## Workout on 2019-02-04\n\n스모 데드리프트 5세트 진행함. 120키로로 웜업하고 140까지 올려서 2세트 하고 다시 120-130 사이로 조절. 140 4개밖에 못해서 좀 아쉬움. 푸쉬프레스는 60키로로 시작했는데 어깨가 버티질 못해서 50키로까지 내려감. 총 5세트.\n\n---\n\n## Workout on 2019-02-25\n\n데드리프트만 함. 106키로 정도로 6세트 6개씩 일정하게 진행. 무게가 적당해서 폼에 집중할수있었음. 허리 부담없이 깔끔하게 마무리.\n\n---\n\n## Workout on 2019-03-12\n\n벤치프레스 85키로로 시작했는데 4개밖에 못함. 77.5에서 70까지 점점 내려가면서 5세트 마무리. 오늘 가슴 힘이 안나네. 그다음 레터럴레이즈 덤벨 20키로씩 시작해서 25까지 올려서 4세트 10개씩. 크런치도 4세트 하고 마무리.",
+  "response": "Based on your workout logs, here's how your push and pull exercises compare:\n\n## Push Exercises\n**Frequency:** 4 out of 6 workouts included push movements\n- **Bench Press:** 2 sessions (80kg → 60kg drops, 85kg → 70kg drops)\n- **Incline Bench Press:** 1 session (80kg → 55kg drops) \n- **Push Press:** 2 sessions (40-50kg range, 50-60kg range)\n- **Lateral Raises:** 1 session (20-25kg dumbbells)\n\n## Pull Exercises  \n**Frequency:** 3 out of 6 workouts included pull movements\n- **Trap Bar Deadlift:** 1 session (180-190kg, 5 sets)\n- **Sumo Deadlift:** 1 session (120-140kg, 5 sets) \n- **Regular Deadlift:** 1 session (106kg, 6 sets)\n- **T-Bar Row:** 1 session (67.5-77.5kg, 5 sets)\n\n## Key Observations:\n1. **Volume:** You do push exercises more frequently (4/6 vs 3/6 workouts)\n2. **Strength:** Your deadlifts show much higher weights (106-190kg) compared to bench press (60-85kg)\n3. **Consistency:** Deadlifts appear more stable, while push exercises often required weight drops mid-workout\n4. **Back work:** Limited to just one T-bar row session compared to multiple pressing variations\n\nYour pull exercises (especially deadlifts) seem stronger relative to bodyweight, but you're doing more push exercise variety and frequency overall."
+}

@@ -1,0 +1,20 @@
+{
+  "test_case_id": "complex-strongest-lift",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:31:59.091958+00:00",
+  "query": "What's my strongest lift and how has it improved?",
+  "context_entries": [
+    "2019-01-28",
+    "2019-01-29",
+    "2019-01-31",
+    "2019-02-01",
+    "2019-02-04"
+  ],
+  "context_provided": "## Workout on 2019-01-28\n\n트랩바 데드리프트 180키로에서 시작해서 190키로까지 올렸다가 다시 180으로 내려옴. 총 5세트 하고 렙수는 8, 6, 4, 6, 6개씩 진행함. 190 할때 좀 무거웠음. 그리고나서 푸쉬프레스 5세트 진행. 40키로로 웜업하고 50키로로 올려서 했는데 마지막에 45키로로 좀 낮춤. 어깨가 좀 힘들었음.\n\n---\n\n## Workout on 2019-01-29\n\n벤치프레스 80키로에서 시작해서 드랍세트로 60키로까지 내려감. 첫세트 80키로 6개 하고 점점 무게 내리면서 마지막 3세트는 60키로로 8개씩 진행함. 총 6세트. 그다음 싯업 120개 해서 마무리함.\n\n---\n\n## Workout on 2019-01-31\n\n프론트 스쿼트 90키로로 시작해서 5세트 진행함. 처음 2세트 90키로 하다가 좀 무거워서 85, 80으로 낮춤. 렙수는 8, 5, 5, 8, 8개. 이어서 시티드 프레스 5세트 함. 45키로에서 시작해서 40키로까지 드랍. 어깨가 좀 피곤했음.\n\n---\n\n## Workout on 2019-02-01\n\n인클라인 벤치프레스 80키로로 첫세트 했는데 2개밖에 못함. 너무 무거웠음. 바로 70키로로 내려서 5세트 드랍세트로 55키로까지 진행. 그리고나서 티바로우 5세트. 70키로에서 77.5까지 올렸다가 다시 67.5까지 내림. 오늘 등이 좀 뻣뻣했나 그립이 잘 안잡혔음.\n\n---\n\n## Workout on 2019-02-04\n\n스모 데드리프트 5세트 진행함. 120키로로 웜업하고 140까지 올려서 2세트 하고 다시 120-130 사이로 조절. 140 4개밖에 못해서 좀 아쉬움. 푸쉬프레스는 60키로로 시작했는데 어깨가 버티질 못해서 50키로까지 내려감. 총 5세트.",
+  "response": "Based on your workout logs, your **strongest lift is the trap bar deadlift at 190kg**, which you performed on January 28th, 2019.\n\nHere's what I can see about your deadlift progression:\n\n**Trap Bar Deadlift (Jan 28):**\n- Started at 180kg, worked up to 190kg, then back to 180kg\n- 5 sets with reps: 8, 6, 4, 6, 6\n- You noted 190kg felt heavy\n\n**Sumo Deadlift (Feb 4):**\n- Warmed up at 120kg, worked up to 140kg\n- Could only manage 4 reps at 140kg before dropping back to 120-130kg range\n\n**Improvement Analysis:**\nUnfortunately, I can only see a 7-day window of your training, so I can't assess long-term improvement trends. However, I can see that your trap bar deadlift (190kg) was significantly stronger than your sumo deadlift (140kg), though these are different variations with different strength demands.\n\nTo properly assess improvement, I would need to see earlier baseline measurements or subsequent training logs showing progression over time."
+}

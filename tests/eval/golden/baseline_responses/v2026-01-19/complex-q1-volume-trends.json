@@ -1,0 +1,42 @@
+{
+  "test_case_id": "complex-q1-volume-trends",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:32:12.155814+00:00",
+  "query": "Analyze my training volume trends over the first quarter of 2019",
+  "context_entries": [
+    "2019-01-28",
+    "2019-01-29",
+    "2019-01-31",
+    "2019-02-01",
+    "2019-02-04",
+    "2019-02-05",
+    "2019-02-08",
+    "2019-02-11",
+    "2019-02-12",
+    "2019-02-18",
+    "2019-02-19",
+    "2019-02-25",
+    "2019-02-26",
+    "2019-02-27",
+    "2019-02-28",
+    "2019-03-04",
+    "2019-03-05",
+    "2019-03-08",
+    "2019-03-11",
+    "2019-03-12",
+    "2019-03-13",
+    "2019-03-15",
+    "2019-03-18",
+    "2019-03-19",
+    "2019-03-25",
+    "2019-03-26",
+    "2019-03-29"
+  ],
+  "context_provided": "## Workout on 2019-01-28\n\n트랩바 데드리프트 180키로에서 시작해서 190키로까지 올렸다가 다시 180으로 내려옴. 총 5세트 하고 렙수는 8, 6, 4, 6, 6개씩 진행함. 190 할때 좀 무거웠음. 그리고나서 푸쉬프레스 5세트 진행. 40키로로 웜업하고 50키로로 올려서 했는데 마지막에 45키로로 좀 낮춤. 어깨가 좀 힘들었음.\n\n---\n\n## Workout on 2019-01-29\n\n벤치프레스 80키로에서 시작해서 드랍세트로 60키로까지 내려감. 첫세트 80키로 6개 하고 점점 무게 내리면서 마지막 3세트는 60키로로 8개씩 진행함. 총 6세트. 그다음 싯업 120개 해서 마무리함.\n\n---\n\n## Workout on 2019-01-31\n\n프론트 스쿼트 90키로로 시작해서 5세트 진행함. 처음 2세트 90키로 하다가 좀 무거워서 85, 80으로 낮춤. 렙수는 8, 5, 5, 8, 8개. 이어서 시티드 프레스 5세트 함. 45키로에서 시작해서 40키로까지 드랍. 어깨가 좀 피곤했음.\n\n---\n\n## Workout on 2019-02-01\n\n인클라인 벤치프레스 80키로로 첫세트 했는데 2개밖에 못함. 너무 무거웠음. 바로 70키로로 내려서 5세트 드랍세트로 55키로까지 진행. 그리고나서 티바로우 5세트. 70키로에서 77.5까지 올렸다가 다시 67.5까지 내림. 오늘 등이 좀 뻣뻣했나 그립이 잘 안잡혔음.\n\n---\n\n## Workout on 2019-02-04\n\n스모 데드리프트 5세트 진행함. 120키로로 웜업하고 140까지 올려서 2세트 하고 다시 120-130 사이로 조절. 140 4개밖에 못해서 좀 아쉬움. 푸쉬프레스는 60키로로 시작했는데 어깨가 버티질 못해서 50키로까지 내려감. 총 5세트.\n\n---\n\n## Workout on 2019-02-05\n\n머신 체스트프레스 5세트 함. 85키로 정도에서 시작해서 95키로까지 올렸는데 4개밖에 못함. 좀 무거웠음. 다시 내려서 74키로까지. 이어서 머신 로우도 5세트 진행. 82키로에서 88키로 사이로 왔다갔다 하면서 함. 마지막에 76키로로 마무리.\n\n---\n\n## Workout on 2019-02-08\n\n플로어프레스 60키로에서 12개로 시작해서 65키로로 올려봤는데 8개밖에 못함. 다시 60키로대로 맞춰서 5세트 진행. 그다음 원암 덤벨로우 30키로씩 들고 10세트나 함. 후반에 27.5키로로 좀 내렸음. 등이 많이 피곤해짐.\n\n---\n\n## Workout on 2019-02-11\n\n오늘은 가볍게 고반복으로 함. 프론트 스쿼트 48키로로 6세트 12개씩 진행함. 무게가 가벼워서 숨은 차는데 근육 자극은 적었음. 푸쉬프레스도 38키로 정도로 6세트 12개씩. 어깨 펌핑용으로 딱이었음.\n\n---\n\n## Workout on 2019-02-12\n\n플로어프레스 57키로 6세트 12개씩 일정하게 진행함. 어제 쉬어서 그런가 컨디션 좋았음. 원암 로우는 30키로씩 들고 무려 12세트 12개씩 다 채움. 팔이 터질것같았는데 끝까지 해냄.\n\n---\n\n## Workout on 2019-02-18\n\n프론트 스쿼트 52키로로 6세트 12개씩 동일하게 진행. 무게가 가벼워서 숨만 차고 근육피로는 적었음. 푸쉬프레스는 41키로로 시작했는데 두번째 세트부터 힘이 빠져서 점점 무게를 내림. 마지막엔 30키로까지 내려감. 어깨가 좀 약한듯.\n\n---\n\n## Workout on 2019-02-19\n\n플로어프레스 61키로 6세트 진행함. 처음 2세트는 12개씩 잘 되다가 중간에 좀 힘들어서 57키로로 낮추고 마지막에 52키로로 마무리. 그다음 원암 로우 32키로씩 12세트함. 진짜 많이 했네. 중간에 30키로, 27.5, 25까지 계속 드랍함. 등이 완전 펌핑됨.\n\n---\n\n## Workout on 2019-02-25\n\n데드리프트만 함. 106키로 정도로 6세트 6개씩 일정하게 진행. 무게가 적당해서 폼에 집중할수있었음. 허리 부담없이 깔끔하게 마무리.\n\n---\n\n## Workout on 2019-02-26\n\n풀업 20키로 매달고 5세트 6개씩 진행함. 웨이티드 풀업 연습중. 무게가 좀 무거워서 렙수가 안늘어남. 그래도 꾸준히 하면 늘겠지.\n\n---\n\n## Workout on 2019-02-27\n\n벤치프레스 80키로 2세트 하고 70키로로 낮춰서 3세트 더함. 80키로 두번째 세트에서 4개밖에 못함. 좀 피곤했나 봄. 총 5세트.\n\n---\n\n## Workout on 2019-02-28\n\n프론트 스쿼트 65키로 좀 넘게 해서 4세트만 함. 렙수는 8, 6, 8, 12개. 마지막 세트에서 갑자기 힘이 나서 12개까지 밀어봄. 짧게 끝냄.\n\n---\n\n## Workout on 2019-03-04\n\n오버헤드프레스 43키로 5세트 6개씩 진행함. 일정한 무게로 폼 연습. 어깨가 조금 뻐근했는데 큰 무리없이 마무리함.\n\n---\n\n## Workout on 2019-03-05\n\n랫풀다운 80키로에서 85키로까지 올려봤는데 4개밖에 안됨. 다시 75키로로 내려서 마무리. 총 5세트. 그다음 싯업 5세트. 처음엔 맨몸 12개 하고 점점 무게 올려서 20키로까지 추가해서 진행함.\n\n---\n\n## Workout on 2019-03-08\n\n스쿼트 120키로에서 시작해서 130까지 올려봤는데 3개밖에 못함. 125로 맞추고 5세트 마무리. 바벨컬도 4세트 함. 30키로에서 22키로까지 드랍세트로 진행. 마지막에 아놀드프레스 덤벨 20키로씩 시작해서 35까지 올림. 어깨 펌핑 좋았음.\n\n---\n\n## Workout on 2019-03-11\n\n스모 데드리프트 106키로 5세트 8개씩 일정하게 진행함. 오늘은 무게 올리지 않고 볼륨에 집중함. 허리 부담 적고 깔끔하게 마무리.\n\n---\n\n## Workout on 2019-03-12\n\n벤치프레스 85키로로 시작했는데 4개밖에 못함. 77.5에서 70까지 점점 내려가면서 5세트 마무리. 오늘 가슴 힘이 안나네. 그다음 레터럴레이즈 덤벨 20키로씩 시작해서 25까지 올려서 4세트 10개씩. 크런치도 4세트 하고 마무리.\n\n---\n\n## Workout on 2019-03-13\n\n아놀드프레스 덤벨 20키로씩 웜업하고 55키로까지 도전해봤는데 4개밖에 못함. 45키로로 내려서 마무리. 시티드 로우는 100키로에서 140키로까지 점진적으로 올리면서 6세트 진행함. 등 펌핑 좋았음.\n\n---\n\n## Workout on 2019-03-15\n\n데드리프트 160키로 1개만 하고 인클라인 덤벨프레스로 넘어감. 55키로씩 시작해서 65까지 올려봤는데 3개밖에 안되네. 다시 50키로까지 내려서 5세트 마무리함. 오늘 컨디션이 좀 별로였음.\n\n---\n\n## Workout on 2019-03-18\n\n스모 데드리프트 110키로에서 140까지 올렸다가 다시 110으로 내림. 140에서 3개밖에 못함. 총 5세트. 그다음 밀리터리프레스 36키로로 7개하고 32키로 정도로 맞춰서 4세트 더함. 어깨가 좀 피로했음.\n\n---\n\n## Workout on 2019-03-19\n\n벤치프레스 70키로에서 시작해서 75까지 올려봤는데 5개밖에 안됨. 점점 무게 내려서 60키로까지 드랍세트로 5세트 마무리. 레터럴레이즈 25키로씩 시작해서 20까지 4세트 진행. 어깨 펌핑.\n\n---\n\n## Workout on 2019-03-25\n\n아침 운동함. 벤치프레스 60키로 10개로 웜업하고 65까지 올려봤는데 5개밖에 안됨. 55키로로 맞춰서 마무리. 총 5세트. 레터럴레이즈 25키로씩 4세트. 마지막엔 20으로 내림.\n\n---\n\n## Workout on 2019-03-26\n\n원암 덤벨로우 무려 10세트함. 37.5키로에서 시작해서 47.5까지 올렸다가 다시 37.5로 내려옴. 피라미드 세트로 진행. 그다음 아놀드프레스 45키로씩 시작해서 50키로 도전했는데 3개밖에 못함. 35까지 드랍해서 5세트 마무리.\n\n---\n\n## Workout on 2019-03-29\n\n프론트 스쿼트 60키로에서 75까지 점진적으로 올리면서 5세트 진행. 고반복 위주로 해서 12개씩 했는데 75키로에서 8개로 줄어듬. 마지막에 70으로 맞춰서 10개로 마무리. 하체 펌핑 좋았음.",
+  "response": "Based on your workout logs from the first quarter of 2019 (January-March), here's an analysis of your training volume trends:\n\n## Overall Training Frequency\n- **January**: 3 workouts (Jan 28, 29, 31)\n- **February**: 11 workouts \n- **March**: 11 workouts\n- **Total Q1**: 25 workouts\n\nYou significantly increased your training frequency from January to February and maintained consistent activity through March.\n\n## Volume Trends by Exercise Category\n\n**Deadlift Variations:**\n- January: Trap bar deadlifts at 180-190kg (5 sets)\n- February: Sumo deadlifts 120-140kg, conventional deadlifts ~106kg\n- March: Mix of sumo (106-140kg) and conventional (160kg single)\n- Trend: Weight ranges remained similar, but you experimented more with different deadlift styles\n\n**Pressing Movements:**\n- January: Push press 40-50kg, bench press 60-80kg\n- February: Various pressing (floor press 57-65kg, machine chest 74-95kg)\n- March: Bench press 60-85kg, overhead variations 32-55kg\n- Trend: Weights generally decreased as you focused more on volume and form\n\n**Squatting:**\n- January: Front squats 80-90kg\n- February: Front squats dropped to 48-65kg with higher reps (12 reps vs 5-8)\n- March: Back squats 120-130kg, front squats 60-75kg\n- Trend: Shifted from heavy low-rep to lighter high-rep training, then back to heavier weights\n\n## Key Observations\n1. **February shift**: You moved to higher rep ranges (12 reps) with lighter weights\n2. **March progression**: Returned to heavier weights but with more exercise variety\n3. **Consistency improved**: From 3 sessions in January to 11 each in February and March\n4. **Exercise variety increased**: Added more machine work, isolation exercises, and different movement patterns\n\nYour training evolved from sporadic heavy lifting in January to consistent, varied programming with both strength and volume phases throughout the quarter."
+}

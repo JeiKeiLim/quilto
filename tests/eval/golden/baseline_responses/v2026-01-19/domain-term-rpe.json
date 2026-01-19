@@ -1,0 +1,17 @@
+{
+  "test_case_id": "domain-term-rpe",
+  "dataset_version": "v2026-01-19",
+  "model": "openrouter/anthropic/claude-sonnet-4",
+  "model_params": {
+    "max_tokens": 1000,
+    "temperature": 0.3
+  },
+  "generated_at": "2026-01-19T22:36:16.331413+00:00",
+  "query": "What RPE does my training seem to be at?",
+  "context_entries": [
+    "2019-01-28",
+    "2019-02-01"
+  ],
+  "context_provided": "## Workout on 2019-01-28\n\n트랩바 데드리프트 180키로에서 시작해서 190키로까지 올렸다가 다시 180으로 내려옴. 총 5세트 하고 렙수는 8, 6, 4, 6, 6개씩 진행함. 190 할때 좀 무거웠음. 그리고나서 푸쉬프레스 5세트 진행. 40키로로 웜업하고 50키로로 올려서 했는데 마지막에 45키로로 좀 낮춤. 어깨가 좀 힘들었음.\n\n---\n\n## Workout on 2019-02-01\n\n인클라인 벤치프레스 80키로로 첫세트 했는데 2개밖에 못함. 너무 무거웠음. 바로 70키로로 내려서 5세트 드랍세트로 55키로까지 진행. 그리고나서 티바로우 5세트. 70키로에서 77.5까지 올렸다가 다시 67.5까지 내림. 오늘 등이 좀 뻣뻣했나 그립이 잘 안잡혔음.",
+  "response": "Based on your workout logs, your training appears to be at a **moderate to high RPE (7-9 range)**.\n\nHere's what indicates this:\n\n**High RPE indicators:**\n- **2019-01-28**: You noted 190kg trap bar deadlift was \"좀 무거웠음\" (somewhat heavy), suggesting RPE 8-9\n- **2019-02-01**: 80kg incline bench was too heavy - you could only do 2 reps and had to immediately drop to 70kg, indicating you started at RPE 10 (failure)\n\n**Moderate RPE indicators:**\n- You're making weight adjustments mid-workout (190kg→180kg deadlift, 50kg→45kg push press, 80kg→70kg bench)\n- You completed most sets despite the challenges\n- Your grip issues and shoulder fatigue suggest working at challenging intensities\n\n**Training pattern:**\nYou seem to be pushing close to your limits and then adjusting weights when needed, which suggests you're training in the RPE 7-9 range most of the time, occasionally hitting RPE 10 (failure) before backing off.\n\nThe frequent weight adjustments indicate you're listening to your body and managing fatigue appropriately rather than grinding through at maximum intensity."
+}
