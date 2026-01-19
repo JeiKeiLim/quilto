@@ -135,3 +135,8 @@ development_status:
   8-4-implement-error-cascade: done
   8-5-create-swealog-cli-commands: done  # swealog log/ask commands
   epic-8-retrospective: done
+
+  # Epic 9: Developer Experience (Post-MVP)
+  # Focus: Improve dogfooding and development workflow
+  epic-9: backlog
+  9-1-cli-developer-experience: ready-for-dev  # --debug flag + .env support
