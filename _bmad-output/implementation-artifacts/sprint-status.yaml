@@ -152,4 +152,13 @@ development_status:
   10-3-implement-pairwise-llm-as-judge: done  # Position swap, DeepEval
   10-4-integrate-evaluation-with-pytest-cicd: done
   10-5-fix-retrieval-strategy-priority: done  # Date-range first, keyword fallback
-  epic-10-retrospective: optional
+  epic-10-retrospective: done
+
+  # Epic 11: Dogfooding Iteration 1
+  # Restructured from "LLM Client Reliability" per Epic 10 Retrospective (2026-01-20)
+  # Continuous improvement cycle: collect feedback → analyze → fix → iterate
+  epic-11: in-progress
+  11-1-implement-json-schema-structured-output: ready-for-dev  # Proper JSON schema for OpenRouter
+  11-2-implement-feedback-recording-infrastructure: backlog  # Record query + outputs + user feedback
+  11-3-investigate-retrieval-priority-bug: backlog  # Term search before date-range issue
+  11-4-analyze-feedback-dataset: backlog  # Mary + Jongkuk analyze, generate stories

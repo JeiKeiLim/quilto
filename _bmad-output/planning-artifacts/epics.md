@@ -1155,7 +1155,7 @@ So that **users can interact with Swealog via terminal**.
 
 *--debug flag and .env configuration support*
 
-**Status:** In Progress (see sprint-status.yaml)
+**Status:** Done
 
 ---
 
@@ -1293,3 +1293,181 @@ So that **queries with temporal context retrieve correctly**.
 **Files to Modify:**
 - Planner agent prompt/logic
 - Possibly `PlannerOutput` schema for strategy priority
+
+---
+
+## Epic 11: Dogfooding Iteration 1
+
+*Continuous improvement cycle through real-world usage feedback*
+
+**Origin:** Epic 10 Retrospective (2026-01-20) - Restructured from "LLM Client Reliability"
+
+**Rationale:**
+- Original Epic 11 had only 1 story (JSON schema fix) - too narrow
+- Epic 10 retrospective revealed gap between unit tests and real LLM behavior
+- Dogfooding feedback loop provides continuous improvement mechanism
+- Iterative pattern: collect feedback → analyze → fix → repeat
+
+**Quilto:** Feedback recording infrastructure, retrieval priority investigation
+
+**Swealog:** CLI feedback prompts, user feedback collection
+
+**Iteration Pattern:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  DOGFOODING ITERATION CYCLE                                 │
+├─────────────────────────────────────────────────────────────┤
+│  1. User runs: swealog auto "..."                           │
+│  2. Quilto generates response                               │
+│  3. Swealog prompts: "How was this response?"               │
+│  4. User provides natural language feedback                 │
+│  5. System records: query + intermediate outputs + feedback │
+│  6. Collect until sufficient dataset                        │
+│  7. Analyze dataset → Generate improvement stories          │
+│  8. Implement fixes                                         │
+│  9. Archive iteration, start next cycle                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Feedback Storage Structure:**
+```
+tests/eval/feedback/
+├── active/                    # Current collection
+│   └── YYYY-MM-DD_query-id.json
+├── archive/
+│   ├── iter-001/             # Completed iterations
+│   │   ├── records/
+│   │   ├── analysis.md
+│   │   └── stories-generated.md
+│   └── iter-002/
+└── README.md
+```
+
+**Success Metrics:**
+- Feedback collection rate: >80% of dogfooding sessions
+- Issue detection: Find issues not caught by unit tests
+- Iteration velocity: Complete iteration cycle within 1-2 weeks
+
+---
+
+### Story 11.1: Implement JSON Schema Structured Output
+
+As a **Quilto developer**,
+I want **proper JSON schema support for OpenRouter structured output**,
+So that **LLM responses reliably parse into Pydantic models**.
+
+**Acceptance Criteria:**
+
+**Given** an LLM call requiring structured output
+**When** using OpenRouter providers
+**Then** JSON schema is properly formatted for the provider
+**And** response parsing handles edge cases gracefully
+**And** retry logic handles malformed responses
+
+**Background:** Independent fix identified before Epic 11 restructuring. High priority as it affects all agent outputs.
+
+---
+
+### Story 11.2: Implement Feedback Recording Infrastructure
+
+As a **Quilto developer**,
+I want **feedback recording after swealog auto responses**,
+So that **real-world usage quality can be tracked and improved**.
+
+**Acceptance Criteria:**
+
+**Given** a completed `swealog auto` response
+**When** `--debug` flag is active
+**Then** system prompts user for feedback ("How was this response?")
+**And** user can provide natural language feedback or skip
+**And** system records to `tests/eval/feedback/active/`:
+  - Original query
+  - All intermediate outputs (Router, Planner, Retriever, Analyzer, Synthesizer)
+  - Final response
+  - User feedback
+  - Timestamp and session metadata
+**And** feedback format is JSON for easy analysis
+
+**Storage Format:**
+```json
+{
+  "id": "2026-01-20_abc123",
+  "timestamp": "2026-01-20T15:30:00Z",
+  "query": "what did I eat last week?",
+  "intermediate_outputs": {
+    "router": { ... },
+    "planner": { ... },
+    "retriever": { ... },
+    "analyzer": { ... },
+    "synthesizer": { ... }
+  },
+  "final_response": "Based on your logs...",
+  "user_feedback": "Retrieved wrong dates, showed this week instead of last week",
+  "feedback_sentiment": "negative"
+}
+```
+
+---
+
+### Story 11.3: Investigate Retrieval Priority Bug
+
+As a **Quilto developer**,
+I want **to investigate why retrieval still tries term search before date-range**,
+So that **temporal queries retrieve correctly in real usage**.
+
+**Acceptance Criteria:**
+
+**Given** Story 10.5 implemented retrieval strategy priority
+**When** investigating the bug with real LLM inference
+**Then** root cause is identified (prompt effectiveness, LLM behavior, etc.)
+**And** fix is verified with real Ollama (not just mocked tests)
+**And** feedback records from 11.2 provide evidence of the issue
+
+**Background:** Epic 10 retrospective revealed that despite Story 10.5 unit tests passing, real usage shows term search still attempted before date-range for temporal queries.
+
+**Investigation Areas:**
+- Is Planner actually generating date_range first in `retrieval_instructions`?
+- Is the priority prompt guidance strong enough?
+- Does real LLM behavior differ from mocked test expectations?
+
+---
+
+### Story 11.4: Analyze Feedback Dataset
+
+As a **Quilto developer**,
+I want **to analyze collected feedback with Mary (Analyst)**,
+So that **patterns are identified and improvement stories are generated**.
+
+**Acceptance Criteria:**
+
+**Given** sufficient feedback records in `tests/eval/feedback/active/`
+**When** Mary and Jongkuk Lim analyze the dataset
+**Then** patterns are identified:
+  - Which query types get poor feedback?
+  - Which intermediate step correlates with quality issues?
+  - Are there domain-specific patterns?
+**And** improvement stories are generated for next iteration
+**And** analysis is documented in `analysis.md`
+**And** iteration is archived to `archive/iter-001/`
+**And** new iteration begins with fresh `active/` directory
+
+**Analysis Outputs:**
+- `archive/iter-001/analysis.md` - Findings and patterns
+- `archive/iter-001/stories-generated.md` - Stories for next epic
+- Recommendations for Epic 12 scope
+
+---
+
+## Future Epics (Iteration Pattern)
+
+### Epic 12: Dogfooding Iteration 2
+
+*Stories generated from Epic 11 feedback analysis*
+
+**Status:** Backlog (depends on Epic 11.4 analysis)
+
+### Epic 13: Dogfooding Iteration 3
+
+*Stories generated from Epic 12 feedback analysis*
+
+**Status:** Backlog (depends on Epic 12 analysis)
