@@ -292,9 +292,7 @@ class TestExecuteQueryPipelineCollectOutputs:
 
             assert response.status_code == 200
             # Endpoint doesn't explicitly pass collect_outputs, uses default False
-            call_kwargs: dict[str, Any] = (
-                dict(mock_pipeline.call_args.kwargs) if mock_pipeline.call_args.kwargs else {}
-            )
+            call_kwargs: dict[str, Any] = dict(mock_pipeline.call_args.kwargs) if mock_pipeline.call_args.kwargs else {}
             assert "collect_outputs" not in call_kwargs
 
     @pytest.mark.asyncio
