@@ -6,10 +6,19 @@ This directory contains the evaluation infrastructure for benchmarking Quilto ag
 
 ```
 tests/eval/
-├── golden/                    # Versioned test case datasets
-│   └── v2026-01-19.yaml       # Current golden dataset (50 cases)
-├── rubric.yaml                # Evaluation criteria definitions
-└── README.md                  # This file
+├── golden/                             # Versioned test case datasets
+│   ├── v2026-01-19.yaml                # Current golden dataset (50 cases)
+│   └── baseline_responses/v2026-01-19/ # Claude responses (Story 10.2)
+├── results/                            # Evaluation results
+│   └── v2026-01-19/                    # Timestamped results per version
+├── generate_baseline.py                # Story 10.2: Generate Claude baselines
+├── pairwise_judge.py                   # Story 10.3: Core evaluation logic
+├── run_evaluation.py                   # Story 10.3: CLI runner
+├── metrics.py                          # Story 10.3: DeepEval custom metric
+├── rubric.yaml                         # Evaluation criteria definitions
+├── schema.py                           # Pydantic schemas
+├── test_pairwise_judge.py              # Unit tests
+└── README.md                           # This file
 ```
 
 ## Overview
@@ -24,6 +33,86 @@ Research shows pairwise evaluation is more reliable than absolute scoring:
 - Reduces judge model bias (~40% inconsistency mitigated with position swap)
 - More consistent human-alignment
 - Easier for LLM judges to make relative comparisons
+
+## Running Evaluations
+
+### CLI Evaluation Runner
+
+```bash
+# Run evaluation on all 50 test cases
+python -m tests.eval.run_evaluation --dataset-version v2026-01-19
+
+# Run on specific cases
+python -m tests.eval.run_evaluation --dataset-version v2026-01-19 --cases simple-bench-progression,complex-push-vs-pull
+
+# Use different judge model
+python -m tests.eval.run_evaluation --dataset-version v2026-01-19 --judge-model gpt-4o
+
+# Custom output directory
+python -m tests.eval.run_evaluation --dataset-version v2026-01-19 --output-dir ./my-results
+
+# Dry run (show what would be evaluated)
+python -m tests.eval.run_evaluation --dataset-version v2026-01-19 --dry-run
+
+# Verbose mode
+python -m tests.eval.run_evaluation --dataset-version v2026-01-19 --verbose
+```
+
+### CLI Options
+
+| Option | Description |
+|--------|-------------|
+| `--dataset-version` | Required. Dataset version (e.g., v2026-01-19) |
+| `--cases` | Comma-separated list of specific case IDs |
+| `--judge-model` | Judge model (default: gpt-4o-mini) |
+| `--dry-run` | Show what would be evaluated without running |
+| `--verbose` | Enable verbose logging |
+| `--output-dir` | Output directory for results |
+| `--cache-quilto-responses` | Cache Quilto responses during evaluation |
+
+### Programmatic Usage
+
+```python
+from tests.eval import PairwiseEvaluator, TestCase
+
+# Create evaluator
+evaluator = PairwiseEvaluator(judge_model="gpt-4o-mini")
+
+# Run evaluation with position swap
+result = await evaluator.evaluate_with_swap(
+    test_case=test_case,
+    quilto_response=quilto_response,
+    claude_response=claude_response,
+)
+
+# Check results
+print(f"Winner: {result.final_winner}")
+print(f"Consistent: {result.is_consistent}")
+print(f"Quilto aggregate: {result.quilto_aggregate}")
+print(f"Claude aggregate: {result.claude_aggregate}")
+```
+
+### DeepEval Integration
+
+```python
+from deepeval import evaluate
+from deepeval.test_case import LLMTestCase
+from tests.eval import PairwiseComparisonMetric
+
+# Create metric
+metric = PairwiseComparisonMetric(threshold=0.4)
+
+# Create test case
+test_case = LLMTestCase(
+    input="What was my max bench press?",
+    actual_output=quilto_response,
+    expected_output=claude_baseline,
+)
+
+# Evaluate
+metric.measure(test_case)
+assert metric.is_successful()
+```
 
 ## Dataset Versioning
 
@@ -61,10 +150,10 @@ Golden datasets are treated as release artifacts with date-based versioning:
 
 See `rubric.yaml` for detailed scoring guidance. Four criteria are evaluated:
 
-1. **accuracy**: Factual correctness based on retrieved data
-2. **completeness**: All aspects of query addressed
-3. **conciseness**: No unnecessary verbosity
-4. **domain_expertise**: Appropriate fitness terminology and knowledge
+1. **accuracy**: Factual correctness based on retrieved data (weight: 1.5)
+2. **completeness**: All aspects of query addressed (weight: 1.0)
+3. **conciseness**: No unnecessary verbosity (weight: 0.8)
+4. **domain_expertise**: Appropriate fitness terminology and knowledge (weight: 1.0)
 
 ## Test Case Format
 
@@ -81,25 +170,19 @@ Each test case in the golden dataset includes:
     should_not: ["things to avoid"]
 ```
 
+## Judge Model Recommendations
+
+| Model | Cost per Run (50 cases) | Quality | Recommendation |
+|-------|------------------------|---------|----------------|
+| gpt-4o-mini | ~$0.15 | Good | Routine evaluations |
+| gpt-4o | ~$1.50 | Excellent | Important decisions |
+| claude-sonnet-4 | ~$0.45 | Excellent | Final validation |
+
+**Recommendation:** Use `gpt-4o-mini` for routine evaluations, `claude-sonnet-4` for final validation.
+
 ## Context Entries Source
 
 Context entries reference dates from `tests/corpus/fitness/entries/from_csv/`. These are real workout logs derived from Strong CSV data, written in Korean.
-
-## Usage
-
-### Validating Dataset Syntax
-
-```bash
-python -c "import yaml; yaml.safe_load(open('tests/eval/golden/v2026-01-19.yaml'))"
-```
-
-### Running Evaluation
-
-(Implemented in Story 10.3+)
-
-```bash
-# Future: pytest tests/eval/ --eval-mode=pairwise
-```
 
 ## References
 
