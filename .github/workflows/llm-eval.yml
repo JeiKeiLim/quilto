@@ -1,0 +1,286 @@
+name: LLM Evaluation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/quilto/**'
+      - 'packages/swealog/**'
+      - 'tests/eval/**'
+  workflow_dispatch:
+    inputs:
+      full_evaluation:
+        description: 'Run full evaluation (all 50 cases)'
+        type: boolean
+        default: false
+      threshold:
+        description: 'Win-rate threshold (0.0-1.0)'
+        type: string
+        default: '0.4'
+
+env:
+  LLM_EVAL_THRESHOLD: ${{ github.event.inputs.threshold || '0.4' }}
+  OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+  PYTHON_VERSION: '3.13'
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras
+          uv pip install deepeval pytest-json-report
+
+      - name: Determine evaluation scope
+        id: scope
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.full_evaluation }}" == "true" ]]; then
+            echo "scope=full" >> $GITHUB_OUTPUT
+            echo "Running full evaluation"
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # Check changed files for selective evaluation
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+            echo "Changed files:"
+            echo "$CHANGED_FILES"
+
+            # For now, run full evaluation on any qualifying change
+            # Future: implement selective category filtering based on changed paths
+            echo "scope=full" >> $GITHUB_OUTPUT
+          else
+            echo "scope=full" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run LLM evaluation
+        id: evaluation
+        continue-on-error: true
+        run: |
+          uv run pytest tests/eval/test_llm_evaluation.py \
+            -v \
+            --tb=short \
+            -m llm_eval \
+            --json-report \
+            --json-report-file=eval-results.json \
+            2>&1 | tee eval-output.txt
+
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+      - name: Parse evaluation results
+        id: parse
+        if: always()
+        run: |
+          python3 << 'EOF'
+          import json
+          import os
+          import re
+
+          # Parse results from pytest output
+          results = {
+              "total": 0,
+              "quilto_wins": 0,
+              "claude_wins": 0,
+              "ties": 0,
+              "errors": 0,
+              "win_rate": 0.0,
+              "threshold": float(os.environ.get("LLM_EVAL_THRESHOLD", "0.4")),
+              "cost": 0.0,
+              "per_category": {},
+              "failures": []
+          }
+
+          try:
+              with open("eval-output.txt") as f:
+                  output = f.read()
+
+              # Parse summary line: "Total: X, Quilto: Y, Claude: Z, Ties: W"
+              total_match = re.search(r"Total: (\d+), Quilto: (\d+), Claude: (\d+), Ties: (\d+)", output)
+              if total_match:
+                  results["total"] = int(total_match.group(1))
+                  results["quilto_wins"] = int(total_match.group(2))
+                  results["claude_wins"] = int(total_match.group(3))
+                  results["ties"] = int(total_match.group(4))
+
+              # Parse win rate
+              win_rate_match = re.search(r"Win Rate: ([\d.]+)%", output)
+              if win_rate_match:
+                  results["win_rate"] = float(win_rate_match.group(1)) / 100
+
+              # Parse cost
+              cost_match = re.search(r"Estimated Cost: \$([\d.]+)", output)
+              if cost_match:
+                  results["cost"] = float(cost_match.group(1))
+
+              # Parse per-category breakdown
+              category_pattern = r"(\w+): Quilto=(\d+), Claude=(\d+), Ties=(\d+)"
+              for match in re.finditer(category_pattern, output):
+                  cat = match.group(1)
+                  results["per_category"][cat] = {
+                      "quilto": int(match.group(2)),
+                      "claude": int(match.group(3)),
+                      "ties": int(match.group(4))
+                  }
+
+              # Parse individual failures (Claude wins)
+              failure_pattern = r"(\S+) \((\w+)\): claude \(score=[\d.]+\)\s+Reason: (.+)"
+              for match in re.finditer(failure_pattern, output):
+                  results["failures"].append({
+                      "case_id": match.group(1),
+                      "category": match.group(2),
+                      "reason": match.group(3)
+                  })
+
+          except Exception as e:
+              print(f"Error parsing results: {e}")
+
+          # Write results for next step
+          with open("parsed-results.json", "w") as f:
+              json.dump(results, f, indent=2)
+
+          # Set outputs
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"win_rate={results['win_rate']}\n")
+              f.write(f"passed={'true' if results['win_rate'] >= results['threshold'] else 'false'}\n")
+
+          print(f"Win rate: {results['win_rate']:.1%}")
+          print(f"Threshold: {results['threshold']:.1%}")
+          print(f"Result: {'PASS' if results['win_rate'] >= results['threshold'] else 'FAIL'}")
+          EOF
+
+      - name: Generate PR comment
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let results;
+            try {
+              results = JSON.parse(fs.readFileSync('parsed-results.json', 'utf8'));
+            } catch (e) {
+              results = {
+                total: 0,
+                quilto_wins: 0,
+                claude_wins: 0,
+                ties: 0,
+                win_rate: 0,
+                threshold: 0.4,
+                cost: 0,
+                per_category: {},
+                failures: []
+              };
+            }
+
+            const passed = results.win_rate >= results.threshold;
+            const statusEmoji = passed ? '✅' : '❌';
+            const winRatePercent = (results.win_rate * 100).toFixed(1);
+            const thresholdPercent = (results.threshold * 100).toFixed(0);
+
+            let body = `## 🤖 LLM Evaluation Results
+
+            | Metric | Value |
+            |--------|-------|
+            | Win Rate | ${winRatePercent}% ${statusEmoji} |
+            | Quilto Wins | ${results.quilto_wins} |
+            | Claude Wins | ${results.claude_wins} |
+            | Ties | ${results.ties} |
+            | Threshold | ${thresholdPercent}% |
+            | Cost | ~$${results.cost.toFixed(2)} |
+
+            `;
+
+            // Per-category breakdown
+            if (Object.keys(results.per_category).length > 0) {
+              body += `### Per-Category Breakdown
+            | Category | Quilto | Claude | Ties |
+            |----------|--------|--------|------|
+            `;
+              for (const [cat, counts] of Object.entries(results.per_category)) {
+                body += `| ${cat} | ${counts.quilto} | ${counts.claude} | ${counts.ties} |\n`;
+              }
+            }
+
+            // Failed cases
+            if (results.failures && results.failures.length > 0) {
+              body += `
+            <details>
+            <summary>Failed Cases (Claude wins - ${results.failures.length} cases)</summary>
+
+            `;
+              for (const failure of results.failures.slice(0, 10)) {
+                body += `- \`${failure.case_id}\` (${failure.category}): ${failure.reason}\n`;
+              }
+              if (results.failures.length > 10) {
+                body += `\n... and ${results.failures.length - 10} more\n`;
+              }
+              body += `
+            </details>
+            `;
+            }
+
+            body += `
+
+            ---
+            *Generated by LLM Evaluation workflow*`;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('🤖 LLM Evaluation Results')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Upload evaluation results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: llm-eval-results
+          path: |
+            eval-results.json
+            eval-output.txt
+            parsed-results.json
+
+      - name: Check threshold
+        if: steps.parse.outputs.passed == 'false'
+        run: |
+          echo "❌ Win rate (${{ steps.parse.outputs.win_rate }}) below threshold (${{ env.LLM_EVAL_THRESHOLD }})"
+          exit 1

@@ -17,6 +17,7 @@ Example:
 """
 
 from tests.eval.pairwise_judge import (
+    MODEL_PRICING,
     PairwiseEvaluator,
     clear_quilto_cache,
     generate_quilto_response,
@@ -66,6 +67,8 @@ __all__ = [
     "generate_quilto_response",
     "generate_quilto_response_cached",
     "clear_quilto_cache",
+    # Cost tracking (Story 10.4)
+    "MODEL_PRICING",
     # Optional (requires deepeval)
     *_DEEPEVAL_EXPORTS,
 ]

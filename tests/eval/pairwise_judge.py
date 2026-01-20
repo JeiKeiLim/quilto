@@ -36,6 +36,15 @@ RUBRIC_PATH = PROJECT_ROOT / "tests" / "eval" / "rubric.yaml"
 
 MAX_JUDGE_RETRIES = 2
 
+# Model pricing per 1M tokens (as of 2026-01)
+MODEL_PRICING: dict[str, dict[str, float]] = {
+    "gpt-4o-mini": {"input": 0.15, "output": 0.60},
+    "gpt-4o": {"input": 2.50, "output": 10.00},
+    "openrouter/anthropic/claude-sonnet-4": {"input": 3.00, "output": 15.00},
+    "openrouter/openai/gpt-4o-mini": {"input": 0.15, "output": 0.60},
+    "openrouter/openai/gpt-4o": {"input": 2.50, "output": 10.00},
+}
+
 
 def _load_rubric() -> Rubric:
     """Load and validate the evaluation rubric.
@@ -251,6 +260,10 @@ class PairwiseEvaluator:
         self._semaphore = asyncio.Semaphore(max_concurrent)
         self._rubric = _load_rubric()
 
+        # Token tracking for cost estimation
+        self.total_input_tokens = 0
+        self.total_output_tokens = 0
+
     async def evaluate_pair(
         self,
         test_case: TestCase,
@@ -284,6 +297,12 @@ class PairwiseEvaluator:
                     )
 
                 raw_output = response.choices[0].message.content or ""
+
+                # Track token usage for cost estimation
+                if hasattr(response, "usage") and response.usage:
+                    self.total_input_tokens += getattr(response.usage, "prompt_tokens", 0)
+                    self.total_output_tokens += getattr(response.usage, "completion_tokens", 0)
+
                 parsed = _parse_judge_response(raw_output)
 
                 if parsed is None:
@@ -411,6 +430,43 @@ class PairwiseEvaluator:
             quilto_aggregate=quilto_aggregate,
             claude_aggregate=claude_aggregate,
         )
+
+    def get_cost_estimate(self) -> float:
+        """Estimate cost based on model and accumulated tokens.
+
+        Returns:
+            Estimated cost in USD.
+        """
+        # Normalize model name for lookup
+        model_key = self.judge_model
+        if model_key not in MODEL_PRICING:
+            # Try without openrouter prefix
+            for key in MODEL_PRICING:
+                if key.endswith(model_key) or model_key.endswith(key.split("/")[-1]):
+                    model_key = key
+                    break
+
+        pricing = MODEL_PRICING.get(model_key, MODEL_PRICING["gpt-4o-mini"])
+
+        input_cost = (self.total_input_tokens / 1_000_000) * pricing["input"]
+        output_cost = (self.total_output_tokens / 1_000_000) * pricing["output"]
+        return input_cost + output_cost
+
+    def get_token_usage(self) -> dict[str, int]:
+        """Get accumulated token usage.
+
+        Returns:
+            Dict with input_tokens and output_tokens.
+        """
+        return {
+            "input_tokens": self.total_input_tokens,
+            "output_tokens": self.total_output_tokens,
+        }
+
+    def reset_token_tracking(self) -> None:
+        """Reset token tracking counters."""
+        self.total_input_tokens = 0
+        self.total_output_tokens = 0
 
 
 # ============================================================================

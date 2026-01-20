@@ -37,9 +37,12 @@ convention = "google"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests", "packages/quilto/tests", "packages/swealog/tests"]
 addopts = "--import-mode=importlib"
 markers = [
     "accuracy: marks tests as accuracy tests (deselect with '-m \"not accuracy\"')",
     "integration: marks tests that require real Ollama (run with --use-real-ollama)",
+    "llm_eval: LLM evaluation tests using LLM-as-judge (slow, requires API keys)",
+    "slow: marks tests as slow-running (deselect with '-m \"not slow\"')",
 ]

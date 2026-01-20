@@ -11,13 +11,18 @@ tests/eval/
 │   └── baseline_responses/v2026-01-19/ # Claude responses (Story 10.2)
 ├── results/                            # Evaluation results
 │   └── v2026-01-19/                    # Timestamped results per version
+├── .cache/                             # Cached evaluation results (Story 10.4)
+│   └── v2026-01-19/                    # Keyed by test_case_id + code_hash
+├── conftest.py                         # Story 10.4: pytest fixtures and hooks
 ├── generate_baseline.py                # Story 10.2: Generate Claude baselines
 ├── pairwise_judge.py                   # Story 10.3: Core evaluation logic
 ├── run_evaluation.py                   # Story 10.3: CLI runner
 ├── metrics.py                          # Story 10.3: DeepEval custom metric
 ├── rubric.yaml                         # Evaluation criteria definitions
 ├── schema.py                           # Pydantic schemas
-├── test_pairwise_judge.py              # Unit tests
+├── test_eval_dataset.py                # Unit tests for dataset validation
+├── test_llm_evaluation.py              # Story 10.4: pytest integration tests
+├── test_pairwise_judge.py              # Unit tests for pairwise evaluation
 └── README.md                           # This file
 ```
 
@@ -35,6 +40,44 @@ Research shows pairwise evaluation is more reliable than absolute scoring:
 - Easier for LLM judges to make relative comparisons
 
 ## Running Evaluations
+
+### pytest Integration (Recommended)
+
+The preferred way to run evaluations is via pytest, which integrates with CI/CD:
+
+```bash
+# Run LLM evaluation tests
+pytest tests/eval/test_llm_evaluation.py -v -m llm_eval
+
+# Run with custom threshold
+LLM_EVAL_THRESHOLD=0.5 pytest tests/eval/test_llm_evaluation.py -v -m llm_eval
+
+# Use cached results (faster re-runs)
+pytest tests/eval/test_llm_evaluation.py --use-cache
+
+# Force fresh evaluation (ignore cache)
+pytest tests/eval/test_llm_evaluation.py --no-cache
+
+# Run subset of tests
+pytest tests/eval/test_llm_evaluation.py -k "simple"
+```
+
+### pytest CLI Options
+
+| Option | Description |
+|--------|-------------|
+| `-m llm_eval` | Run only LLM evaluation tests |
+| `--use-cache` | Use cached evaluation results |
+| `--no-cache` | Force fresh evaluation (ignore cache) |
+| `--full` | Run full evaluation (all 50 cases) |
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LLM_EVAL_THRESHOLD` | 0.4 | Minimum win-rate to pass |
+| `OPENROUTER_API_KEY` | - | API key for judge LLM |
+| `LLM_EVAL_CACHE` | true | Enable result caching |
 
 ### CLI Evaluation Runner
 
@@ -183,6 +226,75 @@ Each test case in the golden dataset includes:
 ## Context Entries Source
 
 Context entries reference dates from `tests/corpus/fitness/entries/from_csv/`. These are real workout logs derived from Strong CSV data, written in Korean.
+
+## CI/CD Integration
+
+### GitHub Actions Workflow
+
+The workflow at `.github/workflows/llm-eval.yml` runs automatically on PRs:
+
+- **Triggers**: PRs to `main` with changes in `packages/quilto/**`, `packages/swealog/**`, or `tests/eval/**`
+- **Manual trigger**: `workflow_dispatch` with optional full evaluation
+- **PR comments**: Results posted as PR comments with win-rate summary
+- **Threshold enforcement**: Fails if win-rate < `LLM_EVAL_THRESHOLD`
+
+### Required Secrets
+
+Configure these in repository settings:
+
+| Secret | Required | Description |
+|--------|----------|-------------|
+| `OPENROUTER_API_KEY` | Yes | For judge LLM (gpt-4o-mini via OpenRouter) |
+
+### Local Workflow Testing
+
+```bash
+# Install act (GitHub Actions local runner)
+brew install act
+
+# Run workflow locally
+act pull_request -j evaluate
+```
+
+## Caching
+
+Results are cached in `tests/eval/.cache/` to speed up re-runs:
+
+- Cache key: `hash(test_case_id + dataset_version + code_hash)`
+- Invalidation: Cache invalidates when `pairwise_judge.py` changes
+- Location: `tests/eval/.cache/{version}/{cache_key}.json`
+
+To clear the cache:
+
+```bash
+rm -rf tests/eval/.cache/
+```
+
+## Troubleshooting
+
+### "deepeval not installed"
+
+Install the optional dependency:
+```bash
+pip install deepeval
+# or
+uv pip install deepeval
+```
+
+### "Missing baseline for case_id"
+
+Generate baselines first:
+```bash
+python -m tests.eval.generate_baseline --dataset-version v2026-01-19
+```
+
+### Rate limiting errors
+
+Reduce concurrency or add delays. The evaluator uses `max_concurrent=2` by default.
+
+### Cache not invalidating
+
+Check if `pairwise_judge.py` content changed. Cache key includes code hash.
 
 ## References
 
