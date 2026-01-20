@@ -213,6 +213,42 @@ KEYWORD strategy examples (unchanged):
 WHY: Keyword search fails when logs are in Korean but queries are in English.
 Date-range retrieval is language-agnostic and reliable for comparison queries.
 
+=== RETRIEVAL STRATEGY PRIORITY (CRITICAL) ===
+
+For queries with temporal context, ALWAYS generate retrieval_instructions in this order:
+
+1. DATE_RANGE (primary): Always FIRST for temporal queries
+   - Temporal trigger words: "last", "yesterday", "this week", "today", "recent", "ago", "in [month]"
+   - Set appropriate date range based on query context
+   - This is language-agnostic and reliable
+
+2. KEYWORD (secondary/fallback): Add SECOND when specific items mentioned
+   - Only if query mentions specific exercises, foods, activities
+   - Serves as fallback if date_range returns empty
+   - May fail cross-language (Korean logs, English query)
+
+The `retrieval_instructions` list ORDER matters - Retriever executes in list order.
+Each instruction can have an optional `priority: int` field (lower = higher priority, default=1).
+
+Example - "yesterday's bench press":
+```json
+"retrieval_instructions": [
+  {{"strategy": "date_range", "params": {{"start_date": "2026-01-19", "end_date": "2026-01-19"}},
+    "sub_query_id": 1, "priority": 1}},
+  {{"strategy": "keyword", "params": {{"keywords": ["bench press"]}},
+    "sub_query_id": 1, "priority": 2}}
+]
+```
+
+Example - "what did I eat last week":
+```json
+"retrieval_instructions": [
+  {{"strategy": "date_range", "params": {{"start_date": "2026-01-13", "end_date": "2026-01-19"}}, "sub_query_id": 1}}
+]
+```
+
+WHY: Date-range is language-agnostic. Keyword search fails when logs are in Korean but queries are in English.
+
 === DOMAIN EXPANSION ===
 
 Consider requesting domain expansion when:
@@ -287,7 +323,8 @@ Respond with a JSON object matching this schema:
 - dependencies: list of objects {{"from": int, "to": int, "reason": string}}
 - execution_strategy: "independent" | "dependent" | "coupled"
 - execution_order: list of integers (sub_query IDs in execution order)
-- retrieval_instructions: list of objects {{"strategy": string, "params": object, "sub_query_id": int}}
+- retrieval_instructions: list of objects {{"strategy": str, "params": obj, "sub_query_id": int,
+  "priority": int (optional, default=1, lower=higher priority)}}
 - gaps_status: object where keys are gap descriptions, values are {{"searched": bool, "found": bool}}.
   Example: {{"missing data": {{"searched": true, "found": false}}}}. Use {{}} if no gaps.
 - domain_expansion_request: list of strings or null

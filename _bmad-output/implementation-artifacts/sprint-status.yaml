@@ -146,9 +146,10 @@ development_status:
   # Epic 10: Agent Quality Evaluation Infrastructure
   # E2E evaluation with LLM-as-judge comparing Quilto vs Claude baseline
   # Research: research/technical-llm-agent-quality-evaluation-research-2026-01-19.md
-  epic-10: in-progress
+  epic-10: done
   10-1-create-e2e-evaluation-dataset: done  # Extend existing 10 query cases + 40 new
   10-2-generate-claude-baseline-responses: done
   10-3-implement-pairwise-llm-as-judge: done  # Position swap, DeepEval
   10-4-integrate-evaluation-with-pytest-cicd: done
-  10-5-fix-retrieval-strategy-priority: backlog  # Date-range first, keyword fallback
+  10-5-fix-retrieval-strategy-priority: done  # Date-range first, keyword fallback
+  epic-10-retrospective: optional

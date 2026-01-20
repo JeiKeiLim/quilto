@@ -1749,3 +1749,374 @@ class TestRetrieverLanguageMismatch:
         # Should find the Korean entry
         assert len(result.entries) == 1
         assert "벤치프레스" in result.entries[0].raw_content
+
+
+# =============================================================================
+# Test Priority Execution (Story 10.5)
+# =============================================================================
+
+
+class TestRetrieverPriorityExecution:
+    """Tests for retrieval instruction priority execution (Story 10.5: AC: 3, 4, 6)."""
+
+    @pytest.fixture
+    def mock_storage(self) -> MagicMock:
+        """Create mock storage repository."""
+        mock = MagicMock(spec=StorageRepository)
+        return mock
+
+    @pytest.fixture
+    def sample_entries(self) -> list[Entry]:
+        """Create sample entries for testing."""
+        return [
+            Entry(
+                id="entry1",
+                date=date(2026, 1, 1),
+                timestamp=datetime(2026, 1, 1, 10, 0, 0),
+                raw_content="Entry 1 from date range",
+            ),
+            Entry(
+                id="entry2",
+                date=date(2026, 1, 2),
+                timestamp=datetime(2026, 1, 2, 10, 0, 0),
+                raw_content="Entry 2 from keyword",
+            ),
+        ]
+
+    @pytest.mark.asyncio
+    async def test_priority_1_executes_before_priority_2(
+        self, mock_storage: MagicMock, sample_entries: list[Entry]
+    ) -> None:
+        """Priority 1 instruction executes before priority 2 (AC: 3)."""
+        # Setup: date_range returns entry1, keyword returns entry2
+        mock_storage.get_entries_by_date_range.return_value = [sample_entries[0]]
+        mock_storage.search_entries.return_value = [sample_entries[1]]
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    # Put keyword FIRST in list but with HIGHER priority number
+                    {
+                        "strategy": "keyword",
+                        "params": {"keywords": ["test"]},
+                        "sub_query_id": 2,
+                        "priority": 2,
+                    },
+                    # date_range SECOND in list but with LOWER priority number (executes first)
+                    {
+                        "strategy": "date_range",
+                        "params": {"start_date": "2026-01-01", "end_date": "2026-01-01"},
+                        "sub_query_id": 1,
+                        "priority": 1,
+                    },
+                ],
+                enable_progressive_expansion=False,
+            )
+        )
+
+        # Entries should be in priority order: date_range (priority=1) first
+        assert result.entries[0].id == "entry1"  # from date_range
+        assert result.entries[1].id == "entry2"  # from keyword
+
+    @pytest.mark.asyncio
+    async def test_same_priority_maintains_original_order(
+        self, mock_storage: MagicMock, sample_entries: list[Entry]
+    ) -> None:
+        """Same priority maintains original instruction order (stable sort, AC: 3)."""
+        mock_storage.get_entries_by_date_range.return_value = [sample_entries[0]]
+        mock_storage.search_entries.return_value = [sample_entries[1]]
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    {
+                        "strategy": "date_range",
+                        "params": {"start_date": "2026-01-01", "end_date": "2026-01-01"},
+                        "sub_query_id": 1,
+                        "priority": 1,
+                    },
+                    {
+                        "strategy": "keyword",
+                        "params": {"keywords": ["test"]},
+                        "sub_query_id": 2,
+                        "priority": 1,  # Same priority
+                    },
+                ],
+                enable_progressive_expansion=False,
+            )
+        )
+
+        # Same priority: original order preserved (date_range first in list)
+        assert result.entries[0].id == "entry1"
+        assert result.entries[1].id == "entry2"
+
+    @pytest.mark.asyncio
+    async def test_missing_priority_defaults_to_1(self, mock_storage: MagicMock, sample_entries: list[Entry]) -> None:
+        """Missing priority field defaults to 1 (AC: 6)."""
+        mock_storage.get_entries_by_date_range.return_value = [sample_entries[0]]
+        mock_storage.search_entries.return_value = [sample_entries[1]]
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    # No priority field (defaults to 1)
+                    {
+                        "strategy": "keyword",
+                        "params": {"keywords": ["test"]},
+                        "sub_query_id": 2,
+                        # No priority - should default to 1
+                    },
+                    {
+                        "strategy": "date_range",
+                        "params": {"start_date": "2026-01-01", "end_date": "2026-01-01"},
+                        "sub_query_id": 1,
+                        # No priority - should default to 1
+                    },
+                ],
+                enable_progressive_expansion=False,
+            )
+        )
+
+        # Both default to priority=1, so original order preserved
+        # keyword is first in list, so keyword entries come first
+        assert result.entries[0].id == "entry2"  # from keyword (first in list)
+        assert result.entries[1].id == "entry1"  # from date_range (second in list)
+
+    @pytest.mark.asyncio
+    async def test_results_merge_first_occurrence_wins(self, mock_storage: MagicMock) -> None:
+        """Results merge correctly with first occurrence winning (AC: 4)."""
+        shared_entry = Entry(
+            id="shared",
+            date=date(2026, 1, 1),
+            timestamp=datetime(2026, 1, 1, 10, 0, 0),
+            raw_content="Shared entry",
+        )
+        # Both strategies return the same entry
+        mock_storage.get_entries_by_date_range.return_value = [shared_entry]
+        mock_storage.search_entries.return_value = [shared_entry]
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    {
+                        "strategy": "date_range",
+                        "params": {"start_date": "2026-01-01", "end_date": "2026-01-01"},
+                        "sub_query_id": 1,
+                        "priority": 1,
+                    },
+                    {
+                        "strategy": "keyword",
+                        "params": {"keywords": ["shared"]},
+                        "sub_query_id": 2,
+                        "priority": 2,
+                    },
+                ],
+                enable_progressive_expansion=False,
+            )
+        )
+
+        # Should only have one entry (deduplicated)
+        assert len(result.entries) == 1
+        assert result.entries[0].id == "shared"
+
+    @pytest.mark.asyncio
+    async def test_invalid_priority_type_uses_default(
+        self, mock_storage: MagicMock, sample_entries: list[Entry]
+    ) -> None:
+        """Invalid priority types (string, None, float) use default=1 (AC: 6)."""
+        mock_storage.get_entries_by_date_range.return_value = [sample_entries[0]]
+        mock_storage.search_entries.return_value = [sample_entries[1]]
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    # String priority - should default to 1
+                    {
+                        "strategy": "keyword",
+                        "params": {"keywords": ["test"]},
+                        "sub_query_id": 1,
+                        "priority": "high",  # Invalid: string
+                    },
+                    # None priority - should default to 1
+                    {
+                        "strategy": "date_range",
+                        "params": {"start_date": "2026-01-01", "end_date": "2026-01-01"},
+                        "sub_query_id": 2,
+                        "priority": None,  # Invalid: None
+                    },
+                ],
+                enable_progressive_expansion=False,
+            )
+        )
+
+        # Should not crash, both default to priority=1, original order preserved
+        assert len(result.entries) == 2
+        # keyword is first in list, so its entries come first
+        assert result.entries[0].id == "entry2"  # from keyword (first in list)
+        assert result.entries[1].id == "entry1"  # from date_range (second in list)
+
+    @pytest.mark.asyncio
+    async def test_float_priority_converts_to_int(self, mock_storage: MagicMock, sample_entries: list[Entry]) -> None:
+        """Float priority values are converted to int (AC: 6)."""
+        mock_storage.get_entries_by_date_range.return_value = [sample_entries[0]]
+        mock_storage.search_entries.return_value = [sample_entries[1]]
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    # Float priority 2.5 -> int 2
+                    {
+                        "strategy": "keyword",
+                        "params": {"keywords": ["test"]},
+                        "sub_query_id": 1,
+                        "priority": 2.5,  # Float, converts to 2
+                    },
+                    # Float priority 1.0 -> int 1
+                    {
+                        "strategy": "date_range",
+                        "params": {"start_date": "2026-01-01", "end_date": "2026-01-01"},
+                        "sub_query_id": 2,
+                        "priority": 1.0,  # Float, converts to 1
+                    },
+                ],
+                enable_progressive_expansion=False,
+            )
+        )
+
+        # date_range has priority 1, keyword has priority 2, so date_range first
+        assert result.entries[0].id == "entry1"  # from date_range (priority 1)
+        assert result.entries[1].id == "entry2"  # from keyword (priority 2)
+
+    @pytest.mark.asyncio
+    async def test_strategies_used_populated(self, mock_storage: MagicMock, sample_entries: list[Entry]) -> None:
+        """strategies_used field is populated correctly (AC: 4)."""
+        mock_storage.get_entries_by_date_range.return_value = [sample_entries[0]]
+        mock_storage.search_entries.return_value = [sample_entries[1]]
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    {
+                        "strategy": "date_range",
+                        "params": {"start_date": "2026-01-01", "end_date": "2026-01-01"},
+                        "sub_query_id": 1,
+                    },
+                    {
+                        "strategy": "keyword",
+                        "params": {"keywords": ["test"]},
+                        "sub_query_id": 2,
+                    },
+                ],
+                enable_progressive_expansion=False,
+            )
+        )
+
+        # Both strategies contributed entries
+        assert "date_range" in result.strategies_used
+        assert "keyword" in result.strategies_used
+        assert len(result.strategies_used) == 2
+
+    @pytest.mark.asyncio
+    async def test_strategies_used_only_contributing(self, mock_storage: MagicMock) -> None:
+        """strategies_used only includes strategies that contributed entries (AC: 4)."""
+        mock_storage.get_entries_by_date_range.return_value = []
+        mock_storage.search_entries.return_value = [
+            Entry(
+                id="entry1",
+                date=date(2026, 1, 1),
+                timestamp=datetime(2026, 1, 1, 10, 0, 0),
+                raw_content="Entry 1",
+            )
+        ]
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    {
+                        "strategy": "date_range",
+                        "params": {"start_date": "2026-01-01", "end_date": "2026-01-01"},
+                        "sub_query_id": 1,
+                    },
+                    {
+                        "strategy": "keyword",
+                        "params": {"keywords": ["test"]},
+                        "sub_query_id": 2,
+                    },
+                ],
+                enable_progressive_expansion=False,
+            )
+        )
+
+        # Only keyword contributed entries
+        assert "keyword" in result.strategies_used
+        assert "date_range" not in result.strategies_used
+        assert len(result.strategies_used) == 1
+
+    @pytest.mark.asyncio
+    async def test_strategies_used_no_duplicates(self, mock_storage: MagicMock) -> None:
+        """strategies_used has no duplicates when same strategy used multiple times (AC: 4)."""
+        entry1 = Entry(
+            id="entry1",
+            date=date(2026, 1, 1),
+            timestamp=datetime(2026, 1, 1, 10, 0, 0),
+            raw_content="Entry 1",
+        )
+        entry2 = Entry(
+            id="entry2",
+            date=date(2026, 1, 2),
+            timestamp=datetime(2026, 1, 2, 10, 0, 0),
+            raw_content="Entry 2",
+        )
+        mock_storage.search_entries.side_effect = [[entry1], [entry2]]
+
+        retriever = RetrieverAgent(mock_storage)
+        result = await retriever.retrieve(
+            RetrieverInput(
+                instructions=[
+                    {
+                        "strategy": "keyword",
+                        "params": {"keywords": ["test1"]},
+                        "sub_query_id": 1,
+                    },
+                    {
+                        "strategy": "keyword",
+                        "params": {"keywords": ["test2"]},
+                        "sub_query_id": 2,
+                    },
+                ],
+            )
+        )
+
+        # keyword appears only once despite being used twice
+        assert result.strategies_used == ["keyword"]
+
+
+class TestRetrieverOutputStrategiesUsed:
+    """Tests for strategies_used field in RetrieverOutput (Story 10.5)."""
+
+    def test_strategies_used_default_empty(self) -> None:
+        """RetrieverOutput strategies_used defaults to empty list."""
+        output = RetrieverOutput(
+            entries=[],
+            retrieval_summary=[],
+            total_entries_found=0,
+        )
+        assert output.strategies_used == []
+
+    def test_strategies_used_with_values(self) -> None:
+        """RetrieverOutput accepts strategies_used list."""
+        output = RetrieverOutput(
+            entries=[],
+            retrieval_summary=[],
+            total_entries_found=0,
+            strategies_used=["date_range", "keyword"],
+        )
+        assert output.strategies_used == ["date_range", "keyword"]

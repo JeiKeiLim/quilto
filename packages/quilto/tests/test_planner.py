@@ -1551,6 +1551,246 @@ class TestPlannerPromptTodaysDate:
 
 
 # =============================================================================
+# Test Planner Strategy Priority (Story 10.5)
+# =============================================================================
+
+
+class TestPlannerStrategyPriority:
+    """Tests for retrieval strategy priority ordering (Story 10.5: AC: 1, 2, 6)."""
+
+    def test_prompt_includes_strategy_priority_section(self) -> None:
+        """Prompt includes RETRIEVAL STRATEGY PRIORITY section (AC: 1)."""
+        client = create_mock_llm_client({})
+        planner = PlannerAgent(client)
+
+        planner_input = PlannerInput(
+            query="What did I eat last week?",
+            domain_context=create_sample_domain_context(),
+        )
+        prompt = planner.build_prompt(planner_input)
+
+        assert "RETRIEVAL STRATEGY PRIORITY (CRITICAL)" in prompt
+        assert "DATE_RANGE (primary)" in prompt
+        assert "KEYWORD (secondary/fallback)" in prompt
+        assert "priority" in prompt.lower()
+
+    def test_prompt_shows_date_range_first_examples(self) -> None:
+        """Prompt examples show date_range first for temporal queries (AC: 1)."""
+        client = create_mock_llm_client({})
+        planner = PlannerAgent(client)
+
+        planner_input = PlannerInput(
+            query="What did I eat?",
+            domain_context=create_sample_domain_context(),
+        )
+        prompt = planner.build_prompt(planner_input)
+
+        # The example should show date_range before keyword
+        assert '"strategy": "date_range"' in prompt
+        # Verify temporal trigger words are documented
+        assert "temporal trigger words" in prompt.lower()
+        assert "yesterday" in prompt.lower()
+        assert "last" in prompt.lower()
+
+    @pytest.mark.asyncio
+    async def test_temporal_query_date_range_first(self) -> None:
+        """Temporal query 'what did I eat last week' → date_range is FIRST (AC: 1)."""
+        response: dict[str, Any] = {
+            "original_query": "what did I eat last week",
+            "query_type": "simple",
+            "sub_queries": [
+                {
+                    "id": 1,
+                    "question": "what did I eat last week",
+                    "retrieval_strategy": "date_range",
+                    "retrieval_params": {"start_date": "2026-01-13", "end_date": "2026-01-19"},
+                }
+            ],
+            "dependencies": [],
+            "execution_strategy": "coupled",
+            "execution_order": [1],
+            "retrieval_instructions": [
+                {
+                    "strategy": "date_range",
+                    "params": {"start_date": "2026-01-13", "end_date": "2026-01-19"},
+                    "sub_query_id": 1,
+                }
+            ],
+            "gaps_status": {},
+            "next_action": "retrieve",
+            "reasoning": "Temporal query uses date_range as primary strategy",
+        }
+        client = create_mock_llm_client(response)
+        planner = PlannerAgent(client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="what did I eat last week",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        assert len(result.retrieval_instructions) >= 1
+        first_instruction = result.retrieval_instructions[0]
+        assert first_instruction.get("strategy") == "date_range"
+
+    @pytest.mark.asyncio
+    async def test_mixed_query_date_range_first_keyword_second(self) -> None:
+        """Mixed query 'yesterday's bench press' → date_range FIRST, keyword SECOND (AC: 2)."""
+        response: dict[str, Any] = {
+            "original_query": "show me yesterday's bench press",
+            "query_type": "simple",
+            "sub_queries": [
+                {
+                    "id": 1,
+                    "question": "show me yesterday's bench press",
+                    "retrieval_strategy": "date_range",
+                    "retrieval_params": {"start_date": "2026-01-19", "end_date": "2026-01-19"},
+                }
+            ],
+            "dependencies": [],
+            "execution_strategy": "coupled",
+            "execution_order": [1],
+            "retrieval_instructions": [
+                {
+                    "strategy": "date_range",
+                    "params": {"start_date": "2026-01-19", "end_date": "2026-01-19"},
+                    "sub_query_id": 1,
+                    "priority": 1,
+                },
+                {
+                    "strategy": "keyword",
+                    "params": {"keywords": ["bench press"]},
+                    "sub_query_id": 1,
+                    "priority": 2,
+                },
+            ],
+            "gaps_status": {},
+            "next_action": "retrieve",
+            "reasoning": "Temporal + specific query: date_range first, keyword fallback",
+        }
+        client = create_mock_llm_client(response)
+        planner = PlannerAgent(client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="show me yesterday's bench press",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        assert len(result.retrieval_instructions) == 2
+        assert result.retrieval_instructions[0].get("strategy") == "date_range"
+        assert result.retrieval_instructions[1].get("strategy") == "keyword"
+
+    @pytest.mark.asyncio
+    async def test_non_temporal_query_keyword_only(self) -> None:
+        """Non-temporal query 'find all squat entries' → keyword only (AC: 6)."""
+        response: dict[str, Any] = {
+            "original_query": "find all squat entries",
+            "query_type": "simple",
+            "sub_queries": [
+                {
+                    "id": 1,
+                    "question": "find all squat entries",
+                    "retrieval_strategy": "keyword",
+                    "retrieval_params": {"keywords": ["squat"], "semantic_expansion": True},
+                }
+            ],
+            "dependencies": [],
+            "execution_strategy": "coupled",
+            "execution_order": [1],
+            "retrieval_instructions": [
+                {
+                    "strategy": "keyword",
+                    "params": {"keywords": ["squat"], "semantic_expansion": True},
+                    "sub_query_id": 1,
+                }
+            ],
+            "gaps_status": {},
+            "next_action": "retrieve",
+            "reasoning": "Non-temporal query uses keyword strategy",
+        }
+        client = create_mock_llm_client(response)
+        planner = PlannerAgent(client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="find all squat entries",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        assert len(result.retrieval_instructions) == 1
+        assert result.retrieval_instructions[0].get("strategy") == "keyword"
+
+    @pytest.mark.asyncio
+    async def test_multiple_instructions_with_priority(self) -> None:
+        """Multiple instructions generated with priority field (AC: 2)."""
+        response: dict[str, Any] = {
+            "original_query": "what bench did I do yesterday",
+            "query_type": "simple",
+            "sub_queries": [
+                {
+                    "id": 1,
+                    "question": "what bench did I do yesterday",
+                    "retrieval_strategy": "date_range",
+                    "retrieval_params": {"start_date": "2026-01-19", "end_date": "2026-01-19"},
+                }
+            ],
+            "dependencies": [],
+            "execution_strategy": "coupled",
+            "execution_order": [1],
+            "retrieval_instructions": [
+                {
+                    "strategy": "date_range",
+                    "params": {"start_date": "2026-01-19", "end_date": "2026-01-19"},
+                    "sub_query_id": 1,
+                    "priority": 1,
+                },
+                {
+                    "strategy": "keyword",
+                    "params": {"keywords": ["bench"]},
+                    "sub_query_id": 1,
+                    "priority": 2,
+                },
+            ],
+            "gaps_status": {},
+            "next_action": "retrieve",
+            "reasoning": "Date-range is priority 1, keyword is priority 2",
+        }
+        client = create_mock_llm_client(response)
+        planner = PlannerAgent(client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="what bench did I do yesterday",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        assert len(result.retrieval_instructions) == 2
+        # Verify priority fields are present
+        assert result.retrieval_instructions[0].get("priority") == 1
+        assert result.retrieval_instructions[1].get("priority") == 2
+
+    def test_prompt_includes_priority_in_schema(self) -> None:
+        """Prompt schema includes priority field documentation (AC: 3)."""
+        client = create_mock_llm_client({})
+        planner = PlannerAgent(client)
+
+        planner_input = PlannerInput(
+            query="test",
+            domain_context=create_sample_domain_context(),
+        )
+        prompt = planner.build_prompt(planner_input)
+
+        # Schema description should mention priority
+        assert "retrieval_instructions" in prompt
+        assert "priority" in prompt
+
+
+# =============================================================================
 # Integration Tests (Task 10)
 # =============================================================================
 
@@ -1697,3 +1937,68 @@ class TestPlannerIntegration:
         # Note: LLM may or may not set this flag - we assert soft behavior
         # The key is that date_range was chosen, explicit_date is an optimization
         assert "start_date" in params or "end_date" in params
+
+    @pytest.mark.asyncio
+    async def test_real_temporal_query_date_range_first(
+        self, use_real_ollama: bool, integration_llm_config_path: Path
+    ) -> None:
+        """Test temporal query generates date_range as FIRST instruction (Story 10.5)."""
+        if not use_real_ollama:
+            pytest.skip("Requires --use-real-ollama flag")
+
+        config = load_llm_config(integration_llm_config_path)
+        real_llm_client = LLMClient(config)
+        planner = PlannerAgent(real_llm_client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="last week's workouts",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        assert len(result.retrieval_instructions) >= 1
+        # FIRST instruction should be date_range for temporal queries
+        first_instruction = result.retrieval_instructions[0]
+        assert first_instruction.get("strategy") == "date_range", (
+            f"Expected date_range as first instruction for temporal query, got {first_instruction.get('strategy')}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_real_mixed_query_multiple_instructions(
+        self, use_real_ollama: bool, integration_llm_config_path: Path
+    ) -> None:
+        """Test mixed query generates date_range + keyword instructions (Story 10.5).
+
+        Note: LLM may validly choose only date_range if it judges that sufficient.
+        The critical requirement is date_range FIRST (AC1). Multiple instructions
+        with correct ordering is a soft requirement (AC2) that we verify IF present.
+        """
+        if not use_real_ollama:
+            pytest.skip("Requires --use-real-ollama flag")
+
+        config = load_llm_config(integration_llm_config_path)
+        real_llm_client = LLMClient(config)
+        planner = PlannerAgent(real_llm_client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="yesterday's bench press",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        # Should have at least one instruction
+        assert len(result.retrieval_instructions) >= 1, "Expected at least one retrieval instruction"
+        # FIRST instruction MUST be date_range (AC1 - critical requirement)
+        first_instruction = result.retrieval_instructions[0]
+        assert first_instruction.get("strategy") == "date_range", (
+            f"Expected date_range as first for temporal+specific, got {first_instruction.get('strategy')}"
+        )
+        # If multiple instructions, keyword should come second (AC2 - soft requirement)
+        # LLM may validly generate only date_range if deemed sufficient
+        if len(result.retrieval_instructions) > 1:
+            second_instruction = result.retrieval_instructions[1]
+            assert second_instruction.get("strategy") == "keyword", (
+                f"Expected keyword as second instruction, got {second_instruction.get('strategy')}"
+            )

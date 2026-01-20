@@ -120,9 +120,26 @@ class RetrieverAgent:
         retrieval_summary: list[RetrievalAttempt] = []
         warnings: list[str] = []
         expansion_exhausted = False
+        strategies_used: list[str] = []
 
-        # Process each instruction in order
-        for i, instruction in enumerate(retriever_input.instructions, start=1):
+        # Sort instructions by priority (lower = higher priority, default=1)
+        # Defensive: handle non-int priority values gracefully
+        def get_priority(instruction: dict[str, Any]) -> int:
+            """Extract priority with defensive handling for malformed values."""
+            priority = instruction.get("priority", 1)
+            if isinstance(priority, int):
+                return priority
+            if isinstance(priority, float):
+                return int(priority)
+            return 1  # Default for strings, None, or other invalid types
+
+        sorted_instructions = sorted(
+            retriever_input.instructions,
+            key=get_priority,
+        )
+
+        # Process each instruction in priority order
+        for i, instruction in enumerate(sorted_instructions, start=1):
             strategy = instruction.get("strategy", "")
             params = instruction.get("params", {})
             sub_query_id = instruction.get("sub_query_id", i)
@@ -161,6 +178,12 @@ class RetrieverAgent:
                     if attempt.entries_found == 0:
                         warnings.append(f"Retrieval instruction {i} ({strategy}) returned 0 entries")
 
+            # Track strategy if it contributed entries
+            if entries:
+                strategy_name = strategy.lower()
+                if strategy_name and strategy_name not in strategies_used:
+                    strategies_used.append(strategy_name)
+
             all_entries.extend(entries)
 
         # Deduplicate entries by ID, keeping first occurrence
@@ -194,6 +217,7 @@ class RetrieverAgent:
             warnings=warnings,
             truncated=truncated,
             expansion_exhausted=expansion_exhausted,
+            strategies_used=strategies_used,
         )
 
     def _execute_strategy(

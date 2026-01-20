@@ -466,6 +466,7 @@ class RetrieverOutput(BaseModel):
         warnings: List of warning messages (empty results, truncation, errors).
         truncated: True if results were limited by max_entries.
         expansion_exhausted: True if progressive expansion exhausted all tiers and fell back.
+        strategies_used: List of strategies that contributed entries (deduplicated).
     """
 
     model_config = ConfigDict(strict=True)
@@ -479,6 +480,7 @@ class RetrieverOutput(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     truncated: bool = False
     expansion_exhausted: bool = False
+    strategies_used: list[str] = Field(default_factory=list)
 
 
 # =============================================================================

@@ -97,6 +97,7 @@ criterion_profiles:
   retrieval:
     required: ["accuracy", "completeness"]
     optional: ["conciseness"]
+    notes: "Temporal queries should use date-range retrieval as primary strategy"
 
   # Reasoning tests need completeness and domain knowledge
   reasoning:
