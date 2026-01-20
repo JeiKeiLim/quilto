@@ -4,6 +4,7 @@ Tests use mocked dependencies to avoid actual LLM calls.
 """
 
 from collections.abc import Generator
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -244,3 +245,64 @@ class TestErrorHandling:
         # Generic exceptions are caught by the route handler and returned as HTTPException
         # The detail contains the error type name
         assert "RuntimeError" in data.get("detail", "")
+
+
+class TestExecuteQueryPipelineCollectOutputs:
+    """Tests for collect_outputs parameter in execute_query_pipeline (Story 11.2 Task 4.5).
+
+    These tests verify the collect_outputs parameter behavior. Integration tests
+    for auto_cmd are in test_cli_auto.py::TestAutoCommandFeedbackIntegration.
+    """
+
+    @pytest.mark.asyncio
+    async def test_collect_outputs_parameter_signature_exists(self) -> None:
+        """Test that execute_query_pipeline accepts collect_outputs parameter."""
+        import inspect
+
+        from swealog.api.routes.query import execute_query_pipeline
+
+        sig = inspect.signature(execute_query_pipeline)
+        params = list(sig.parameters.keys())
+
+        assert "collect_outputs" in params
+        # Verify it has a default value of False
+        collect_param = sig.parameters["collect_outputs"]
+        assert collect_param.default is False
+
+    @pytest.mark.asyncio
+    async def test_query_endpoint_does_not_use_collect_outputs(self, override_dependencies: None) -> None:
+        """Test that /query endpoint doesn't pass collect_outputs (uses default False)."""
+        mock_result = {
+            "response": "Test response",
+            "sources": ["2026-01-10"],
+            "confidence": 0.85,
+            "is_partial": False,
+        }
+
+        with patch(
+            "swealog.api.routes.query.execute_query_pipeline",
+            new_callable=AsyncMock,
+            return_value=mock_result,
+        ) as mock_pipeline:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.post(
+                    "/query",
+                    json={"text": "test query"},
+                )
+
+            assert response.status_code == 200
+            # Endpoint doesn't explicitly pass collect_outputs, uses default False
+            call_kwargs: dict[str, Any] = (
+                dict(mock_pipeline.call_args.kwargs) if mock_pipeline.call_args.kwargs else {}
+            )
+            assert "collect_outputs" not in call_kwargs
+
+    @pytest.mark.asyncio
+    async def test_collect_outputs_docstring_documents_behavior(self) -> None:
+        """Test that the function docstring documents collect_outputs behavior."""
+        from swealog.api.routes.query import execute_query_pipeline
+
+        assert execute_query_pipeline.__doc__ is not None
+        docstring = execute_query_pipeline.__doc__
+        assert "collect_outputs" in docstring
+        assert "intermediate_outputs" in docstring

@@ -1,0 +1,216 @@
+{
+  "id": "2026-01-20_f89c6142",
+  "query": "내가 오늘 기록한 운동이 뭐였지?",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "QUERY",
+      "confidence": 0.99,
+      "selected_domains": [
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The user is asking what workout they logged today, which pertains to general exercise tracking. The GeneralFitness domain covers logging and retrieval of any type of workout activity.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a question (contains a question word and ends with a question mark) and contains no declarative log content, so it is classified as a QUERY."
+    },
+    "planner": {
+      "original_query": "...",
+      "query_type": "simple",
+      "sub_queries": [
+        {
+          "id": 0,
+          "question": "내 …",
+          "retrieval_strategy": "I need to plan",
+          "retrieval_params": {
+            "analysis": "The user query is Korean: \"내가 오늘 기록한 운동이 뭐였지?\" which translates to \"What workout did I log today?\" This is a simple retrieval request for today’s logged exercise. Query type: simple. It is a single sub‑query, so execution_strategy is coupled. Retrieval must use date_range first (today's date 2026‑01‑20) and optionally keyword fallback (e.g., \"운동\" or specific terms). No gaps, no domain expansion, no clarification needed. The plan should output JSON with original_query, query_type, sub_queries, dependencies (none), execution_strategy, execution_order, retrieval_instructions (date_range then keyword), gaps_status empty, domain_expansion_request null, clarify_questions null, next_action \"retrieve\", and reasoning explaining choices. Need to follow schema precisely.",
+            "final": "{\"original_query\":\"내가 오늘 기록한 운동이 뭐였지?\",\"query_type\":\"simple\",\"sub_queries\":[{\"id\":1,\"question\":\"내가 오늘 기록한 운동이 뭐였지?\",\"retrieval_strategy\":\"date_range\",\"retrieval_params\":{\"start_date\":\"2026-01-20\",\"end_date\":\"2026-01-20\",\"explicit_date\":true}}],\"dependencies\":[],\"execution_strategy\":\"coupled\",\"execution_order\":[1],\"retrieval_instructions\":[{\"strategy\":\"date_range\",\"params\":{\"start_date\":\"2026-01-20\",\"end_date\":\"2026-01-20\",\"explicit_date\":true},\"sub_query_id\":1,\"priority\":1},{\"strategy\":\"keyword\",\"params\":{\"keywords\":[\"운동\"],\"semantic_expansion\":true},\"sub_query_id\":1,\"priority\":2}],\"gaps_status\":{},\"domain_expansion_request\":null,\"expansion_reasoning\":null,\"clarify_questions\":null,\"next_action\":\"retrieve\",\"reasoning\":\"The query asks for the workout logged today, which is a simple retrieval. It maps to a single sub‑query. According to the policy, temporal queries require a DATE_RANGE retrieval first (today's date 2026‑01‑20) and then a fallback KEYWORD search for the term \\\"운동\\\" in case the date filter returns no records. No gaps, domain expansion, or clarification are needed, so the next action is to retrieve.\"}"
+          }
+        }
+      ],
+      "dependencies": [
+        {
+          "from": 1,
+          "to:": "   "
+        }
+      ],
+      "execution_strategy": "coupled",
+      "execution_order": [
+        -1
+      ],
+      "retrieval_instructions": [
+        {
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2026-01-20",
+            "end_date": "2026-?..."
+          },
+          "sub_query_id": 1,
+          "priority": 1
+        }
+      ],
+      "gaps_status": {
+        "...": {
+          "...": "}..."
+        },
+        "next_action ... .........​.........???": {
+          "original_query": "내가 오늘 기록한 운동이 뭐였지?",
+          "query_type": "simple",
+          "sub_queries": [
+            {
+              "id": 1,
+              "question": "내가 오늘 기록...",
+              "retrieval_strategy": "date_range",
+              "retrieval_params": {
+                "start_date": "2026-01-20",
+                "end_date": "2026-01-20",
+                "explicit_date": true
+              }
+            }
+          ],
+          "dependencies": "",
+          "execution_strategy": "coupled",
+          "execution_order": [
+            1
+          ],
+          "retrieval_instructions": [
+            ""
+          ]
+        }
+      },
+      "domain_expansion_request": null,
+      "expansion_reasoning": null,
+      "clarify_questions": null,
+      "next_action": "retrieve",
+      "reasoning": "..."
+    },
+    "retriever": {
+      "entries": [],
+      "retrieval_summary": [],
+      "total_entries_found": 0,
+      "date_range_covered": null,
+      "warnings": [
+        "Invalid date format in instruction 1: Invalid isoformat string: '2026-?...'"
+      ],
+      "truncated": false,
+      "expansion_exhausted": false,
+      "strategies_used": []
+    },
+    "analyzer": {
+      "query_intent": "That's",
+      "findings": [
+        {
+          "claim": "There           …     … ...",
+          "evidence": [
+            "..."
+          ],
+          "confidence": "low"
+        }
+      ],
+      "patterns_identified": [
+        "Theit",
+        "..."
+      ],
+      "sufficiency_evaluation": {
+        "critical_gaps": [
+          {
+            "description": "...",
+            "gap_type": "clarification",
+            "severity": "critical",
+            "searched": false,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          },
+          {
+            "description": "......",
+            "gap_type": "topical",
+            "severity": "critical",
+            "searched": false,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": "}"
+          },
+          {
+            "description": "Thes...",
+            "gap_type": "contextual",
+            "severity": "critical",
+            "searched": false,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": "..."
+          }
+        ],
+        "nice_to_have_gaps": [
+          {
+            "description": "User's personal workout log data from today (specific exercises, sets, reps, etc.)",
+            "gap_type": "subjective",
+            "severity": "nice_to_have",
+            "searched": false,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          }
+        ],
+        "evidence_check_passed": false,
+        "speculation_risk": "high"
+      },
+      "verdict_reasoning": "The",
+      "verdict": "insufficient"
+    },
+    "synthesizer": {
+      "response": "오늘 기록한 운동에 대한 데이터가 없습니다.",
+      "key_points": [
+        "No record of today’s training was found"
+      ],
+      "evidence_cited": [
+        "2026-01-20: No specific entry found for today’s training"
+      ],
+      "gaps_disclosed": [
+        "Unable to locate a recorded training session for today in the available data"
+      ],
+      "confidence": "low"
+    },
+    "evaluator": {
+      "dimensions": [
+        {
+          "dimension": "accuracy",
+          "verdict": "sufficient",
+          "reasoning": "The response correctly states that there is no data about today's recorded exercise, which aligns with the lack of available evidence.",
+          "issues": []
+        },
+        {
+          "dimension": "relevance",
+          "verdict": "sufficient",
+          "reasoning": "The answer directly addresses the user's query about which exercise was recorded today by informing them that no such data exists.",
+          "issues": []
+        },
+        {
+          "dimension": "safety",
+          "verdict": "sufficient",
+          "reasoning": "The response contains no health‑related advice or recommendations, so it poses no safety concerns.",
+          "issues": []
+        },
+        {
+          "dimension": "completeness",
+          "verdict": "sufficient",
+          "reasoning": "Given the system has no record of today's workout, the response fully answers the question with the information available.",
+          "issues": []
+        }
+      ],
+      "overall_verdict": "sufficient",
+      "feedback": [],
+      "recommendation": "accept"
+    }
+  },
+  "final_response": "오늘 기록한 운동에 대한 데이터가 없습니다.",
+  "user_feedback": "오늘 기록한 운동이 있는데도, 운동 데이터가 없다고 나옴. retriever range 에서 ? 글자가 있어서 제대로 retrieve 이 안된 것 같",
+  "session": {
+    "timestamp": "2026-01-20 17:35:49.161136",
+    "input_type": "QUERY",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true
+  },
+  "feedback_sentiment": null
+}

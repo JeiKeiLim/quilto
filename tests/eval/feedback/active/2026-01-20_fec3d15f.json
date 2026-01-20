@@ -1,0 +1,316 @@
+{
+  "id": "2026-01-20_fec3d15f",
+  "query": "내일 운동을 뭘하는게 좋지?",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "QUERY",
+      "confidence": 0.96,
+      "selected_domains": [
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The user is asking for a recommendation on what workout to do tomorrow. This pertains to planning a fitness activity, which falls under the GeneralFitness domain that covers workout suggestions, exercise selection, and overall fitness planning.",
+      "log_portion": null,
+      "query_portion": "내일 운동을 뭘하는게 좋지?",
+      "correction_target": null,
+      "reasoning": "The sentence is a question (contains a question word and ends with a question mark) and does not contain any correction language or declarative logging, so it is classified as a QUERY with high confidence."
+    },
+    "planner": {
+      "original_query": "내일 운동을 뭘하는게 좋지?",
+      "query_type": "recommendation",
+      "sub_queries": [
+        {
+          "id": 1,
+          "question": "지난 7일간 내가 어떤 운동을 했는지 알려줘.",
+          "retrieval_strategy": "date_range",
+          "retrieval_params": {
+            "start_date": "2026-01-13",
+            "end_date": "2026-01-20",
+            "explicit_date": false
+          }
+        },
+        {
+          "id": 2,
+          "question": "내일 할 운동을 추천해줘.",
+          "retrieval_strategy": "topical",
+          "retrieval_params": {
+            "topics": [
+              "workout"
+            ],
+            "related_terms": []
+          }
+        }
+      ],
+      "dependencies": [
+        {
+          "from": 1,
+          "to": 2,
+          "reason": "추천을 만들기 위해 최근 운동 기록을 분석해야 함"
+        }
+      ],
+      "execution_strategy": "dependent",
+      "execution_order": [
+        1,
+        2
+      ],
+      "retrieval_instructions": [
+        {
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2026-01-13",
+            "end_date": "2026-01-20",
+            "explicit_date": false
+          },
+          "sub_query_id": 1,
+          "priority": 1
+        },
+        {
+          "strategy": "keyword",
+          "params": {
+            "keywords": [
+              "운동"
+            ],
+            "semantic_expansion": true
+          },
+          "sub_query_id": 1,
+          "priority": 2
+        }
+      ],
+      "gaps_status": {},
+      "domain_expansion_request": null,
+      "expansion_reasoning": null,
+      "clarify_questions": null,
+      "next_action": "retrieve",
+      "reasoning": "The user asks for a workout recommendation for tomorrow, which is a recommendation query. To give a sensible suggestion we first need to know what workouts the user performed recently, so we create a dependent sub‑query that retrieves the past week's logs using a DATE_RANGE strategy (primary, language‑agnostic). Because the logs may be in Korean, we add a fallback KEYWORD search for the term \"운동\". Once the recent activity data is retrieved, we can generate a tailored recommendation. No domain expansion or clarification is required."
+    },
+    "retriever": {
+      "entries": [
+        {
+          "id": "2026-01-13_09-00-00",
+          "date": "2026-01-13",
+          "timestamp": "2026-01-13 09:00:00",
+          "raw_content": "러닝머신 9km 속도로 약 4.7키로 뜀. 심박수 160 대로 유지함. 왼쪽 발목 근육 느낌이 지치는 느낌이 조금 났지만 무시하고 뛸만한 느낌. 허벅지 맨 살이 계속 스치면서 열상 조금 입음",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-15_09-00-00",
+          "date": "2026-01-15",
+          "timestamp": "2026-01-15 09:00:00",
+          "raw_content": "시티드 덤벨 숄더 프레스 한쪽당 30lbs 10개, 35lbs 10개, 그리고 9개 진행. 슈퍼세트로 동시에 덤벨 원암 로우 65lbs 10개, 10개, 70lbs 10개 진행함. 원암 로우는 할때 하체가 조금 힘든 느낌을 받음. 그리고 휴식 시간마다 행잉 레그 레이즈드 크런치 10개씩 진행함. 이후에 러닝 8km 속도로 1.5km 뜀.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-19_09-00-00",
+          "date": "2026-01-19",
+          "timestamp": "2026-01-19 09:00:00",
+          "raw_content": "러닝머신에서 5km 뜀. 9km 속도로 4.5 km 뛰고 나머지 500m 는 12km 속도로 뜀. 스트레칭도 많이 해주고 뛰었는데 이상하게 오늘따라 왼쪽 정강이 근육이 많이 지쳤음. 9km 뛸때 심박수 160정도 수준 유지. 12km 속도로 뛸때도 180 초중반 수준이라 심장은 문제 없었던걸로 보임.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-20_14-27-00",
+          "date": "2026-01-20",
+          "timestamp": "2026-01-20 14:27:00",
+          "raw_content": "천국의 계단 15분 탐. 심박수 약 160대로 유지. 오늘은 감기기운이 살짝 있는 것같아서 조금만 함. 스트레칭 5분 정도 추가 진행",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-07_09-00-00",
+          "date": "2026-01-07",
+          "timestamp": "2026-01-07 09:00:00",
+          "raw_content": "점심 운동 매우 짧게 함. 웨이트 20분, 러닝 13분, 스트레칭 5분.\n55파운드 한쪽씩 들고 인클라인 벤치프레스 수행. 8개, 7개, 8개 3세트함. 슈퍼세트로 풀업 10개, 5개(이후 3개 네거티브), 7개(이후 1개 네거티브) 수행. 꽤 오랜만에 운동한건데도 어깨 회복이 완전히 되지 않은 느낌을 받음. 인클라인 벤치프레스에서 어깨에 근육통이 느껴짐. 가슴에 집중해서 수행함.\n러닝은 9km 로 유지. 배고파서 그런지 빨리 지쳤음.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-08_09-00-00",
+          "date": "2026-01-08",
+          "timestamp": "2026-01-08 09:00:00",
+          "raw_content": "준비운동으로 케이블 머신에서 후면 삼각근 운동 5키로로 양쪽 동시에 진행. 그리고 행잉 레그레이즈드 크런치 슈퍼세트 약 10분 진행\n그 뒤에 로잉머신 500m 약 2분 페이스로 진행 + 숄더 프레스 머신에서 30키로 와 35키로로 2세트 진행 후 어깨가 회복이 완전하지 않은것 같아서 레그레이즈드 크런치 1세트로 총 3세트 진행\n시간이 얼마 없어서 러닝머신 12분 뜀. 8에서 주로 뛰다 중간쯤에 10초에 0.1씩 올려서 10으로 뜀. 어렵지 않았음 \n점심 운동 총 45분",
+          "parsed_data": null
+        }
+      ],
+      "retrieval_summary": [
+        {
+          "attempt_number": 1,
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2026-01-13",
+            "end_date": "2026-01-20",
+            "explicit_date": false
+          },
+          "entries_found": 4,
+          "summary": "Retrieved 4 entries from 2026-01-13 to 2026-01-20",
+          "expanded_terms": [],
+          "expansion_tier": 0
+        },
+        {
+          "attempt_number": 2,
+          "strategy": "keyword",
+          "params": {
+            "keywords": [
+              "운동"
+            ],
+            "semantic_expansion": true
+          },
+          "entries_found": 2,
+          "summary": "Searched for 1 terms, found 2 entries",
+          "expanded_terms": [
+            "운동"
+          ],
+          "expansion_tier": 0
+        }
+      ],
+      "total_entries_found": 6,
+      "date_range_covered": {
+        "start": "2026-01-07",
+        "end": "2026-01-20"
+      },
+      "warnings": [],
+      "truncated": false,
+      "expansion_exhausted": false,
+      "strategies_used": [
+        "date_range",
+        "keyword"
+      ]
+    },
+    "analyzer": {
+      "query_intent": "User is asking for a recommendation on what workout to do tomorrow.",
+      "findings": [
+        {
+          "claim": "The user’s left lower‑leg (shin/ankle) muscles have been feeling fatigued and slightly sore in the past few runs.",
+          "evidence": [
+            "2026-01-13: ‘왼쪽 발목 근육 느낌이 지치는 느낌이 조금 났지만…’",
+            "2026-01-19: ‘왼쪽 정강이 근육이 많이 지쳤음’"
+          ],
+          "confidence": "high"
+        },
+        {
+          "claim": "The user’s shoulders are experiencing soreness and incomplete recovery after recent pressing movements.",
+          "evidence": [
+            "2026-01-15: ‘시티드 덤벨 숄더 프레스… 어깨가 회복이 완전하지 않은것 같아서’",
+            "2026-01-07: ‘인클라인 벤치프레스에서 어깨에 근육통이 느껴짐’",
+            "2026-01-08: ‘어깨가 회복이 완전하지 않은것 같아서’"
+          ],
+          "confidence": "high"
+        },
+        {
+          "claim": "Cardio volume and intensity have been high over the last week (multiple 8‑12 km runs at 9‑12 km/h, heart rate 160‑180).",
+          "evidence": [
+            "2026-01-13: ‘러닝머신 9km 속도로 약 4.7키로 뜀. 심박수 160 대로 유지함’",
+            "2026-01-15: ‘이후에 러닝 8km 속도로 1.5km 뜀’",
+            "2026-01-19: ‘5km 뜀. 9km 속도로 4.5 km… 12km 속도로… 심박수 160‑180’",
+            "2026-01-20: ‘천국의 계단 15분 탐. 심박수 약 160대로 유지’"
+          ],
+          "confidence": "medium"
+        },
+        {
+          "claim": "Strength work has focused on upper‑body pulling (rows, pull‑ups) and pressing (shoulder press, incline bench), with some core work (leg raises).",
+          "evidence": [
+            "2026-01-15: ‘덤벨 숄더 프레스… 덤벨 원암 로우… 행잉 레그 레이즈드 크런치’",
+            "2026-01-07: ‘인클라인 벤치프레스… 풀업… 행잉 레그 레이즈드 크런치’",
+            "2026-01-08: ‘후면 삼각근… 로잉머신… 숄더 프레스 머신… 레그레이즈드 크런치’"
+          ],
+          "confidence": "medium"
+        }
+      ],
+      "patterns_identified": [
+        "High cardio load in the past week.",
+        "Recurring left‑leg/ankle/shin fatigue.",
+        "Shoulder soreness after pressing movements.",
+        "Mixed upper‑body strength sessions with core work."
+      ],
+      "sufficiency_evaluation": {
+        "critical_gaps": [],
+        "nice_to_have_gaps": [
+          {
+            "description": "User’s specific fitness goals (e.g., strength gain, weight loss, endurance) are unknown.",
+            "gap_type": "subjective",
+            "severity": "nice_to_have",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          },
+          {
+            "description": "Available equipment and time budget for tomorrow’s workout are not provided.",
+            "gap_type": "subjective",
+            "severity": "nice_to_have",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          },
+          {
+            "description": "Any upcoming events or constraints (e.g., work schedule, travel) that could affect workout choice.",
+            "gap_type": "contextual",
+            "severity": "nice_to_have",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          }
+        ],
+        "evidence_check_passed": true,
+        "speculation_risk": "low"
+      },
+      "verdict_reasoning": "The log entries provide clear evidence of recent training load, specific areas of fatigue (left lower‑leg and shoulders), and the types of activities the user has been doing. This is sufficient to formulate a sensible, injury‑aware recommendation (e.g., active recovery, lower‑body focus, or light upper‑body work). However, the user’s exact goals, equipment availability, and time constraints are not recorded, which limits the precision of the suggestion. Because these missing pieces are not critical for giving a general recommendation, the overall information is adequate but with noted limitations.",
+      "verdict": "partial"
+    },
+    "synthesizer": {
+      "response": "내일은 회복과 부상 예방을 우선으로 하세요.\n- 저강도·저충격 유산소(예: 실내 사이클, 로잉)로 심박수를 120‑130 bpm 정도 유지\n- 어깨에 부담을 주지 않는 상체 당기기 운동(시티드 로우, 풀업 변형) 중심\n- 어깨와 왼쪽 정강이·발목 스트레칭·가동성 훈련\n- 가벼운 코어(플랭크, 데드버그)로 마무리",
+      "key_points": [
+        "저강도·저충격 유산소로 다리 회복",
+        "어깨에 부담 없는 상체 당기기 위주",
+        "어깨와 왼쪽 정강이·발목 스트레칭·가동성 훈련 포함",
+        "가벼운 코어로 마무리"
+      ],
+      "evidence_cited": [
+        "2026-01-13: 왼쪽 정강이 근육 피로",
+        "2026-01-15: 어깨 회복 미완전",
+        "2026-01-07: 인클라인 벤치프레스 후 어깨 통증",
+        "2026-01-19: 고강도 러닝(8‑12 km, HR 160‑180) 지속"
+      ],
+      "gaps_disclosed": [],
+      "confidence": "medium"
+    },
+    "evaluator": {
+      "dimensions": [
+        {
+          "dimension": "accuracy",
+          "verdict": "sufficient",
+          "reasoning": "The recommendations (low‑intensity cardio, pulling‑focused upper‑body work, targeted stretching for the shoulder and left shin/ankle, and light core) directly address the documented issues of left‑leg fatigue, shoulder soreness, and recent high cardio load. No contradictory or unsupported claims are made.",
+          "issues": []
+        },
+        {
+          "dimension": "relevance",
+          "verdict": "sufficient",
+          "reasoning": "The user asked what to train tomorrow; the response provides a concrete workout plan for the next day, which is exactly what was requested.",
+          "issues": []
+        },
+        {
+          "dimension": "safety",
+          "verdict": "sufficient",
+          "reasoning": "The plan avoids prescribing heavy or high‑impact exercises without knowing the user’s fitness level, emphasizes recovery, and does not give medical advice. It follows all domain safety rules.",
+          "issues": []
+        },
+        {
+          "dimension": "completeness",
+          "verdict": "sufficient",
+          "reasoning": "All major components of a recovery‑oriented session are covered: cardio, upper‑body pulling, mobility/stretching for the problematic areas, and core work. This satisfies the user’s request for a tomorrow workout.",
+          "issues": []
+        }
+      ],
+      "overall_verdict": "sufficient",
+      "feedback": [],
+      "recommendation": "accept"
+    }
+  },
+  "final_response": "내일은 회복과 부상 예방을 우선으로 하세요.\n- 저강도·저충격 유산소(예: 실내 사이클, 로잉)로 심박수를 120‑130 bpm 정도 유지\n- 어깨에 부담을 주지 않는 상체 당기기 운동(시티드 로우, 풀업 변형) 중심\n- 어깨와 왼쪽 정강이·발목 스트레칭·가동성 훈련\n- 가벼운 코어(플랭크, 데드버그)로 마무리",
+  "user_feedback": "Not bad. It recommended based on my logs. But it would be better to give why it recommended this. And the workout plan could have been more detailed program.",
+  "session": {
+    "timestamp": "2026-01-20 18:40:10.657326",
+    "input_type": "QUERY",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true
+  },
+  "feedback_sentiment": null
+}

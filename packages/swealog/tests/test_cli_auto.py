@@ -317,3 +317,308 @@ class TestAutoCommandUnexpectedInputType:
             # Falls back to LOG flow
             assert "Logged entry:" in result.output
             mock_log_flow.assert_called_once()
+
+
+class TestPromptForFeedback:
+    """Tests for _prompt_for_feedback() helper function (Story 11.2 Task 5.6)."""
+
+    def test_returns_none_when_debug_disabled(self) -> None:
+        """_prompt_for_feedback returns None when debug=False."""
+        from swealog.cli.auto_cmd import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
+
+        result = _prompt_for_feedback(debug=False)
+        assert result is None
+
+    def test_returns_user_input_when_debug_enabled(self) -> None:
+        """_prompt_for_feedback returns user input when debug=True."""
+        from swealog.cli.auto_cmd import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
+
+        with patch("swealog.cli.auto_cmd.typer.prompt", return_value="Great response!"):
+            result = _prompt_for_feedback(debug=True)
+            assert result == "Great response!"
+
+    def test_returns_empty_string_when_user_skips(self) -> None:
+        """_prompt_for_feedback returns empty string when user presses Enter."""
+        from swealog.cli.auto_cmd import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
+
+        with patch("swealog.cli.auto_cmd.typer.prompt", return_value=""):
+            result = _prompt_for_feedback(debug=True)
+            assert result == ""
+
+    def test_prompt_message_is_correct(self) -> None:
+        """_prompt_for_feedback uses correct prompt message."""
+        from swealog.cli.auto_cmd import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
+
+        with patch("swealog.cli.auto_cmd.typer.prompt", return_value="feedback") as mock_prompt:
+            _prompt_for_feedback(debug=True)
+            mock_prompt.assert_called_once_with(
+                "How was this response? (press Enter to skip)",
+                default="",
+                show_default=False,
+            )
+
+
+class TestRecordFeedback:
+    """Tests for _record_feedback() helper function (Story 11.2 Task 6.6)."""
+
+    def test_returns_none_when_no_intermediate_outputs(self, tmp_path: Any) -> None:
+        """_record_feedback returns None when result has no intermediate_outputs."""
+        from swealog.cli.auto_cmd import _record_feedback  # pyright: ignore[reportPrivateUsage]
+
+        result: dict[str, Any] = {
+            "response": "Test response",
+            "sources": [],
+            "confidence": 0.8,
+            "is_partial": False,
+        }
+
+        path = _record_feedback(  # pyright: ignore[reportPrivateUsage]
+            query="test query",
+            input_type="QUERY",
+            router_output={"input_type": "QUERY"},
+            result=result,
+            user_feedback="Good",
+            config_path=None,
+            storage_path=None,
+        )
+
+        assert path is None
+
+    def test_records_feedback_with_intermediate_outputs(self, tmp_path: Any) -> None:
+        """_record_feedback creates file when intermediate_outputs present."""
+        from pathlib import Path as PathLib
+
+        from swealog.cli.auto_cmd import _record_feedback  # pyright: ignore[reportPrivateUsage]
+
+        result: dict[str, Any] = {
+            "response": "Test response",
+            "sources": [],
+            "confidence": 0.8,
+            "is_partial": False,
+            "intermediate_outputs": {
+                "planner": {"query": "test"},
+                "retriever": {"entries": []},
+                "analyzer": {"verdict": "SUFFICIENT"},
+                "synthesizer": {"response": "test"},
+                "evaluator": {"verdict": "PASS"},
+            },
+        }
+
+        with patch("swealog.cli.auto_cmd.FeedbackRecorder") as mock_recorder_cls:
+            mock_recorder = MagicMock()
+            mock_recorder.record.return_value = tmp_path / "feedback.json"
+            mock_recorder_cls.return_value = mock_recorder
+
+            path = _record_feedback(  # pyright: ignore[reportPrivateUsage]
+                query="test query",
+                input_type="QUERY",
+                router_output={"input_type": "QUERY", "confidence": 0.9},
+                result=result,
+                user_feedback="Great!",
+                config_path=PathLib("/config.yaml"),
+                storage_path=PathLib("/storage"),
+            )
+
+            assert path is not None
+            mock_recorder.record.assert_called_once()
+            # Verify FeedbackRecord was created with correct data
+            call_args = mock_recorder.record.call_args[0][0]
+            assert call_args.query == "test query"
+            assert call_args.user_feedback == "Great!"
+            assert call_args.intermediate_outputs.router["input_type"] == "QUERY"
+
+    def test_records_empty_feedback_when_skipped(self, tmp_path: Any) -> None:
+        """_record_feedback records empty string when user skips feedback."""
+        from swealog.cli.auto_cmd import _record_feedback  # pyright: ignore[reportPrivateUsage]
+
+        result: dict[str, Any] = {
+            "response": "Test response",
+            "sources": [],
+            "confidence": 0.8,
+            "is_partial": False,
+            "intermediate_outputs": {
+                "planner": {"query": "test"},
+                "retriever": {"entries": []},
+                "analyzer": {"verdict": "SUFFICIENT"},
+                "synthesizer": {"response": "test"},
+                "evaluator": {"verdict": "PASS"},
+            },
+        }
+
+        with patch("swealog.cli.auto_cmd.FeedbackRecorder") as mock_recorder_cls:
+            mock_recorder = MagicMock()
+            mock_recorder.record.return_value = tmp_path / "feedback.json"
+            mock_recorder_cls.return_value = mock_recorder
+
+            _record_feedback(  # pyright: ignore[reportPrivateUsage]
+                query="test query",
+                input_type="QUERY",
+                router_output={"input_type": "QUERY"},
+                result=result,
+                user_feedback="",  # Empty = skipped
+                config_path=None,
+                storage_path=None,
+            )
+
+            call_args = mock_recorder.record.call_args[0][0]
+            assert call_args.user_feedback == ""
+
+
+class TestAutoCommandFeedbackIntegration:
+    """Integration tests for feedback recording in auto command (Story 11.2 Task 6.6)."""
+
+    def test_query_flow_prompts_feedback_when_debug(
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+    ) -> None:
+        """Auto QUERY flow with --debug prompts for feedback and records it."""
+        with (
+            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
+            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
+            patch("swealog.cli.auto_cmd.execute_query_pipeline") as mock_query_flow,
+            patch("swealog.cli.auto_cmd.typer.prompt", return_value="Good answer!"),
+            patch("swealog.cli.auto_cmd.FeedbackRecorder") as mock_recorder_cls,
+        ):
+            mock_selector.return_value.get_domain_infos.return_value = []
+            mock_router_cls.return_value.classify = AsyncMock(
+                return_value=MagicMock(
+                    input_type=MagicMock(value="QUERY"),
+                    selected_domains=["GeneralFitness"],
+                    query_portion=None,
+                    correction_target=None,
+                    confidence=0.9,
+                    model_dump=MagicMock(return_value={"input_type": "QUERY"}),
+                )
+            )
+            mock_query_flow.return_value = {
+                "response": "Your progress is good.",
+                "sources": ["2026-01-15"],
+                "confidence": 0.85,
+                "is_partial": False,
+                "intermediate_outputs": {
+                    "planner": {"query": "test"},
+                    "retriever": {"entries": []},
+                    "analyzer": {"verdict": "SUFFICIENT"},
+                    "synthesizer": {"response": "test"},
+                    "evaluator": {"verdict": "PASS"},
+                },
+            }
+            mock_recorder = MagicMock()
+            mock_recorder_cls.return_value = mock_recorder
+
+            result = runner.invoke(app, ["auto", "--debug", "how's my progress?"])
+
+            assert result.exit_code == 0
+            # Verify feedback was recorded
+            mock_recorder.record.assert_called_once()
+
+    def test_query_flow_no_feedback_prompt_without_debug(
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+    ) -> None:
+        """Auto QUERY flow without --debug does not prompt for feedback."""
+        with (
+            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
+            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
+            patch("swealog.cli.auto_cmd.execute_query_pipeline") as mock_query_flow,
+            patch("swealog.cli.auto_cmd.typer.prompt") as mock_prompt,
+            patch("swealog.cli.auto_cmd.FeedbackRecorder") as mock_recorder_cls,
+        ):
+            mock_selector.return_value.get_domain_infos.return_value = []
+            mock_router_cls.return_value.classify = AsyncMock(
+                return_value=MagicMock(
+                    input_type=MagicMock(value="QUERY"),
+                    selected_domains=["GeneralFitness"],
+                    query_portion=None,
+                    correction_target=None,
+                    confidence=0.9,
+                )
+            )
+            mock_query_flow.return_value = {
+                "response": "Your progress is good.",
+                "sources": ["2026-01-15"],
+                "confidence": 0.85,
+                "is_partial": False,
+            }
+
+            result = runner.invoke(app, ["auto", "how's my progress?"])
+
+            assert result.exit_code == 0
+            # No prompt, no recording
+            mock_prompt.assert_not_called()
+            mock_recorder_cls.return_value.record.assert_not_called()
+
+    def test_both_flow_prompts_feedback_when_debug(
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+    ) -> None:
+        """Auto BOTH flow with --debug prompts for feedback after query portion."""
+        with (
+            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
+            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
+            patch("swealog.cli.auto_cmd.execute_log_flow") as mock_log_flow,
+            patch("swealog.cli.auto_cmd.execute_query_pipeline") as mock_query_flow,
+            patch("swealog.cli.auto_cmd.typer.prompt", return_value="Helpful!"),
+            patch("swealog.cli.auto_cmd.FeedbackRecorder") as mock_recorder_cls,
+        ):
+            mock_selector.return_value.get_domain_infos.return_value = []
+            mock_router_cls.return_value.classify = AsyncMock(
+                return_value=MagicMock(
+                    input_type=MagicMock(value="BOTH"),
+                    selected_domains=["GeneralFitness"],
+                    query_portion="how does this compare?",
+                    correction_target=None,
+                    confidence=0.9,
+                    model_dump=MagicMock(return_value={"input_type": "BOTH"}),
+                )
+            )
+            mock_log_flow.return_value = "2026-01-20_12-00-00"
+            mock_query_flow.return_value = {
+                "response": "Compared to last week...",
+                "sources": [],
+                "confidence": 0.8,
+                "is_partial": False,
+                "intermediate_outputs": {
+                    "planner": {"query": "test"},
+                    "retriever": {"entries": []},
+                    "analyzer": {"verdict": "SUFFICIENT"},
+                    "synthesizer": {"response": "test"},
+                    "evaluator": {"verdict": "PASS"},
+                },
+            }
+            mock_recorder = MagicMock()
+            mock_recorder_cls.return_value = mock_recorder
+
+            result = runner.invoke(app, ["auto", "--debug", "bench 200x5, how does this compare?"])
+
+            assert result.exit_code == 0
+            mock_recorder.record.assert_called_once()
+
+    def test_log_flow_no_feedback_prompt(
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+    ) -> None:
+        """Auto LOG flow does not prompt for feedback even with --debug."""
+        with (
+            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
+            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
+            patch("swealog.cli.auto_cmd.execute_log_flow") as mock_log_flow,
+            patch("swealog.cli.auto_cmd.typer.prompt") as mock_prompt,
+        ):
+            mock_selector.return_value.get_domain_infos.return_value = []
+            mock_router_cls.return_value.classify = AsyncMock(
+                return_value=MagicMock(
+                    input_type=MagicMock(value="LOG"),
+                    selected_domains=["GeneralFitness"],
+                    query_portion=None,
+                    correction_target=None,
+                    confidence=0.9,
+                )
+            )
+            mock_log_flow.return_value = "2026-01-20_12-00-00"
+
+            result = runner.invoke(app, ["auto", "--debug", "bench 200x5"])
+
+            assert result.exit_code == 0
+            # LOG flow should never prompt for feedback
+            mock_prompt.assert_not_called()

@@ -96,6 +96,7 @@ async def execute_query_pipeline(
     storage: StorageRepository,
     domains: list[DomainModule],
     debug_callback: DebugCallback | None = None,
+    collect_outputs: bool = False,
 ) -> dict[str, Any]:
     """Execute the full query pipeline.
 
@@ -110,9 +111,14 @@ async def execute_query_pipeline(
         debug_callback: Optional callback for debug logging.
             Called with (agent_name, event, summary, elapsed_time).
             event is "start", "output", or "end".
+        collect_outputs: If True, include intermediate_outputs in result.
+            Note: router_output is NOT included here - capture it in auto_cmd.py
+            since Router runs before this function in the auto flow.
 
     Returns:
         Dict with response, sources, confidence, and is_partial.
+        If collect_outputs=True, also includes intermediate_outputs dict
+        (excluding router - that runs before pipeline in auto flow).
     """
     # Initialize domain selector and debug timer
     selector = DomainSelector(domains)
@@ -155,6 +161,10 @@ async def execute_query_pipeline(
     is_partial = False
     final_response = ""
     confidence = 0.0
+    # Initialize for pyright - will be overwritten in loop (loop always runs at least once)
+    analysis: AnalyzerOutput | None = None
+    synthesizer_output: Any = None
+    evaluation: EvaluatorOutput | None = None
 
     while retry_count <= MAX_RETRIES:
         # Step 4: Analyze retrieved entries
@@ -237,12 +247,24 @@ async def execute_query_pipeline(
         )
         retriever_output = await retriever.retrieve(retriever_input)
 
-    return {
+    result: dict[str, Any] = {
         "response": final_response,
         "sources": sources,
         "confidence": confidence,
         "is_partial": is_partial,
     }
+
+    if collect_outputs and analysis is not None and evaluation is not None:
+        # Note: router_output not available here - captured in auto_cmd.py
+        result["intermediate_outputs"] = {
+            "planner": planner_output.model_dump(),
+            "retriever": retriever_output.model_dump(),
+            "analyzer": analysis.model_dump(),
+            "synthesizer": synthesizer_output.model_dump(),
+            "evaluator": evaluation.model_dump(),  # Last evaluation (may be after retry)
+        }
+
+    return result
 
 
 def _format_entries_summary(entries: list[Any]) -> str:
