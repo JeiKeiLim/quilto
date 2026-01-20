@@ -215,6 +215,40 @@ class TestClarificationQuestionModel:
         )
         assert question.required is False
 
+    def test_clarification_question_options_null_list_normalized(self) -> None:
+        """ClarificationQuestion with options=[null] is normalized to None.
+
+        LLMs sometimes return [null] when they mean "no options". This should
+        be normalized to None for proper handling.
+        """
+        question = ClarificationQuestion(
+            question="How do you feel?",
+            gap_addressed="Energy level unclear",
+            options=[None],  # type: ignore[list-item]
+            required=True,
+        )
+        assert question.options is None
+
+    def test_clarification_question_options_mixed_null_filtered(self) -> None:
+        """ClarificationQuestion filters nulls from mixed options list."""
+        question = ClarificationQuestion(
+            question="Which exercise?",
+            gap_addressed="Exercise type unclear",
+            options=["Squats", None, "Deadlifts"],  # type: ignore[list-item]
+            required=True,
+        )
+        assert question.options == ["Squats", "Deadlifts"]
+
+    def test_clarification_question_options_multiple_nulls_normalized(self) -> None:
+        """ClarificationQuestion with options=[null, null] is normalized to None."""
+        question = ClarificationQuestion(
+            question="When?",
+            gap_addressed="Time unclear",
+            options=[None, None],  # type: ignore[list-item]
+            required=True,
+        )
+        assert question.options is None
+
 
 # =============================================================================
 # Test ClarifierInput Model (Task 1.2)

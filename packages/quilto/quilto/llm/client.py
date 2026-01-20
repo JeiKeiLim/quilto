@@ -8,6 +8,7 @@ using litellm as the underlying API.
 import asyncio
 import logging
 import random
+import re
 from typing import Any
 
 import litellm
@@ -52,6 +53,79 @@ class LLMClient:
                 tiers, and agent settings.
         """
         self.config = config
+
+    def _build_response_format(
+        self,
+        response_model: type[BaseModel],
+        provider: ProviderName,
+        strict: bool = True,
+    ) -> dict[str, Any]:
+        """Build provider-appropriate response_format for structured output.
+
+        OpenRouter, OpenAI, and Azure support full JSON schema mode which
+        provides stronger enforcement. Ollama and Anthropic fall back to
+        basic json_object mode (Anthropic uses tool_use for structured output
+        which is outside this method's scope).
+
+        Args:
+            response_model: Pydantic model class defining the response schema.
+            provider: The provider name to build format for.
+            strict: Whether to enable strict schema validation (for supported providers).
+
+        Returns:
+            Response format dict for litellm response_format parameter.
+        """
+        # OpenRouter, OpenAI, Azure support full json_schema
+        if provider in ("openrouter", "openai", "azure"):
+            schema = response_model.model_json_schema()
+            return {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": response_model.__name__,
+                    "strict": strict,
+                    "schema": schema,
+                },
+            }
+        # Ollama and others - use simple json_object
+        return {"type": "json_object"}
+
+    def _extract_json(self, response: str) -> str:
+        """Extract JSON from potentially malformed LLM response.
+
+        Handles common LLM response issues:
+        - Markdown code blocks (```json ... ``` or ``` ... ```)
+        - Single-line comments (//)
+        - Trailing commas before closing braces/brackets
+        - Extra text before/after JSON object
+
+        Args:
+            response: Raw LLM response that may contain JSON.
+
+        Returns:
+            Extracted JSON string, or original response if no JSON found.
+        """
+        # Strip markdown code blocks
+        if "```json" in response:
+            response = response.split("```json")[1].split("```")[0]
+        elif "```" in response:
+            parts = response.split("```")
+            if len(parts) >= 2:
+                response = parts[1].split("```")[0]
+
+        # Remove single-line comments only (block comments not supported)
+        lines = [line for line in response.split("\n") if not line.strip().startswith("//")]
+        response = "\n".join(lines)
+
+        # Find JSON boundaries
+        start = response.find("{")
+        end = response.rfind("}") + 1
+        if start >= 0 and end > start:
+            response = response[start:end]
+            # Remove trailing commas before closing braces/brackets (JSON5-style → JSON)
+            response = re.sub(r",(\s*[}\]])", r"\1", response)
+            return response
+
+        return response
 
     def _get_litellm_model(self, provider: ProviderName, model: str) -> str:
         """Get the litellm-formatted model name.
@@ -190,6 +264,8 @@ class LLMClient:
 
         Makes a completion request with JSON response format and
         validates the response against the provided Pydantic model.
+        Uses full JSON schema mode for providers that support it
+        (OpenRouter, OpenAI, Azure), falls back to json_object for Ollama.
 
         Args:
             agent: The agent name.
@@ -205,23 +281,39 @@ class LLMClient:
             ValueError: If LLM returns invalid JSON or response doesn't
                 match the expected schema.
         """
+        # Resolve model to get provider for response format selection
+        resolution = self.resolve_model(agent, force_cloud=force_cloud)
+        response_format = self._build_response_format(response_model, resolution.provider)
+
         response = await self.complete(
             agent=agent,
             messages=messages,
             force_cloud=force_cloud,
-            response_format={"type": "json_object"},
+            response_format=response_format,
             **kwargs,
         )
+
+        # Try direct parse first
         try:
             return response_model.model_validate_json(response)
-        except Exception as e:
+        except Exception as first_error:
+            # Fallback: extract JSON and retry
+            extracted = self._extract_json(response)
+            if extracted != response:
+                try:
+                    return response_model.model_validate_json(extracted)
+                except Exception:
+                    pass  # Fall through to original error
+
             logger.error(
                 "Failed to parse structured response for agent '%s'. Expected schema: %s. Raw response: %s",
                 agent,
                 response_model.__name__,
                 response[:500] if len(response) > 500 else response,
             )
-            raise ValueError(f"LLM response failed schema validation for {response_model.__name__}: {e}") from e
+            raise ValueError(
+                f"LLM response failed schema validation for {response_model.__name__}: {first_error}"
+            ) from first_error
 
     async def complete_with_fallback(
         self,

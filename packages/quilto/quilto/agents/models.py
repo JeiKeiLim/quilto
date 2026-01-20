@@ -842,6 +842,31 @@ class ClarificationQuestion(BaseModel):
     options: list[str] | None = None
     required: bool = True
 
+    @field_validator("options", mode="before")
+    @classmethod
+    def normalize_null_options(cls, v: Any) -> list[str] | None:
+        """Normalize LLM output where [null] should be null.
+
+        LLMs sometimes return [null] or [None] when they mean "no options".
+        This validator filters out null values from lists. If the result is
+        empty and the original list only contained nulls, returns None.
+        """
+        if v is None:
+            return None
+        if isinstance(v, list):
+            # Filter out None values
+            original_len: int = len(v)  # pyright: ignore[reportUnknownArgumentType]
+            filtered: list[str] = [
+                str(item)  # pyright: ignore[reportUnknownArgumentType]
+                for item in v  # pyright: ignore[reportUnknownVariableType]
+                if item is not None
+            ]
+            # Only convert to None if original was non-empty but all nulls
+            if not filtered and original_len > 0:
+                return None
+            return filtered
+        return v  # type: ignore[return-value]
+
 
 class ClarifierInput(BaseModel):
     """Input to Clarifier agent.

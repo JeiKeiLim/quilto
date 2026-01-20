@@ -365,6 +365,250 @@ class TestCompleteStructured:
                 )
 
 
+class TestBuildResponseFormat:
+    """Test LLMClient._build_response_format method."""
+
+    def test_returns_json_schema_for_openrouter(self) -> None:
+        """Returns json_schema format for OpenRouter provider (AC: #1)."""
+        config = create_test_config(default_provider="openrouter")
+        client = LLMClient(config)
+
+        response_format = client._build_response_format(SampleResponse, "openrouter")  # pyright: ignore[reportPrivateUsage]
+
+        assert response_format["type"] == "json_schema"
+        assert response_format["json_schema"]["name"] == "SampleResponse"
+        assert response_format["json_schema"]["strict"] is True
+        assert "schema" in response_format["json_schema"]
+        # Schema should have properties for message and score
+        schema = response_format["json_schema"]["schema"]
+        assert "properties" in schema
+        assert "message" in schema["properties"]
+        assert "score" in schema["properties"]
+
+    def test_returns_json_schema_for_openai(self) -> None:
+        """Returns json_schema format for OpenAI provider (AC: #1)."""
+        config = create_test_config(default_provider="openai")
+        client = LLMClient(config)
+
+        response_format = client._build_response_format(SampleResponse, "openai")  # pyright: ignore[reportPrivateUsage]
+
+        assert response_format["type"] == "json_schema"
+        assert response_format["json_schema"]["name"] == "SampleResponse"
+
+    def test_returns_json_schema_for_azure(self) -> None:
+        """Returns json_schema format for Azure provider (AC: #1)."""
+        config = create_test_config(default_provider="azure")
+        client = LLMClient(config)
+
+        response_format = client._build_response_format(SampleResponse, "azure")  # pyright: ignore[reportPrivateUsage]
+
+        assert response_format["type"] == "json_schema"
+        assert response_format["json_schema"]["name"] == "SampleResponse"
+
+    def test_returns_json_object_for_ollama(self) -> None:
+        """Returns json_object format for Ollama provider (AC: #3)."""
+        config = create_test_config(default_provider="ollama")
+        client = LLMClient(config)
+
+        response_format = client._build_response_format(SampleResponse, "ollama")  # pyright: ignore[reportPrivateUsage]
+
+        assert response_format == {"type": "json_object"}
+
+    def test_returns_json_object_for_anthropic(self) -> None:
+        """Returns json_object format for Anthropic (not supported)."""
+        config = create_test_config(default_provider="anthropic")
+        client = LLMClient(config)
+
+        response_format = client._build_response_format(SampleResponse, "anthropic")  # pyright: ignore[reportPrivateUsage]
+
+        assert response_format == {"type": "json_object"}
+
+    def test_strict_false_disables_strict_mode(self) -> None:
+        """Strict=False disables strict schema validation."""
+        config = create_test_config(default_provider="openai")
+        client = LLMClient(config)
+
+        response_format = client._build_response_format(SampleResponse, "openai", strict=False)  # pyright: ignore[reportPrivateUsage]
+
+        assert response_format["json_schema"]["strict"] is False
+
+
+class TestExtractJson:
+    """Test LLMClient._extract_json method."""
+
+    def test_extracts_from_markdown_json_block(self) -> None:
+        """Extracts JSON from ```json code block (AC: #5)."""
+        config = create_test_config()
+        client = LLMClient(config)
+
+        response = '```json\n{"message": "Hello", "score": 1}\n```'
+        extracted = client._extract_json(response)  # pyright: ignore[reportPrivateUsage]
+
+        assert extracted == '{"message": "Hello", "score": 1}'
+
+    def test_extracts_from_plain_markdown_block(self) -> None:
+        """Extracts JSON from ``` code block (AC: #5)."""
+        config = create_test_config()
+        client = LLMClient(config)
+
+        response = '```\n{"message": "Hello", "score": 1}\n```'
+        extracted = client._extract_json(response)  # pyright: ignore[reportPrivateUsage]
+
+        assert extracted == '{"message": "Hello", "score": 1}'
+
+    def test_removes_single_line_comments(self) -> None:
+        """Removes single-line // comments (AC: #5)."""
+        config = create_test_config()
+        client = LLMClient(config)
+
+        response = '{\n// This is a comment\n"message": "Hello",\n"score": 1\n}'
+        extracted = client._extract_json(response)  # pyright: ignore[reportPrivateUsage]
+
+        assert "//" not in extracted
+        assert '"message": "Hello"' in extracted
+
+    def test_finds_json_boundaries(self) -> None:
+        """Finds JSON object boundaries from surrounding text (AC: #5)."""
+        config = create_test_config()
+        client = LLMClient(config)
+
+        response = 'Here is the response:\n{"message": "Hello", "score": 1}\nEnd of response'
+        extracted = client._extract_json(response)  # pyright: ignore[reportPrivateUsage]
+
+        assert extracted == '{"message": "Hello", "score": 1}'
+
+    def test_returns_original_when_no_json(self) -> None:
+        """Returns original string when no JSON found."""
+        config = create_test_config()
+        client = LLMClient(config)
+
+        response = "This is not JSON at all"
+        extracted = client._extract_json(response)  # pyright: ignore[reportPrivateUsage]
+
+        assert extracted == response
+
+    def test_handles_nested_json(self) -> None:
+        """Handles nested JSON objects correctly."""
+        config = create_test_config()
+        client = LLMClient(config)
+
+        response = '{"outer": {"inner": "value"}, "score": 1}'
+        extracted = client._extract_json(response)  # pyright: ignore[reportPrivateUsage]
+
+        assert extracted == '{"outer": {"inner": "value"}, "score": 1}'
+
+    def test_removes_trailing_commas(self) -> None:
+        """Removes trailing commas before closing braces/brackets (AC: #5)."""
+        config = create_test_config()
+        client = LLMClient(config)
+
+        response = '{"message": "Hello", "score": 1,}'
+        extracted = client._extract_json(response)  # pyright: ignore[reportPrivateUsage]
+
+        assert extracted == '{"message": "Hello", "score": 1}'
+
+    def test_removes_trailing_commas_in_nested(self) -> None:
+        """Removes trailing commas in nested structures."""
+        config = create_test_config()
+        client = LLMClient(config)
+
+        response = '{"outer": {"inner": "value",}, "items": [1, 2,],}'
+        extracted = client._extract_json(response)  # pyright: ignore[reportPrivateUsage]
+
+        assert extracted == '{"outer": {"inner": "value"}, "items": [1, 2]}'
+
+
+class TestCompleteStructuredJsonSchema:
+    """Test complete_structured with JSON schema mode."""
+
+    @pytest.mark.asyncio
+    async def test_uses_json_schema_for_openrouter(self) -> None:
+        """Uses json_schema format for OpenRouter (AC: #1, #4)."""
+        config = create_test_config(default_provider="openrouter")
+        client = LLMClient(config)
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content='{"message": "Hi", "score": 1}'))]
+
+        with patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
+            mock_acompletion.return_value = mock_response
+
+            await client.complete_structured(
+                "router",
+                [{"role": "user", "content": "Hi"}],
+                response_model=SampleResponse,
+            )
+
+            call_kwargs = mock_acompletion.call_args.kwargs
+            assert call_kwargs["response_format"]["type"] == "json_schema"
+            assert call_kwargs["response_format"]["json_schema"]["name"] == "SampleResponse"
+
+    @pytest.mark.asyncio
+    async def test_uses_json_object_for_ollama(self) -> None:
+        """Uses json_object format for Ollama (AC: #3)."""
+        config = create_test_config(default_provider="ollama")
+        client = LLMClient(config)
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content='{"message": "Hi", "score": 1}'))]
+
+        with patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
+            mock_acompletion.return_value = mock_response
+
+            await client.complete_structured(
+                "router",
+                [{"role": "user", "content": "Hi"}],
+                response_model=SampleResponse,
+            )
+
+            call_kwargs = mock_acompletion.call_args.kwargs
+            assert call_kwargs["response_format"] == {"type": "json_object"}
+
+    @pytest.mark.asyncio
+    async def test_extracts_json_from_markdown_on_parse_failure(self) -> None:
+        """Falls back to _extract_json on parse failure (AC: #5)."""
+        config = create_test_config(default_provider="ollama")
+        client = LLMClient(config)
+
+        # Response with markdown wrapper
+        mock_response = MagicMock()
+        mock_response.choices = [
+            MagicMock(message=MagicMock(content='```json\n{"message": "Hello", "score": 95}\n```'))
+        ]
+
+        with patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
+            mock_acompletion.return_value = mock_response
+
+            result = await client.complete_structured(
+                "router",
+                [{"role": "user", "content": "Hi"}],
+                response_model=SampleResponse,
+            )
+
+            assert isinstance(result, SampleResponse)
+            assert result.message == "Hello"
+            assert result.score == 95
+
+    @pytest.mark.asyncio
+    async def test_raises_original_error_when_extraction_fails(self) -> None:
+        """Raises original error when extraction doesn't help."""
+        config = create_test_config(default_provider="ollama")
+        client = LLMClient(config)
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content="completely invalid"))]
+
+        with patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
+            mock_acompletion.return_value = mock_response
+
+            with pytest.raises(ValueError, match="LLM response failed schema validation"):
+                await client.complete_structured(
+                    "router",
+                    [{"role": "user", "content": "Hi"}],
+                    response_model=SampleResponse,
+                )
+
+
 class TestCompleteWithFallback:
     """Test LLMClient.complete_with_fallback method."""
 
