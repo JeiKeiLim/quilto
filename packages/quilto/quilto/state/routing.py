@@ -4,7 +4,30 @@ This module provides routing functions that determine the next state
 based on current session state. Used as conditional edges in LangGraph.
 """
 
+import logging
+from typing import Any
+
 from quilto.state.session import SessionState
+
+logger = logging.getLogger(__name__)
+
+MAX_REPLANS = 2  # Maximum re-plan attempts before forcing synthesize
+
+
+def has_non_retrievable_critical_gaps(gaps: list[dict[str, Any]]) -> bool:
+    """Check if gaps contain critical non-retrievable types.
+
+    Non-retrievable types: subjective, clarification
+    These require user input, not data retrieval.
+
+    Args:
+        gaps: List of Gap dicts from Analyzer.
+
+    Returns:
+        True if any gap is critical AND non-retrievable.
+    """
+    non_retrievable_types = {"subjective", "clarification"}
+    return any(gap.get("gap_type") in non_retrievable_types and gap.get("severity") == "critical" for gap in gaps)
 
 
 def route_after_clarify(state: SessionState) -> str:
@@ -123,14 +146,16 @@ def route_after_analyzer(state: SessionState) -> str:
 
     Priority:
     1. outside_current_expertise gaps (not yet expanded) → expand_domain
-    2. verdict == sufficient → synthesize
-    3. verdict == insufficient/partial → plan (re-plan with gaps)
+    2. non_retrievable critical gaps + 0 entries → clarify
+    3. max_replans exceeded → synthesize (partial answer)
+    4. verdict == sufficient → synthesize
+    5. verdict == insufficient/partial → plan (re-plan with gaps)
 
     Args:
         state: Current session state with analysis and gaps.
 
     Returns:
-        Route string: "expand_domain", "synthesize", or "plan".
+        Route string: "expand_domain", "clarify", "synthesize", or "plan".
 
     Example:
         >>> state: SessionState = {
@@ -157,7 +182,7 @@ def route_after_analyzer(state: SessionState) -> str:
     gaps = state.get("gaps") or []
     history = state.get("domain_expansion_history") or []
 
-    # Check for outside_current_expertise gaps not yet expanded
+    # Priority 1: Check for outside_current_expertise gaps not yet expanded
     domains_to_expand = [
         gap.get("suspected_domain")
         for gap in gaps
@@ -168,7 +193,20 @@ def route_after_analyzer(state: SessionState) -> str:
     if new_domains_to_expand:
         return "expand_domain"
 
+    # Priority 2: Check for clarification need (Story 12.1)
+    # If critical non-retrievable gaps exist AND no entries retrieved, route to clarify
+    entries = state.get("retrieved_entries") or []
+    if has_non_retrievable_critical_gaps(gaps) and len(entries) == 0:
+        return "clarify"
+
+    # Priority 3: Max replans protection
+    retry_count = state.get("retry_count", 0)
     verdict = analysis.get("verdict", "sufficient")
+    if retry_count > MAX_REPLANS and verdict != "sufficient":
+        logger.warning("Max replans (%d) exceeded, synthesizing partial answer", MAX_REPLANS)
+        return "synthesize"
+
+    # Priority 4/5: Verdict-based routing
     if verdict == "sufficient":
         return "synthesize"
 

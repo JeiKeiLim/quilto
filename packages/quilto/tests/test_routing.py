@@ -4,6 +4,7 @@ Tests cover:
 - route_after_planner: routes based on next_action
 - route_after_analyzer: routes based on gaps and verdict
 - route_after_expand_domain: routes based on next_state
+- Clarification routing (Story 12.1): routes to clarify for critical non-retrievable gaps
 """
 
 from quilto.state import (
@@ -12,6 +13,7 @@ from quilto.state import (
     route_after_expand_domain,
     route_after_planner,
 )
+from quilto.state.routing import MAX_REPLANS, has_non_retrievable_critical_gaps
 
 
 class TestRouteAfterPlanner:
@@ -281,6 +283,243 @@ class TestRouteAfterAnalyzer:
         result = route_after_analyzer(state)
 
         assert result == "expand_domain"
+
+
+class TestClarificationRouting:
+    """Tests for clarification trigger logic (Story 12.1).
+
+    Tests cover:
+    - Critical SUBJECTIVE/CLARIFICATION gaps + 0 entries → clarify
+    - Critical gaps + >0 entries → synthesize (not clarify)
+    - Non-critical gaps → existing behavior
+    - Priority: expand_domain > clarify > synthesize > plan
+    - Max replans protection
+    """
+
+    def test_has_non_retrievable_critical_gaps_subjective(self) -> None:
+        """Helper returns True for critical subjective gap."""
+        gaps = [{"gap_type": "subjective", "severity": "critical"}]
+        assert has_non_retrievable_critical_gaps(gaps) is True
+
+    def test_has_non_retrievable_critical_gaps_clarification(self) -> None:
+        """Helper returns True for critical clarification gap."""
+        gaps = [{"gap_type": "clarification", "severity": "critical"}]
+        assert has_non_retrievable_critical_gaps(gaps) is True
+
+    def test_has_non_retrievable_critical_gaps_nice_to_have(self) -> None:
+        """Helper returns False for nice_to_have severity."""
+        gaps = [{"gap_type": "subjective", "severity": "nice_to_have"}]
+        assert has_non_retrievable_critical_gaps(gaps) is False
+
+    def test_has_non_retrievable_critical_gaps_temporal(self) -> None:
+        """Helper returns False for temporal (retrievable) gap type."""
+        gaps = [{"gap_type": "temporal", "severity": "critical"}]
+        assert has_non_retrievable_critical_gaps(gaps) is False
+
+    def test_has_non_retrievable_critical_gaps_empty(self) -> None:
+        """Helper returns False for empty gaps list."""
+        assert has_non_retrievable_critical_gaps([]) is False
+
+    def test_critical_subjective_gap_zero_entries_routes_to_clarify(self) -> None:
+        """Critical SUBJECTIVE gap + 0 entries → clarify (AC #1)."""
+        state: SessionState = {
+            "raw_input": "Test",
+            "analysis": {"verdict": "insufficient"},
+            "gaps": [{"gap_type": "subjective", "severity": "critical"}],
+            "retrieved_entries": [],  # 0 entries
+            "domain_expansion_history": [],
+        }
+
+        result = route_after_analyzer(state)
+
+        assert result == "clarify"
+
+    def test_critical_clarification_gap_zero_entries_routes_to_clarify(self) -> None:
+        """Critical CLARIFICATION gap + 0 entries → clarify (AC #1)."""
+        state: SessionState = {
+            "raw_input": "Test",
+            "analysis": {"verdict": "insufficient"},
+            "gaps": [{"gap_type": "clarification", "severity": "critical"}],
+            "retrieved_entries": [],  # 0 entries
+            "domain_expansion_history": [],
+        }
+
+        result = route_after_analyzer(state)
+
+        assert result == "clarify"
+
+    def test_critical_subjective_gap_with_entries_routes_to_synthesize(self) -> None:
+        """Critical SUBJECTIVE gap + >0 entries → synthesize (AC #2)."""
+        state: SessionState = {
+            "raw_input": "Test",
+            "analysis": {"verdict": "sufficient"},
+            "gaps": [{"gap_type": "subjective", "severity": "critical"}],
+            "retrieved_entries": [{"id": "entry1", "content": "some data"}],  # >0 entries
+            "domain_expansion_history": [],
+        }
+
+        result = route_after_analyzer(state)
+
+        assert result == "synthesize"
+
+    def test_nice_to_have_subjective_gap_zero_entries_no_clarify(self) -> None:
+        """nice_to_have SUBJECTIVE gap + 0 entries → NOT clarify (AC #3)."""
+        state: SessionState = {
+            "raw_input": "Test",
+            "analysis": {"verdict": "insufficient"},
+            "gaps": [{"gap_type": "subjective", "severity": "nice_to_have"}],
+            "retrieved_entries": [],
+            "domain_expansion_history": [],
+        }
+
+        result = route_after_analyzer(state)
+
+        # Should follow verdict-based routing, not clarify
+        assert result == "plan"
+
+    def test_critical_temporal_gap_zero_entries_routes_to_plan(self) -> None:
+        """Critical TEMPORAL gap + 0 entries → plan (retrievable, not clarify) (AC #3)."""
+        state: SessionState = {
+            "raw_input": "Test",
+            "analysis": {"verdict": "insufficient"},
+            "gaps": [{"gap_type": "temporal", "severity": "critical"}],
+            "retrieved_entries": [],
+            "domain_expansion_history": [],
+        }
+
+        result = route_after_analyzer(state)
+
+        # Temporal is retrievable, so should re-plan not clarify
+        assert result == "plan"
+
+    def test_no_gaps_unchanged_behavior(self) -> None:
+        """Empty gaps → existing behavior unchanged (AC #5)."""
+        state: SessionState = {
+            "raw_input": "Test",
+            "analysis": {"verdict": "sufficient"},
+            "gaps": [],
+            "retrieved_entries": [],
+            "domain_expansion_history": [],
+        }
+
+        result = route_after_analyzer(state)
+
+        assert result == "synthesize"
+
+    def test_outside_expertise_takes_priority_over_clarify(self) -> None:
+        """outside_current_expertise gap → expand_domain (higher priority than clarify)."""
+        state: SessionState = {
+            "raw_input": "Test",
+            "analysis": {"verdict": "insufficient"},
+            "gaps": [
+                {
+                    "gap_type": "subjective",
+                    "severity": "critical",
+                    "outside_current_expertise": True,
+                    "suspected_domain": "nutrition",
+                }
+            ],
+            "retrieved_entries": [],
+            "domain_expansion_history": [],
+        }
+
+        result = route_after_analyzer(state)
+
+        # expand_domain has higher priority than clarify
+        assert result == "expand_domain"
+
+    def test_max_replans_exceeded_routes_to_synthesize(self) -> None:
+        """Max replans exceeded → synthesize (AC #4)."""
+        state: SessionState = {
+            "raw_input": "Test",
+            "analysis": {"verdict": "insufficient"},
+            "gaps": [{"gap_type": "temporal", "severity": "critical"}],
+            "retrieved_entries": [],
+            "domain_expansion_history": [],
+            "retry_count": MAX_REPLANS + 1,  # Exceeded
+        }
+
+        result = route_after_analyzer(state)
+
+        assert result == "synthesize"
+
+    def test_max_replans_not_exceeded_continues_to_plan(self) -> None:
+        """Retry count at MAX_REPLANS → still routes to plan."""
+        state: SessionState = {
+            "raw_input": "Test",
+            "analysis": {"verdict": "insufficient"},
+            "gaps": [{"gap_type": "temporal", "severity": "critical"}],
+            "retrieved_entries": [],
+            "domain_expansion_history": [],
+            "retry_count": MAX_REPLANS,  # At limit, not exceeded
+        }
+
+        result = route_after_analyzer(state)
+
+        assert result == "plan"
+
+    def test_max_replans_with_sufficient_verdict_synthesizes(self) -> None:
+        """Max replans exceeded but sufficient verdict → synthesize (normal path)."""
+        state: SessionState = {
+            "raw_input": "Test",
+            "analysis": {"verdict": "sufficient"},
+            "gaps": [],
+            "retrieved_entries": [],
+            "domain_expansion_history": [],
+            "retry_count": MAX_REPLANS + 1,
+        }
+
+        result = route_after_analyzer(state)
+
+        assert result == "synthesize"
+
+    def test_clarify_priority_below_expand_domain(self) -> None:
+        """Verify priority: expand_domain > clarify when both conditions met."""
+        state: SessionState = {
+            "raw_input": "Test",
+            "analysis": {"verdict": "insufficient"},
+            "gaps": [
+                # First gap: outside_current_expertise
+                {
+                    "outside_current_expertise": True,
+                    "suspected_domain": "nutrition",
+                    "gap_type": "factual",
+                },
+                # Second gap: critical non-retrievable
+                {"gap_type": "subjective", "severity": "critical"},
+            ],
+            "retrieved_entries": [],
+            "domain_expansion_history": [],
+        }
+
+        result = route_after_analyzer(state)
+
+        # expand_domain should take priority
+        assert result == "expand_domain"
+
+    def test_clarify_when_expand_domain_already_done(self) -> None:
+        """Clarify triggers when domain already expanded but non-retrievable gaps remain."""
+        state: SessionState = {
+            "raw_input": "Test",
+            "analysis": {"verdict": "insufficient"},
+            "gaps": [
+                # Gap with domain already in history
+                {
+                    "outside_current_expertise": True,
+                    "suspected_domain": "nutrition",
+                    "gap_type": "factual",
+                },
+                # Critical non-retrievable gap
+                {"gap_type": "subjective", "severity": "critical"},
+            ],
+            "retrieved_entries": [],
+            "domain_expansion_history": ["nutrition"],  # Already expanded
+        }
+
+        result = route_after_analyzer(state)
+
+        # expand_domain skipped (already done), so clarify should trigger
+        assert result == "clarify"
 
 
 class TestRouteAfterExpandDomain:
