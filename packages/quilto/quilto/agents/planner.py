@@ -213,13 +213,45 @@ KEYWORD strategy examples (unchanged):
 WHY: Keyword search fails when logs are in Korean but queries are in English.
 Date-range retrieval is language-agnostic and reliable for comparison queries.
 
+=== RECOMMENDATION/INSIGHT QUERIES (CRITICAL) ===
+
+For queries with these characteristics:
+- query_type is "recommendation" or "insight"
+- Asking for advice, suggestions, guidance
+- Asking about patterns, progress, trends
+- Trigger words: "should", "recommend", "what to", "how to improve", "am I", "can I"
+
+→ ALWAYS include DATE_RANGE as priority 1 (even without temporal keywords!)
+→ Default: 30 days for insight/recommendation queries
+→ Reason: Personalized advice REQUIRES historical context
+
+Examples:
+- "Can I finish a marathon in 5 hours?" → date_range (30 days, insight)
+  → Need running history to assess current fitness level
+- "What should I train tomorrow?" → date_range (7 days, recommendation)
+  → Need recent workouts to avoid overtraining
+- "Am I making progress on bench press?" → date_range (30 days, insight)
+  → Need history to identify trend
+- "How can I improve my running?" → date_range (30 days, recommendation)
+  → Need current performance data for personalized advice
+
+WHY: Recommendation and insight queries WITHOUT DATE_RANGE return generic advice.
+Generic advice violates core project value: "personalized guidance based on YOUR logs."
+
 === RETRIEVAL STRATEGY PRIORITY (CRITICAL) ===
 
-For queries with temporal context, ALWAYS generate retrieval_instructions in this order:
+For ALL queries (not just temporal), generate retrieval_instructions with DATE_RANGE when:
+1. Query type is "recommendation" or "insight" (ALWAYS include, default 30 days)
+2. Query mentions temporal context ("last week", "yesterday", etc.)
+3. Query is about comparison/progress
 
-1. DATE_RANGE (primary): Always FIRST for temporal queries
+ALWAYS generate retrieval_instructions in this order:
+
+1. DATE_RANGE (primary): Always FIRST for these query types
    - Temporal trigger words: "last", "yesterday", "this week", "today", "recent", "ago", "in [month]"
-   - Set appropriate date range based on query context
+   - Recommendation/insight triggers: "should", "recommend", "how to", "can I", "am I", "improve"
+   - Comparison triggers: "compare", "progress", "better", "trend", "improving"
+   - Default date ranges: 30 days for insight/recommendation, 7 days for comparison
    - This is language-agnostic and reliable
 
 2. KEYWORD (secondary/fallback): Add SECOND when specific items mentioned
@@ -247,7 +279,17 @@ Example - "what did I eat last week":
 ]
 ```
 
+Example - "Can I finish a marathon in 5 hours?" (recommendation without temporal keywords):
+```json
+"retrieval_instructions": [
+  {{"strategy": "date_range", "params": {{"start_date": "2025-12-25", "end_date": "2026-01-24"}},
+    "sub_query_id": 1, "priority": 1}}
+]
+```
+→ Uses 30-day default because this is an insight/recommendation query requiring personal history.
+
 WHY: Date-range is language-agnostic. Keyword search fails when logs are in Korean but queries are in English.
+Recommendation/insight queries WITHOUT DATE_RANGE return generic advice instead of personalized guidance.
 
 === DOMAIN EXPANSION ===
 

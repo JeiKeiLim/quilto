@@ -1791,6 +1791,258 @@ class TestPlannerStrategyPriority:
 
 
 # =============================================================================
+# Test Planner Recommendation/Insight Queries (Story 12.2)
+# =============================================================================
+
+
+class TestPlannerRecommendationInsightQueries:
+    """Tests for recommendation/insight query strategy selection (Story 12.2).
+
+    These tests verify that recommendation and insight queries ALWAYS include
+    DATE_RANGE as priority 1 strategy, even without explicit temporal keywords.
+    """
+
+    def test_prompt_includes_recommendation_insight_section(self) -> None:
+        """Prompt includes RECOMMENDATION/INSIGHT QUERIES section (AC: #1)."""
+        client = create_mock_llm_client({})
+        planner = PlannerAgent(client)
+
+        planner_input = PlannerInput(
+            query="What should I train?",
+            domain_context=create_sample_domain_context(),
+        )
+        prompt = planner.build_prompt(planner_input)
+
+        assert "RECOMMENDATION/INSIGHT QUERIES (CRITICAL)" in prompt
+        assert "recommendation" in prompt.lower()
+        assert "insight" in prompt.lower()
+        assert "ALWAYS include DATE_RANGE as priority 1" in prompt
+
+    def test_prompt_includes_recommendation_trigger_words(self) -> None:
+        """Prompt includes recommendation trigger words (AC: #1)."""
+        client = create_mock_llm_client({})
+        planner = PlannerAgent(client)
+
+        planner_input = PlannerInput(
+            query="test",
+            domain_context=create_sample_domain_context(),
+        )
+        prompt = planner.build_prompt(planner_input)
+
+        # Should list trigger words for recommendation/insight
+        assert "should" in prompt.lower()
+        assert "recommend" in prompt.lower()
+        assert "can I" in prompt
+
+    def test_prompt_includes_default_date_range_30_days(self) -> None:
+        """Prompt specifies 30 days default for insight/recommendation (AC: #3)."""
+        client = create_mock_llm_client({})
+        planner = PlannerAgent(client)
+
+        planner_input = PlannerInput(
+            query="test",
+            domain_context=create_sample_domain_context(),
+        )
+        prompt = planner.build_prompt(planner_input)
+
+        # Should mention 30 days default for insight/recommendation
+        assert "30 days" in prompt
+
+    def test_prompt_includes_marathon_example(self) -> None:
+        """Prompt includes marathon example from story (AC: #1, #3)."""
+        client = create_mock_llm_client({})
+        planner = PlannerAgent(client)
+
+        planner_input = PlannerInput(
+            query="test",
+            domain_context=create_sample_domain_context(),
+        )
+        prompt = planner.build_prompt(planner_input)
+
+        # Should include the marathon example from Dev Notes
+        assert "marathon" in prompt.lower()
+        assert "running history" in prompt.lower() or "fitness level" in prompt.lower()
+
+    @pytest.mark.asyncio
+    async def test_recommendation_query_generates_date_range(self) -> None:
+        """Recommendation query generates date_range instruction (AC: #1)."""
+        response: dict[str, Any] = {
+            "original_query": "What should I train tomorrow?",
+            "query_type": "recommendation",
+            "sub_queries": [
+                {
+                    "id": 1,
+                    "question": "What should I train tomorrow?",
+                    "retrieval_strategy": "date_range",
+                    "retrieval_params": {"start_date": "2025-12-25", "end_date": "2026-01-24"},
+                }
+            ],
+            "dependencies": [],
+            "execution_strategy": "coupled",
+            "execution_order": [1],
+            "retrieval_instructions": [
+                {
+                    "strategy": "date_range",
+                    "params": {"start_date": "2025-12-25", "end_date": "2026-01-24"},
+                    "sub_query_id": 1,
+                    "priority": 1,
+                }
+            ],
+            "gaps_status": {},
+            "next_action": "retrieve",
+            "reasoning": "Recommendation query includes DATE_RANGE for personalized advice",
+        }
+        client = create_mock_llm_client(response)
+        planner = PlannerAgent(client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="What should I train tomorrow?",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        assert result.query_type == QueryType.RECOMMENDATION
+        assert len(result.retrieval_instructions) >= 1
+        first_instruction = result.retrieval_instructions[0]
+        assert first_instruction.get("strategy") == "date_range"
+        assert first_instruction.get("priority") == 1
+
+    @pytest.mark.asyncio
+    async def test_insight_query_generates_date_range(self) -> None:
+        """Insight query generates date_range instruction (AC: #1)."""
+        response: dict[str, Any] = {
+            "original_query": "Can I finish a marathon in 5 hours?",
+            "query_type": "insight",
+            "sub_queries": [
+                {
+                    "id": 1,
+                    "question": "Can I finish a marathon in 5 hours?",
+                    "retrieval_strategy": "date_range",
+                    "retrieval_params": {"start_date": "2025-12-25", "end_date": "2026-01-24"},
+                }
+            ],
+            "dependencies": [],
+            "execution_strategy": "coupled",
+            "execution_order": [1],
+            "retrieval_instructions": [
+                {
+                    "strategy": "date_range",
+                    "params": {"start_date": "2025-12-25", "end_date": "2026-01-24"},
+                    "sub_query_id": 1,
+                    "priority": 1,
+                }
+            ],
+            "gaps_status": {},
+            "next_action": "retrieve",
+            "reasoning": "Insight query needs running history to assess fitness level",
+        }
+        client = create_mock_llm_client(response)
+        planner = PlannerAgent(client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="Can I finish a marathon in 5 hours?",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        assert result.query_type == QueryType.INSIGHT
+        assert len(result.retrieval_instructions) >= 1
+        first_instruction = result.retrieval_instructions[0]
+        assert first_instruction.get("strategy") == "date_range"
+
+    @pytest.mark.asyncio
+    async def test_recommendation_without_temporal_keywords_still_uses_date_range(self) -> None:
+        """Recommendation query without temporal keywords still uses date_range (AC: #1)."""
+        response: dict[str, Any] = {
+            "original_query": "How can I improve my running?",
+            "query_type": "recommendation",
+            "sub_queries": [
+                {
+                    "id": 1,
+                    "question": "How can I improve my running?",
+                    "retrieval_strategy": "date_range",
+                    "retrieval_params": {"start_date": "2025-12-25", "end_date": "2026-01-24"},
+                }
+            ],
+            "dependencies": [],
+            "execution_strategy": "coupled",
+            "execution_order": [1],
+            "retrieval_instructions": [
+                {
+                    "strategy": "date_range",
+                    "params": {"start_date": "2025-12-25", "end_date": "2026-01-24"},
+                    "sub_query_id": 1,
+                    "priority": 1,
+                }
+            ],
+            "gaps_status": {},
+            "next_action": "retrieve",
+            "reasoning": "Recommendation query always includes DATE_RANGE even without temporal words",
+        }
+        client = create_mock_llm_client(response)
+        planner = PlannerAgent(client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="How can I improve my running?",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        # Key assertion: No temporal keywords, but still uses date_range
+        assert result.query_type == QueryType.RECOMMENDATION
+        assert len(result.retrieval_instructions) >= 1
+        first_instruction = result.retrieval_instructions[0]
+        assert first_instruction.get("strategy") == "date_range"
+
+    @pytest.mark.asyncio
+    async def test_simple_query_without_temporal_can_omit_date_range(self) -> None:
+        """Simple query without temporal may omit date_range (backward compat)."""
+        response: dict[str, Any] = {
+            "original_query": "Show me all my squats",
+            "query_type": "simple",
+            "sub_queries": [
+                {
+                    "id": 1,
+                    "question": "Show me all my squats",
+                    "retrieval_strategy": "keyword",
+                    "retrieval_params": {"keywords": ["squat"], "semantic_expansion": True},
+                }
+            ],
+            "dependencies": [],
+            "execution_strategy": "coupled",
+            "execution_order": [1],
+            "retrieval_instructions": [
+                {
+                    "strategy": "keyword",
+                    "params": {"keywords": ["squat"], "semantic_expansion": True},
+                    "sub_query_id": 1,
+                }
+            ],
+            "gaps_status": {},
+            "next_action": "retrieve",
+            "reasoning": "Simple query without temporal uses keyword strategy",
+        }
+        client = create_mock_llm_client(response)
+        planner = PlannerAgent(client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="Show me all my squats",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        # Simple queries can still use keyword-only (backward compatibility)
+        assert result.query_type == QueryType.SIMPLE
+        assert len(result.retrieval_instructions) >= 1
+        first_instruction = result.retrieval_instructions[0]
+        assert first_instruction.get("strategy") == "keyword"
+
+
+# =============================================================================
 # Integration Tests (Task 10)
 # =============================================================================
 
@@ -2002,3 +2254,98 @@ class TestPlannerIntegration:
             assert second_instruction.get("strategy") == "keyword", (
                 f"Expected keyword as second instruction, got {second_instruction.get('strategy')}"
             )
+
+    @pytest.mark.asyncio
+    async def test_real_recommendation_query_includes_date_range(
+        self, use_real_ollama: bool, integration_llm_config_path: Path
+    ) -> None:
+        """Test recommendation query includes DATE_RANGE with real Ollama (Story 12.2).
+
+        This is the critical test from the story. Queries like "Can I finish a marathon?"
+        must include DATE_RANGE to access user's running history for personalized response.
+        """
+        if not use_real_ollama:
+            pytest.skip("Requires --use-real-ollama flag")
+
+        config = load_llm_config(integration_llm_config_path)
+        real_llm_client = LLMClient(config)
+        planner = PlannerAgent(real_llm_client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="Can I finish a marathon in 5 hours?",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        # Should have at least one instruction
+        assert len(result.retrieval_instructions) >= 1, (
+            "Expected at least one retrieval instruction for recommendation query"
+        )
+        # Key assertion: DATE_RANGE must be present for recommendation/insight queries
+        strategies = [inst.get("strategy") for inst in result.retrieval_instructions]
+        assert "date_range" in strategies, (
+            f"Expected date_range in instructions for marathon query, got strategies: {strategies}"
+        )
+        # DATE_RANGE should be FIRST (priority 1)
+        first_instruction = result.retrieval_instructions[0]
+        assert first_instruction.get("strategy") == "date_range", (
+            f"Expected date_range as FIRST instruction, got {first_instruction.get('strategy')}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_real_insight_query_includes_date_range(
+        self, use_real_ollama: bool, integration_llm_config_path: Path
+    ) -> None:
+        """Test insight query includes DATE_RANGE with real Ollama (Story 12.2)."""
+        if not use_real_ollama:
+            pytest.skip("Requires --use-real-ollama flag")
+
+        config = load_llm_config(integration_llm_config_path)
+        real_llm_client = LLMClient(config)
+        planner = PlannerAgent(real_llm_client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="Am I making progress on bench press?",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        # Should have at least one instruction
+        assert len(result.retrieval_instructions) >= 1
+        # DATE_RANGE should be present
+        strategies = [inst.get("strategy") for inst in result.retrieval_instructions]
+        assert "date_range" in strategies, f"Expected date_range for insight query, got: {strategies}"
+
+    @pytest.mark.asyncio
+    async def test_real_recommendation_without_temporal_includes_date_range(
+        self, use_real_ollama: bool, integration_llm_config_path: Path
+    ) -> None:
+        """Test recommendation query WITHOUT temporal keywords still includes DATE_RANGE (Story 12.2).
+
+        This is the key behavioral change: even without words like "yesterday" or "last week",
+        recommendation queries must include DATE_RANGE for personalization.
+        """
+        if not use_real_ollama:
+            pytest.skip("Requires --use-real-ollama flag")
+
+        config = load_llm_config(integration_llm_config_path)
+        real_llm_client = LLMClient(config)
+        planner = PlannerAgent(real_llm_client)
+
+        result = await planner.plan(
+            PlannerInput(
+                query="How can I improve my running?",
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        # Should have at least one instruction
+        assert len(result.retrieval_instructions) >= 1, "Expected retrieval instructions for 'how can I improve' query"
+        # DATE_RANGE should be present - this is the key fix
+        strategies = [inst.get("strategy") for inst in result.retrieval_instructions]
+        assert "date_range" in strategies, (
+            f"Expected date_range for recommendation query (even without temporal keywords), got: {strategies}. "
+            "This is the key behavioral change in Story 12.2."
+        )
