@@ -1,0 +1,473 @@
+{
+  "id": "2026-01-21_14b9034b",
+  "query": "내가 지금까지 했던 모든 운동을 총 정리해서 알려주는데 나의 운동 상태가 어떤지 종합적으로 분석하여 알려줘",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "QUERY",
+      "confidence": 0.96,
+      "selected_domains": [
+        "GeneralFitness",
+        "Strength",
+        "Running",
+        "Swimming"
+      ],
+      "domain_selection_reasoning": "The user asks for a comprehensive summary and analysis of all workouts they have performed. This request potentially covers any type of exercise they might have logged, including general fitness activities, strength training, running, and swimming. Therefore all four domains are relevant to ensure the analysis can incorporate any of those workout categories.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The statement is a request for information and analysis rather than a declarative record of an activity, so it is classified as a QUERY. No correction language is present."
+    },
+    "planner": {
+      "original_query": "내가 지금까지 했던 모든 운동을 총 정리해서 알려주는데 나의 운동 상태가 어떤지 종합적으로 분석하여 알려줘",
+      "query_type": "insight",
+      "sub_queries": [
+        {
+          "id": 1,
+          "question": "Provide a complete chronological summary of all workouts I have recorded up to today.",
+          "retrieval_strategy": "date_range",
+          "retrieval_params": {
+            "start_date": "1970-01-01",
+            "end_date": "2026-01-21",
+            "explicit_date": false
+          }
+        },
+        {
+          "id": 2,
+          "question": "Based on that summary, give a comprehensive analysis of my overall fitness status (strength, cardio, swimming, recovery, trends, etc.).",
+          "retrieval_strategy": "topical",
+          "retrieval_params": {
+            "topics": [
+              "fitness status",
+              "progress",
+              "trend"
+            ],
+            "related_terms": [
+              "strength",
+              "endurance",
+              "volume",
+              "RPE",
+              "recovery"
+            ]
+          }
+        }
+      ],
+      "dependencies": [
+        {
+          "from": 1,
+          "to": 2,
+          "reason": "Analysis requires the complete workout summary as input"
+        }
+      ],
+      "execution_strategy": "dependent",
+      "execution_order": [
+        1,
+        2
+      ],
+      "retrieval_instructions": [
+        {
+          "strategy": "date_range",
+          "params": {
+            "start_date": "1970-01-01",
+            "end_date": "2026-01-21",
+            "explicit_date": false
+          },
+          "sub_query_id": 1,
+          "priority": 1
+        },
+        {
+          "strategy": "keyword",
+          "params": {
+            "keywords": [
+              "운동",
+              "strength",
+              "running",
+              "swimming",
+              "헬스",
+              "수영",
+              "달리기"
+            ],
+            "semantic_expansion": true
+          },
+          "sub_query_id": 1,
+          "priority": 2
+        }
+      ],
+      "gaps_status": {},
+      "domain_expansion_request": null,
+      "expansion_reasoning": null,
+      "clarify_questions": null,
+      "next_action": "retrieve",
+      "reasoning": "The user asks for a full historical recap of all workouts and a holistic analysis of their fitness condition. This is an insight‑type query. It naturally splits into two dependent sub‑queries: (1) retrieve every logged workout (date_range is primary because it is language‑agnostic and covers the entire history) with a keyword fallback, and (2) analyze the retrieved data. No new domains are required, and there are no ambiguous or subjective gaps, so the next step is to retrieve the data."
+    },
+    "retriever": {
+      "entries": [
+        {
+          "id": "2025-12-31_09-00-00",
+          "date": "2025-12-31",
+          "timestamp": "2025-12-31 09:00:00",
+          "raw_content": "데빌 프레스 덤벨 10키로씩 총 20키로 들고 2분 동안 10개하고 알아서 휴식 10세트 진행했음.\n심박수 190근처까지 찍고 생각보다 힘들어서 중간에 포기하고 싶었으나 끝까지 해냈음.\n다시 생각해보니 12키로로 했어도 어떻게든 끝까지 했을수도 있었겠다는 생각이 듬.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-02_09-00-00",
+          "date": "2026-01-02",
+          "timestamp": "2026-01-02 09:00:00",
+          "raw_content": "인클라인 덤벨프레스 25키로 한쪽씩 해서 3세트 10개씩 진행함. 마지막 세트에서 힘들긴 했지만 전체으로 큰 무리는 없던걸로 봐서 더 할수도 있을듯? 그러면서 동시에 슈퍼세트로 행잉레그이즈 10개와 풀업 병행함. 풀업 처음에는 맨몸으로 9개 그 뒤는 5키로 매달고 네거티브로 진행함.\n그리고나서 푸쉬프레스 10개씩 EMOM으로 함. 숨이 차지는 않았는데 어깨가 너무 털려서 힘들었음. 4라운드 까지는 5키로씩 양쪽에 달고 총 30키로로 진행. 어깨가 너무 털려서 2.5키로씩 양쪽에 달고 2라운드 진행 그리고 이것도 너무 어깨가 힘들어서 나머지는 빈봉 20키로로 계속 진행함. 숨은 전혀 차지 않았음. 심박수 160대 유지한거같음",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-03_09-00-00",
+          "date": "2026-01-03",
+          "timestamp": "2026-01-03 09:00:00",
+          "raw_content": "러닝머신에서 5키로 뜀. 천천히 시작해서 9kph로 뛰었을때 심박수 172정도 계속 유지함.\n기존에 러닝시 왼쪽 정강이가 먼저 지치는 경향이 있었는데 팔치기에서 어깨에 힘을 푸니 이런 현상이 거의 없었음. 기존에 어깨에 너무 힘을 주고 러닝을 했던걸로 생각이 됨.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-07_09-00-00",
+          "date": "2026-01-07",
+          "timestamp": "2026-01-07 09:00:00",
+          "raw_content": "점심 운동 매우 짧게 함. 웨이트 20분, 러닝 13분, 스트레칭 5분.\n55파운드 한쪽씩 들고 인클라인 벤치프레스 수행. 8개, 7개, 8개 3세트함. 슈퍼세트로 풀업 10개, 5개(이후 3개 네거티브), 7개(이후 1개 네거티브) 수행. 꽤 오랜만에 운동한건데도 어깨 회복이 완전히 되지 않은 느낌을 받음. 인클라인 벤치프레스에서 어깨에 근육통이 느껴짐. 가슴에 집중해서 수행함.\n러닝은 9km 로 유지. 배고파서 그런지 빨리 지쳤음.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-08_09-00-00",
+          "date": "2026-01-08",
+          "timestamp": "2026-01-08 09:00:00",
+          "raw_content": "준비운동으로 케이블 머신에서 후면 삼각근 운동 5키로로 양쪽 동시에 진행. 그리고 행잉 레그레이즈드 크런치 슈퍼세트 약 10분 진행\n그 뒤에 로잉머신 500m 약 2분 페이스로 진행 + 숄더 프레스 머신에서 30키로 와 35키로로 2세트 진행 후 어깨가 회복이 완전하지 않은것 같아서 레그레이즈드 크런치 1세트로 총 3세트 진행\n시간이 얼마 없어서 러닝머신 12분 뜀. 8에서 주로 뛰다 중간쯤에 10초에 0.1씩 올려서 10으로 뜀. 어렵지 않았음 \n점심 운동 총 45분",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-09_09-00-00",
+          "date": "2026-01-09",
+          "timestamp": "2026-01-09 09:00:00",
+          "raw_content": "야외 러닝 10km 뜀. 초반에 6:10 페이스로 7키로 정도 뛰다 힘들어서 600미터 정도 걸음. 그리고 다시 슬로우 러닝 7:30 페이스로 3키로 넘게 뜀. 무리하면 10키로 쭉 뛸수 있었을텐데 무리하지 않기로 함. 처음 7키로까지 뛰고 났을때는 심폐와 근육 모두 지친 느낌 그리고 오른쪽 골반 통증과 왼쪽 발목이 저린 느낌이 들었음. 골반 비대층 때문인지?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-10_09-00-00",
+          "date": "2026-01-10",
+          "timestamp": "2026-01-10 09:00:00",
+          "raw_content": "회복 러닝 40분 뜀. 8kph 속도로 5키로 조금 넘게 뛰었음. 오른쪽 장요근 스트레칭을 확실히 하고 뛰니까 이전에 비해 좋아진 느낌. 여전히 정강이가 살짝 지치는 느낌은 있었는데 이건 어제 장거리 러닝 때문인지는 조금 헷갈림.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-12_09-00-00",
+          "date": "2026-01-12",
+          "timestamp": "2026-01-12 09:00:00",
+          "raw_content": "벤치 프레스 60kg 10개, 7개, 그리고 50kg 10개 함. 가슴에 펌핑이 많이 옴. 슈퍼세트로 풀업 10개, 7개, 7개 진행. 동시에 슈퍼세트로 (트리플 세트인가?) 트위스트 행잉 레그 레이즈드 크런치 10개씩 진행함. 이렇게 20분 진행. 러닝머신 10분 간 8km 속도로 타다 9km 30초 12km 30초로 인터벌 10분 진행. 심박수 최대 185 정도로 올라간걸로 봐서 심장은 괜찮은 듯. 엉덩이랑 다리 근육이 조금 지치는 느낌 받음. 그렇지만 몇 세트 더 할 수 있었을 것 같음. 마지막 세트에서는 12km 속도로 1분간 뜀.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-13_09-00-00",
+          "date": "2026-01-13",
+          "timestamp": "2026-01-13 09:00:00",
+          "raw_content": "러닝머신 9km 속도로 약 4.7키로 뜀. 심박수 160 대로 유지함. 왼쪽 발목 근육 느낌이 지치는 느낌이 조금 났지만 무시하고 뛸만한 느낌. 허벅지 맨 살이 계속 스치면서 열상 조금 입음",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-15_09-00-00",
+          "date": "2026-01-15",
+          "timestamp": "2026-01-15 09:00:00",
+          "raw_content": "시티드 덤벨 숄더 프레스 한쪽당 30lbs 10개, 35lbs 10개, 그리고 9개 진행. 슈퍼세트로 동시에 덤벨 원암 로우 65lbs 10개, 10개, 70lbs 10개 진행함. 원암 로우는 할때 하체가 조금 힘든 느낌을 받음. 그리고 휴식 시간마다 행잉 레그 레이즈드 크런치 10개씩 진행함. 이후에 러닝 8km 속도로 1.5km 뜀.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-19_09-00-00",
+          "date": "2026-01-19",
+          "timestamp": "2026-01-19 09:00:00",
+          "raw_content": "러닝머신에서 5km 뜀. 9km 속도로 4.5 km 뛰고 나머지 500m 는 12km 속도로 뜀. 스트레칭도 많이 해주고 뛰었는데 이상하게 오늘따라 왼쪽 정강이 근육이 많이 지쳤음. 9km 뛸때 심박수 160정도 수준 유지. 12km 속도로 뛸때도 180 초중반 수준이라 심장은 문제 없었던걸로 보임.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-20_14-27-00",
+          "date": "2026-01-20",
+          "timestamp": "2026-01-20 14:27:00",
+          "raw_content": "천국의 계단 15분 탐. 심박수 약 160대로 유지. 오늘은 감기기운이 살짝 있는 것같아서 조금만 함. 스트레칭 5분 정도 추가 진행",
+          "parsed_data": null
+        }
+      ],
+      "retrieval_summary": [
+        {
+          "attempt_number": 1,
+          "strategy": "date_range",
+          "params": {
+            "start_date": "1970-01-01",
+            "end_date": "2026-01-21",
+            "explicit_date": false
+          },
+          "entries_found": 12,
+          "summary": "Retrieved 12 entries from 1970-01-01 to 2026-01-21",
+          "expanded_terms": [],
+          "expansion_tier": 0
+        },
+        {
+          "attempt_number": 2,
+          "strategy": "keyword",
+          "params": {
+            "keywords": [
+              "운동",
+              "strength",
+              "running",
+              "swimming",
+              "헬스",
+              "수영",
+              "달리기"
+            ],
+            "semantic_expansion": true
+          },
+          "entries_found": 9,
+          "summary": "Searched for 13 terms, found 9 entries",
+          "expanded_terms": [
+            "수영",
+            "운동",
+            "헬스",
+            "뛰기",
+            "strength",
+            "swimming",
+            "run",
+            "달리기",
+            "running",
+            "swim",
+            "러닝",
+            "swam",
+            "ran"
+          ],
+          "expansion_tier": 0
+        }
+      ],
+      "total_entries_found": 12,
+      "date_range_covered": {
+        "start": "2025-12-31",
+        "end": "2026-01-20"
+      },
+      "warnings": [],
+      "truncated": false,
+      "expansion_exhausted": false,
+      "strategies_used": [
+        "date_range",
+        "keyword"
+      ]
+    },
+    "analyzer": {
+      "query_intent": "Provide a comprehensive summary of all recorded workouts and give an overall analysis of the user’s current fitness condition based on those records.",
+      "findings": [
+        {
+          "claim": "The user exercised roughly 5 times per week over the 21‑day period (≈12 sessions total).",
+          "evidence": [
+            "2025-12-31",
+            "2026-01-02",
+            "2026-01-03",
+            "2026-01-07",
+            "2026-01-08",
+            "2026-01-09",
+            "2026-01-10",
+            "2026-01-12",
+            "2026-01-13",
+            "2026-01-15",
+            "2026-01-19",
+            "2026-01-20"
+          ],
+          "confidence": "high"
+        },
+        {
+          "claim": "Strength training was performed 2‑3 times per week, mainly upper‑body (presses, rows, pull‑ups, shoulder work) with moderate to heavy loads (up to 60 kg bench press, 35 lb dumbbells, 30 kg shoulder press).",
+          "evidence": [
+            "2025-12-31 (devil press 20 kg total)",
+            "2026-01-02 (incline dumbbell press 25 kg, push‑press up to 5 kg each side)",
+            "2026-01-07 (incline bench 55 lb each side)",
+            "2026-01-08 (shoulder press 30‑35 kg)",
+            "2026-01-12 (bench press 60 kg/50 kg)",
+            "2026-01-15 (seated dumbbell shoulder press 30‑35 lb)"
+          ],
+          "confidence": "high"
+        },
+        {
+          "claim": "Cardiovascular work was performed 3‑4 times per week, ranging from short treadmill intervals (5‑10 min) to longer runs of 5‑10 km, with speeds typically 8‑9 km/h (≈5‑5.6 mph) and occasional faster intervals (12 km/h).",
+          "evidence": [
+            "2026-01-03 (treadmill 5 km at 9 kph)",
+            "2026-01-09 (outdoor 10 km, mixed pace 6:10‑7:30 min/km)",
+            "2026-01-10 (recovery run 40 min at 8 kph)",
+            "2026-01-12 (intervals 8‑9‑12 km/h)",
+            "2026-01-13 (9 km/h for 4.7 km)",
+            "2026-01-15 (5 km at 9 km/h, 0.5 km at 12 km/h)",
+            "2026-01-19 (5 km total, 4.5 km at 9 km/h, 0.5 km at 12 km/h)"
+          ],
+          "confidence": "high"
+        },
+        {
+          "claim": "Heart‑rate data show occasional spikes to near‑maximal levels during intense strength sets (≈190 bpm) and during high‑intensity intervals (≈185 bpm), while steady‑state cardio stayed in the 160‑180 bpm range.",
+          "evidence": [
+            "2025-12-31 (HR ~190 bpm during devil press)",
+            "2026-01-02 (HR ~160 bpm during EMOM push‑press)",
+            "2026-01-12 (HR max 185 bpm during treadmill intervals)",
+            "2026-01-19 (HR 160‑180 bpm during varied‑pace run)"
+          ],
+          "confidence": "high"
+        },
+        {
+          "claim": "Recurring musculoskeletal complaints: shoulder soreness after incline bench/press work, shin fatigue during running, right hip/pelvic discomfort, and occasional left ankle tingling.",
+          "evidence": [
+            "2025-12-31 (felt very hard, considered dropping weight)",
+            "2026-01-07 (shoulder not fully recovered, muscle pain)",
+            "2026-01-08 (shoulder still not fully recovered)",
+            "2026-01-09 (right hip pain, left ankle tingling)",
+            "2026-01-10 (shoulder fatigue)",
+            "2026-01-13 (left ankle fatigue)",
+            "2026-01-19 (left shin fatigue)"
+          ],
+          "confidence": "high"
+        },
+        {
+          "claim": "Overall training load appears high with limited dedicated lower‑body strength work; most lower‑body stress comes from running and occasional rowing.",
+          "evidence": [
+            "Strength entries focus on chest, shoulders, back, and core; lower‑body lifts are absent",
+            "Running entries provide the primary lower‑body stimulus"
+          ],
+          "confidence": "medium"
+        },
+        {
+          "claim": "Signs of insufficient recovery: persistent shoulder soreness, shin fatigue, and occasional joint discomfort despite short rest periods between sets and workouts.",
+          "evidence": [
+            "2026-01-07, 2026-01-08, 2026-01-10 (shoulder not fully recovered)",
+            "2026-01-09, 2026-01-13, 2026-01-19 (shin/ankle issues)"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "patterns_identified": [
+        "High weekly frequency (≈5 sessions) with mixed strength‑cardio focus.",
+        "Upper‑body strength emphasis; lower‑body work limited to running.",
+        "Consistent cardio volume (5‑10 km per run) with occasional interval work.",
+        "Recurring shoulder discomfort linked to incline press and shoulder‑press movements.",
+        "Shin/ankle fatigue appears after longer runs, suggesting possible gait or footwear issues.",
+        "Heart‑rate often reaches high zones, indicating high perceived effort during both strength and cardio sessions."
+      ],
+      "sufficiency_evaluation": {
+        "critical_gaps": [
+          {
+            "description": "No data on workouts prior to 2025‑12‑31; the user asked for “all” exercises performed to date.",
+            "gap_type": "temporal",
+            "severity": "critical",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          },
+          {
+            "description": "Missing explicit recovery metrics (sleep, nutrition, RPE, rest days) that are needed for a full recovery assessment.",
+            "gap_type": "contextual",
+            "severity": "nice_to_have",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          }
+        ],
+        "nice_to_have_gaps": [
+          {
+            "description": "Exact set‑rep schemes and RPE for many strength exercises (only some reps/sets are listed).",
+            "gap_type": "topical",
+            "severity": "nice_to_have",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          },
+          {
+            "description": "Objective performance trends over time (e.g., weight progression, pace improvement).",
+            "gap_type": "contextual",
+            "severity": "nice_to_have",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          }
+        ],
+        "evidence_check_passed": true,
+        "speculation_risk": "low"
+      },
+      "verdict_reasoning": "The retrieved entries provide a clear picture of the user’s recent three‑week training pattern, allowing a solid summary of frequency, modality distribution, intensity, and recurring discomforts. However, the request for \"all\" past workouts cannot be fully satisfied because no data exist before 2025‑12‑31, which is a critical temporal gap. Additionally, lacking sleep, nutrition, and explicit RPE information limits the depth of recovery analysis, though these are only nice‑to‑have for a basic status overview. Evidence for all major claims is present, and speculation is minimal. Therefore the answer can be given with noted limitations.",
+      "verdict": "partial"
+    },
+    "synthesizer": {
+      "response": "지난 21일 동안 주 5회(≈12회) 운동했으며, 상체 중량 훈련을 2‑3회, 러닝을 3‑4회 수행했습니다. 인클라인 벤치·숄더 프레스 등으로 어깨 통증이 반복되고, 장거리 달리기 후 정강이·발목 피로가 나타납니다. 하체 중량 훈련이 거의 없고, 심박수가 강도 높은 구간에서 180‑190 bpm까지 올라 회복이 충분치 않은 것으로 보입니다.",
+      "key_points": [
+        "주 5회, 상체 중량 훈련 2‑3회, 러닝 3‑4회",
+        "어깨 통증: 인클라인 벤치·숄더 프레스 후 지속",
+        "정강이·발목 피로: 5‑10 km 달리기 후 발생",
+        "하체 중량 훈련 부재, 대부분 하체 자극은 러닝에 의존",
+        "HR이 고강도 구간에서 180‑190 bpm 도달, 회복 부족 가능"
+      ],
+      "evidence_cited": [
+        "2025-12-31: devil press 20 kg, HR≈190 bpm",
+        "2026-01-07: incline bench 55 lb, shoulder soreness",
+        "2026-01-08: shoulder press 30‑35 kg, soreness persists",
+        "2026-01-09: 10 km run, right hip pain, left ankle tingling",
+        "2026-01-10: recovery run 40 min at 8 kph, HR 160‑180 bpm",
+        "2026-01-12: bench press 60 kg/50 kg, HR max 185 bpm",
+        "2026-01-15: seated dumbbell shoulder press 30‑35 lb, fatigue",
+        "2026-01-19: 5 km run with intervals, shin fatigue"
+      ],
+      "gaps_disclosed": [
+        "2025‑12‑30 이전의 운동 기록이 없으므로 전체 히스토리를 완전하게 제공할 수 없습니다."
+      ],
+      "confidence": "medium"
+    },
+    "evaluator": {
+      "dimensions": [
+        {
+          "dimension": "accuracy",
+          "verdict": "sufficient",
+          "reasoning": "All statements about training frequency, upper‑body strength sessions, running volume, recurring shoulder soreness, shin/ankle fatigue, lack of lower‑body strength work, and high heart‑rate zones are directly supported by the logged entries in the analysis.",
+          "issues": []
+        },
+        {
+          "dimension": "relevance",
+          "verdict": "sufficient",
+          "reasoning": "The response directly addresses the user’s request to summarize past workouts and give an overall assessment of their training condition.",
+          "issues": []
+        },
+        {
+          "dimension": "safety",
+          "verdict": "sufficient",
+          "reasoning": "No training recommendations, medical advice, or potentially harmful suggestions are given; the answer stays within safe analytical commentary.",
+          "issues": []
+        },
+        {
+          "dimension": "completeness",
+          "verdict": "insufficient",
+          "reasoning": "The answer provides only a high‑level overview (frequency, general pain points, and HR trends) but does not list each individual workout, specific distances, loads, sets/reps, or detailed chronological summary that the user asked for. It also omits a full pattern analysis (e.g., weekly load distribution, recovery gaps).",
+          "issues": [
+            "Missing detailed enumeration of each workout session (date, activity type, volume, intensity, heart‑rate, pain notes).",
+            "No explicit summary table or timeline that would constitute a \"total\" recap.",
+            "Limited discussion of overall training load trends beyond the brief points already mentioned."
+          ]
+        }
+      ],
+      "overall_verdict": "insufficient",
+      "feedback": [
+        {
+          "issue": "Incomplete workout summary",
+          "suggestion": "Provide a chronological list or table of all 12 logged sessions, including date, activity (strength, run, etc.), specific metrics (weight, sets/reps, distance, pace), heart‑rate range, and any reported discomfort.",
+          "affected_claim": "총 정리해서 알려줘"
+        },
+        {
+          "issue": "Limited pattern analysis",
+          "suggestion": "Expand the analysis to highlight weekly training load distribution, recovery intervals between hard sessions, and any imbalances (e.g., upper‑body focus vs. lower‑body neglect).",
+          "affected_claim": "종합적으로 분석"
+        }
+      ],
+      "recommendation": "retry_with_feedback"
+    }
+  },
+  "final_response": "지난 21일 동안 주 5회(≈12회) 운동했으며, 상체 중량 훈련을 2‑3회, 러닝을 3‑4회 수행했습니다. 인클라인 벤치·숄더 프레스 등으로 어깨 통증이 반복되고, 장거리 달리기 후 정강이·발목 피로가 나타납니다. 하체 중량 훈련이 거의 없고, 심박수가 강도 높은 구간에서 180‑190 bpm까지 올라 회복이 충분치 않은 것으로 보입니다.",
+  "user_feedback": "That is not bad response. I expected to suggest me what to do next but that was beyond my query scope I guess. Wish it told me about how much weight I could lift on upper body though. And it is vague that should pain is from injury or just muscle pain. But that is rather acceptible response.",
+  "session": {
+    "timestamp": "2026-01-21 06:41:28.446433",
+    "input_type": "QUERY",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true
+  },
+  "feedback_sentiment": null
+}

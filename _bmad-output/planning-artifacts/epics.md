@@ -1458,13 +1458,177 @@ So that **patterns are identified and improvement stories are generated**.
 
 ---
 
+## Epic 12: Dogfooding Iteration 2
+
+*Improvements derived from Iteration 1 feedback analysis (9 records)*
+
+**Origin:** Story 11.4 Analysis (2026-01-24)
+**Analyst:** Mary (Business Analyst) + Jongkuk Lim
+**Source:** `tests/eval/feedback/archive/iter-001/analysis.md`
+
+**Key Findings from Iteration 1:**
+- Clarification questions never trigger (over-corrected from previous fix)
+- Planner skips user logs for recommendation queries (wrong retrieval strategy)
+- LLM timeout too long (600s default), malformed JSON causes crashes
+- Responses lack detail (brevity prioritized over comprehensiveness)
+- Response language doesn't match query language
+
+**Quilto:** Clarifier trigger logic, Planner retrieval strategy, LLM timeout/retry config, Synthesizer prompt
+**Swealog:** N/A (framework-level improvements)
+
+---
+
+### Story 12.1: Fix Clarification Trigger Logic
+
+**Priority:** High | **Effort:** Medium (2-4 hours)
+
+**As a** Quilto user,
+**I want** the system to ask clarification questions only when truly necessary,
+**So that** I'm not over-prompted but critical gaps are addressed.
+
+**Acceptance Criteria:**
+1. **Given** Analyzer identifies SUBJECTIVE/CLARIFICATION gaps with severity=critical
+   **When** Retriever found 0 relevant entries for the query
+   **Then** flow transitions to CLARIFY state
+
+2. **Given** Analyzer identifies critical gaps
+   **When** Retriever found relevant entries (count > 0)
+   **Then** flow skips CLARIFY and proceeds to Synthesize with available data
+
+3. **Given** no critical non-retrievable gaps
+   **When** processing completes
+   **Then** no clarification questions are asked
+
+**Evidence:** All 9 iteration 1 records had no clarification. Records `e16dbc36` had critical SUBJECTIVE gaps but went to Synthesize.
+
+---
+
+### Story 12.2: Improve Planner Retrieval Strategy Selection
+
+**Priority:** High | **Effort:** Medium (2-4 hours)
+
+**As a** Quilto user,
+**I want** queries about my fitness to always check my logs first,
+**So that** responses are personalized rather than generic.
+
+**Acceptance Criteria:**
+1. **Given** a recommendation or insight query
+   **When** Planner creates retrieval strategy
+   **Then** DATE_RANGE is always included as priority 1 strategy
+
+2. **Given** topical/keyword strategy returns 0 entries
+   **When** DATE_RANGE fallback is available
+   **Then** automatically try DATE_RANGE before concluding "no data"
+
+**Evidence:** Records `e16dbc36` (marathon query) retrieved 0 entries despite running logs existing.
+
+---
+
+### Story 12.3: Add LLM Timeout and Retry Configuration
+
+**Priority:** Medium | **Effort:** Small (1-2 hours)
+
+**As a** Quilto developer,
+**I want** configurable LLM timeout with smart retry behavior,
+**So that** the system doesn't hang and handles intermittent failures gracefully.
+
+**Acceptance Criteria:**
+1. **Given** `LLMConfig`
+   **When** timeout is not specified
+   **Then** default is 45 seconds (not litellm's 600s default)
+
+2. **Given** LLM returns malformed JSON (JSONDecodeError, ValidationError)
+   **When** schema_retry_count < max_schema_retries (default: 2)
+   **Then** retry same provider (treat as TRANSIENT, not PERMANENT)
+
+3. **Given** malformed JSON after max_schema_retries exhausted
+   **When** fallback provider is configured
+   **Then** try fallback provider before degradation
+
+**Evidence:** Records `f89c6142`, `e16dbc36_190829` had malformed JSON from OpenRouter.
+
+---
+
+### Story 12.4: Enhance Synthesizer for Detailed Responses
+
+**Priority:** Medium | **Effort:** Small (1-2 hours)
+
+**As a** Quilto user,
+**I want** responses to include reasoning, specific metrics, and log references,
+**So that** I understand why recommendations are made based on my data.
+
+**Acceptance Criteria:**
+1. **Given** a recommendation response
+   **When** Synthesizer generates output
+   **Then** response includes WHY (reasoning based on log patterns)
+
+2. **Given** logs with numeric data
+   **When** Synthesizer generates output
+   **Then** specific metrics are cited with dates
+
+**Evidence:** Records `fec3d15f`, `8e8e6d87`, `14b9034b`, `3ec25871` all requested more detail.
+
+---
+
+### Story 12.5: Add Response Language Detection
+
+**Priority:** Low | **Effort:** Small (1-2 hours)
+
+**As a** Quilto user querying in Korean,
+**I want** the final response in Korean,
+**So that** the experience feels natural.
+
+**Acceptance Criteria:**
+1. **Given** user query in Korean
+   **When** Synthesizer generates response
+   **Then** response is in Korean
+
+2. **Given** user query in English
+   **When** Synthesizer generates response
+   **Then** response is in English
+
+**Evidence:** Record `8e8e6d87` - Korean query got English response.
+
+---
+
+### Story 12.6: Analyze Feedback Dataset (Iteration 2)
+
+**Priority:** Medium | **Effort:** Medium (2-4 hours)
+
+**As a** Quilto developer,
+**I want** to analyze feedback collected during Epic 12 implementation,
+**So that** patterns are identified and improvement stories are generated for Epic 13.
+
+**Acceptance Criteria:**
+1. **Given** feedback records in `tests/eval/feedback/active/`
+   **When** analysis is completed
+   **Then** all records are reviewed with sentiment categorization
+
+2. **Given** analyzed feedback records
+   **When** patterns are identified
+   **Then** analysis documents which issues persist vs resolved
+
+3. **Given** identified patterns
+   **When** improvement stories are generated
+   **Then** each story has user story format, acceptance criteria, effort, and priority
+
+4. **Given** iteration complete
+   **When** archiving
+   **Then** records move to `archive/iter-002/` with analysis.md and stories-generated.md
+
+5. **Given** generated stories
+   **When** Epic 13 is scoped
+   **Then** priority stories are added to epics.md and sprint-status.yaml
+
+**Dev Notes:**
+- Follow same methodology as Story 11.4
+- Compare against Iteration 1 to measure improvement
+- Focus on: Did 12.1-12.5 fixes resolve the identified patterns?
+- Archive to `tests/eval/feedback/archive/iter-002/`
+
+---
+
 ## Future Epics (Iteration Pattern)
-
-### Epic 12: Dogfooding Iteration 2
-
-*Stories generated from Epic 11 feedback analysis*
-
-**Status:** Backlog (depends on Epic 11.4 analysis)
 
 ### Epic 13: Dogfooding Iteration 3
 

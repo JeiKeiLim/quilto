@@ -157,8 +157,20 @@ development_status:
   # Epic 11: Dogfooding Iteration 1
   # Restructured from "LLM Client Reliability" per Epic 10 Retrospective (2026-01-20)
   # Continuous improvement cycle: collect feedback → analyze → fix → iterate
-  epic-11: in-progress
+  epic-11: done
   11-1-implement-json-schema-structured-output: done  # Proper JSON schema for OpenRouter
   11-2-implement-feedback-recording-infrastructure: done  # Record query + outputs + user feedback
   11-3-investigate-retrieval-priority-bug: done  # NOT a strategy ordering bug - OpenRouter model-specific JSON malformation
-  11-4-analyze-feedback-dataset: backlog  # Mary + Jongkuk analyze, generate stories
+  11-4-analyze-feedback-dataset: done  # Analyzed 9 records, generated 5 stories for Epic 12
+  epic-11-retrospective: optional
+
+  # Epic 12: Dogfooding Iteration 2
+  # Generated from Story 11.4 feedback analysis (2026-01-24)
+  # Source: tests/eval/feedback/archive/iter-001/analysis.md
+  epic-12: backlog
+  12-1-fix-clarification-trigger-logic: backlog  # High priority - only trigger when critical gaps + 0 entries
+  12-2-improve-planner-retrieval-strategy: backlog  # High priority - always include DATE_RANGE for fitness queries
+  12-3-add-llm-timeout-and-retry-config: backlog  # Medium priority - 45s timeout, retry malformed JSON
+  12-4-enhance-synthesizer-detail: backlog  # Medium priority - add reasoning, metrics, citations
+  12-5-add-response-language-detection: backlog  # Low priority - match response language to query
+  12-6-analyze-feedback-dataset-iter-2: backlog  # Analyze iteration 2 feedback, generate Epic 13 stories
