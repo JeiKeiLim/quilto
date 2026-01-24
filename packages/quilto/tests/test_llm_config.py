@@ -166,6 +166,46 @@ class TestLLMConfig:
         assert config.fallback_provider is None
         assert config.providers == {}
 
+    def test_default_timeout_is_45_seconds(self) -> None:
+        """Default timeout is 45 seconds (AC: #1, #6)."""
+        config = LLMConfig()
+        assert config.timeout == 45.0
+
+    def test_custom_timeout_is_used(self) -> None:
+        """Custom timeout value is used (AC: #2)."""
+        config = LLMConfig(timeout=60.0)
+        assert config.timeout == 60.0
+
+    def test_default_max_schema_retries_is_2(self) -> None:
+        """Default max_schema_retries is 2 (AC: #6)."""
+        config = LLMConfig()
+        assert config.max_schema_retries == 2
+
+    def test_custom_max_schema_retries_is_used(self) -> None:
+        """Custom max_schema_retries value is used."""
+        config = LLMConfig(max_schema_retries=5)
+        assert config.max_schema_retries == 5
+
+    def test_timeout_rejects_zero(self) -> None:
+        """Validator rejects timeout = 0 (boundary test)."""
+        with pytest.raises(ValidationError, match="timeout must be > 0"):
+            LLMConfig(timeout=0.0)
+
+    def test_timeout_rejects_negative(self) -> None:
+        """Validator rejects negative timeout."""
+        with pytest.raises(ValidationError, match="timeout must be > 0"):
+            LLMConfig(timeout=-1.0)
+
+    def test_max_schema_retries_rejects_negative(self) -> None:
+        """Validator rejects negative max_schema_retries."""
+        with pytest.raises(ValidationError, match="max_schema_retries must be >= 0"):
+            LLMConfig(max_schema_retries=-1)
+
+    def test_max_schema_retries_accepts_zero(self) -> None:
+        """Validator accepts max_schema_retries = 0 (disables schema retries)."""
+        config = LLMConfig(max_schema_retries=0)
+        assert config.max_schema_retries == 0
+
     def test_applies_default_tiers(self) -> None:
         """LLMConfig applies default tier models."""
         config = LLMConfig()

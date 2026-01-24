@@ -646,13 +646,26 @@ class TestCompleteStructuredCascade:
         assert "ExpectedSchema" in result.error_message
 
     @pytest.mark.asyncio
-    async def test_schema_error_skips_retry(self) -> None:
-        """Schema validation errors should skip retry (permanent error)."""
+    async def test_schema_error_retries_then_degrades(self) -> None:
+        """Schema validation errors retry up to max_schema_retries then degrade.
+
+        Story 12.3: Schema errors (JSONDecodeError, ValidationError) are now
+        retried up to max_schema_retries times before triggering fallback/degradation,
+        since LLM responses are non-deterministic.
+        """
 
         class ExpectedSchema(BaseModel):
             field: str
 
-        config = create_test_config(max_retries=3, enable_graceful_degradation=True)
+        # max_schema_retries=2 means 2 retries (3 total attempts for schema errors)
+        config = LLMConfig(
+            default_provider="ollama",
+            max_retries=3,
+            max_schema_retries=2,
+            base_retry_delay=0.01,
+            enable_graceful_degradation=True,
+            providers={"ollama": ProviderConfig(api_base="http://localhost:11434")},
+        )
         client = LLMClient(config)
 
         mock_response = MagicMock()
@@ -668,9 +681,9 @@ class TestCompleteStructuredCascade:
                     response_model=ExpectedSchema,
                 )
 
-        # Schema error is permanent, so only 1 attempt per provider
+        # With max_schema_retries=2: 1 initial + 1 retry = 2 total attempts
         assert isinstance(result, PartialResult)
-        assert mock_acompletion.call_count == 1
+        assert mock_acompletion.call_count == 2
 
 
 class TestCompleteWithFallbackBackwardCompatibility:

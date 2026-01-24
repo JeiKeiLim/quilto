@@ -182,7 +182,17 @@ class LLMConfig(BaseModel):
         providers: Provider-specific configurations keyed by provider name.
         tiers: Model mappings per tier (low, medium, high).
         agents: Per-agent configuration keyed by agent name.
-        max_retries: Maximum retry attempts per provider for transient errors.
+        timeout: Timeout in seconds for LLM calls. Default is 45 seconds,
+            which balances quick response with allowing complex reasoning.
+            (litellm's default is 600 seconds, which is too long.)
+        max_retries: Maximum retry attempts per provider for transient errors
+            (timeout, rate limit, connection errors).
+        max_schema_retries: Maximum schema error retry count before fallback.
+            With max_schema_retries=2, there can be up to 2 total calls on schema
+            errors (1 initial + 1 retry). Set to 0 to disable schema retries.
+            Separate from max_retries because schema errors (JSONDecodeError,
+            ValidationError) are often transient - same prompt can produce valid
+            JSON on retry.
         base_retry_delay: Base delay in seconds for exponential backoff.
         enable_graceful_degradation: If True, return PartialResult instead of
             raising when all providers fail.
@@ -195,9 +205,29 @@ class LLMConfig(BaseModel):
     providers: dict[ProviderName, ProviderConfig] = {}
     tiers: dict[TierName, TierModels] = {}
     agents: dict[str, AgentConfig] = {}
+    timeout: float = 45.0
     max_retries: int = 3
+    max_schema_retries: int = 2
     base_retry_delay: float = 1.0
     enable_graceful_degradation: bool = True
+
+    @field_validator("timeout")
+    @classmethod
+    def validate_timeout(cls, v: float) -> float:
+        """Validate timeout is positive.
+
+        Args:
+            v: The timeout value in seconds.
+
+        Returns:
+            The validated timeout value.
+
+        Raises:
+            ValueError: If timeout is not positive.
+        """
+        if v <= 0:
+            raise ValueError("timeout must be > 0")
+        return v
 
     @field_validator("max_retries")
     @classmethod
@@ -215,6 +245,24 @@ class LLMConfig(BaseModel):
         """
         if v < 0:
             raise ValueError("max_retries must be >= 0")
+        return v
+
+    @field_validator("max_schema_retries")
+    @classmethod
+    def validate_max_schema_retries(cls, v: int) -> int:
+        """Validate max_schema_retries is non-negative.
+
+        Args:
+            v: The max_schema_retries value.
+
+        Returns:
+            The validated max_schema_retries value.
+
+        Raises:
+            ValueError: If max_schema_retries is negative.
+        """
+        if v < 0:
+            raise ValueError("max_schema_retries must be >= 0")
         return v
 
     @field_validator("base_retry_delay")

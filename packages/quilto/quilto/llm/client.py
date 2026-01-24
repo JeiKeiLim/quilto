@@ -6,13 +6,14 @@ using litellm as the underlying API.
 """
 
 import asyncio
+import json
 import logging
 import random
 import re
 from typing import Any
 
 import litellm
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from quilto.llm.config import (
     AgentConfig,
@@ -241,6 +242,7 @@ class LLMClient:
         completion_kwargs: dict[str, Any] = {
             "model": resolution.litellm_model,
             "messages": messages,
+            "timeout": self.config.timeout,
             **kwargs,
         }
 
@@ -573,6 +575,29 @@ class LLMClient:
         )
         raise last_exception or Exception(error_msg)
 
+    def _is_schema_error(self, exception: Exception) -> bool:
+        """Check if exception is a schema/parsing error.
+
+        Schema errors (JSONDecodeError, ValidationError) are treated specially:
+        they are retried up to max_schema_retries times before fallback,
+        since LLM responses are non-deterministic and same prompt often
+        produces valid JSON on retry.
+
+        Args:
+            exception: The exception to check.
+
+        Returns:
+            True if the exception is a schema error.
+        """
+        if isinstance(exception, (json.JSONDecodeError, ValidationError)):
+            return True
+        # ValueError with schema validation message is also a schema error
+        if isinstance(exception, ValueError):
+            msg = str(exception).lower()
+            if "schema validation" in msg or "validation error" in msg:
+                return True
+        return False
+
     async def _retry_structured_with_backoff(
         self,
         agent: str,
@@ -584,7 +609,17 @@ class LLMClient:
         """Retry structured completion with exponential backoff.
 
         Similar to _retry_with_backoff but for structured responses.
-        Schema errors are treated as permanent (no retry).
+        Schema errors (JSONDecodeError, ValidationError) are handled specially:
+        they are retried before triggering fallback, since LLM responses are
+        non-deterministic.
+
+        The retry logic has two counters:
+        - attempt: counts connection-level retries (up to max_retries)
+        - schema_retries: counts schema error retries
+
+        With max_schema_retries=2, there can be 2 total attempts on schema
+        errors (1 initial + 1 retry). Schema retries don't consume the main
+        attempt counter, allowing independent retry budgets for each error type.
 
         Args:
             agent: The agent name.
@@ -599,9 +634,11 @@ class LLMClient:
         """
         last_exception: Exception | None = None
         actual_attempts = 0
+        schema_retries = 0
+        attempt = 0
 
-        for attempt in range(self.config.max_retries):
-            actual_attempts = attempt + 1
+        while attempt < self.config.max_retries:
+            actual_attempts += 1
             try:
                 result = await self.complete_structured(
                     agent, messages, response_model, force_cloud=force_cloud, **kwargs
@@ -609,18 +646,48 @@ class LLMClient:
                 return result, None, actual_attempts
             except Exception as e:
                 last_exception = e
+
+                # Handle schema errors specially - retry before fallback
+                if self._is_schema_error(e):
+                    schema_retries += 1
+                    if schema_retries < self.config.max_schema_retries:
+                        logger.warning(
+                            "Schema error (retry %d/%d, schema=%s): %s",
+                            schema_retries,
+                            self.config.max_schema_retries,
+                            response_model.__name__,
+                            str(e),
+                        )
+                        # Apply backoff before schema retry
+                        delay = self.config.base_retry_delay * (2**schema_retries)
+                        delay += random.uniform(0, 0.5)  # Jitter
+                        await asyncio.sleep(delay)
+                        # Don't increment attempt - schema retries are separate
+                        continue
+
+                    # Exhausted schema retries - log and trigger fallback
+                    logger.warning(
+                        "Schema retries exhausted (%d/%d, schema=%s): %s",
+                        schema_retries,
+                        self.config.max_schema_retries,
+                        response_model.__name__,
+                        str(e),
+                    )
+                    break  # Exit loop, trigger fallback
+
+                # Non-schema errors: use existing classify_error logic
                 error_type = classify_error(e)
 
                 logger.warning(
                     "LLM structured call failed (attempt %d/%d, type=%s, schema=%s): %s",
-                    actual_attempts,
+                    attempt + 1,
                     self.config.max_retries,
                     error_type.value,
                     response_model.__name__,
                     str(e),
                 )
 
-                # Don't retry permanent errors (including schema validation)
+                # Don't retry permanent errors
                 if error_type == ErrorType.PERMANENT:
                     break
 
@@ -629,5 +696,7 @@ class LLMClient:
                     delay = self.config.base_retry_delay * (2**attempt)
                     delay += random.uniform(0, 0.5)  # Jitter
                     await asyncio.sleep(delay)
+
+                attempt += 1
 
         return None, last_exception, actual_attempts

@@ -70,7 +70,10 @@ def classify_error(exception: Exception) -> ErrorType:
     Returns:
         ErrorType indicating whether to retry, fallback, or degrade.
     """
-    # Schema/parsing errors are permanent - no point retrying
+    # Schema/parsing errors are classified as permanent here, but are handled
+    # specially in client.py _retry_structured_with_backoff(). Schema errors
+    # are retried up to max_schema_retries times before triggering fallback,
+    # since LLM responses are non-deterministic and same prompt often works.
     if isinstance(exception, (json.JSONDecodeError, ValidationError)):
         return ErrorType.PERMANENT
 

@@ -225,6 +225,46 @@ class TestComplete:
             assert call_kwargs["api_key"] == "anthropic_key"
 
     @pytest.mark.asyncio
+    async def test_passes_default_timeout_to_litellm(self) -> None:
+        """Complete passes default timeout (45s) to litellm (AC: #1)."""
+        config = create_test_config(default_provider="anthropic")
+        client = LLMClient(config)
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content="Response"))]
+
+        with patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
+            mock_acompletion.return_value = mock_response
+
+            await client.complete("router", [{"role": "user", "content": "Hi"}])
+
+            call_kwargs = mock_acompletion.call_args.kwargs
+            assert call_kwargs["timeout"] == 45.0
+
+    @pytest.mark.asyncio
+    async def test_passes_custom_timeout_to_litellm(self) -> None:
+        """Complete passes custom timeout to litellm (AC: #2)."""
+        config = LLMConfig(
+            default_provider="anthropic",
+            timeout=90.0,
+            providers={"anthropic": ProviderConfig(api_key="anthropic_key")},
+            tiers={"low": TierModels(anthropic="claude-3-haiku-20240307")},
+            agents={"router": AgentConfig(tier="low")},
+        )
+        client = LLMClient(config)
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content="Response"))]
+
+        with patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
+            mock_acompletion.return_value = mock_response
+
+            await client.complete("router", [{"role": "user", "content": "Hi"}])
+
+            call_kwargs = mock_acompletion.call_args.kwargs
+            assert call_kwargs["timeout"] == 90.0
+
+    @pytest.mark.asyncio
     async def test_includes_api_base_when_set(self) -> None:
         """Complete includes api_base when provider has it configured."""
         config = create_test_config(default_provider="ollama")
@@ -363,6 +403,33 @@ class TestCompleteStructured:
                     [{"role": "user", "content": "Hi"}],
                     response_model=SampleResponse,
                 )
+
+    @pytest.mark.asyncio
+    async def test_passes_timeout_through(self) -> None:
+        """Complete_structured passes timeout to litellm via complete()."""
+        config = LLMConfig(
+            default_provider="anthropic",
+            timeout=120.0,
+            providers={"anthropic": ProviderConfig(api_key="anthropic_key")},
+            tiers={"low": TierModels(anthropic="claude-3-haiku-20240307")},
+            agents={"router": AgentConfig(tier="low")},
+        )
+        client = LLMClient(config)
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content='{"message": "Hi", "score": 1}'))]
+
+        with patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
+            mock_acompletion.return_value = mock_response
+
+            await client.complete_structured(
+                "router",
+                [{"role": "user", "content": "Hi"}],
+                response_model=SampleResponse,
+            )
+
+            call_kwargs = mock_acompletion.call_args.kwargs
+            assert call_kwargs["timeout"] == 120.0
 
 
 class TestBuildResponseFormat:
@@ -757,3 +824,324 @@ class TestCompleteWithFallback:
                     "router",
                     [{"role": "user", "content": "Hi"}],
                 )
+
+
+class TestSchemaRetryBehavior:
+    """Test schema retry behavior in _retry_structured_with_backoff (AC: #3, #4, #5)."""
+
+    @pytest.mark.asyncio
+    async def test_json_decode_error_triggers_retry(self) -> None:
+        """JSONDecodeError triggers schema retry up to max_schema_retries (AC: #3)."""
+        config = LLMConfig(
+            default_provider="anthropic",
+            max_retries=3,
+            max_schema_retries=2,
+            base_retry_delay=0.01,
+            providers={"anthropic": ProviderConfig(api_key="anthropic_key")},
+            tiers={"low": TierModels(anthropic="claude-3-haiku-20240307")},
+            agents={"router": AgentConfig(tier="low")},
+        )
+        client = LLMClient(config)
+
+        # First call fails with invalid JSON, second succeeds
+        mock_response_invalid = MagicMock()
+        mock_response_invalid.choices = [MagicMock(message=MagicMock(content="not valid json"))]
+
+        mock_response_valid = MagicMock()
+        mock_response_valid.choices = [MagicMock(message=MagicMock(content='{"message": "Hi", "score": 1}'))]
+
+        with (
+            patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion,
+            patch("quilto.llm.client.asyncio.sleep", new_callable=AsyncMock),
+        ):
+            mock_acompletion.side_effect = [mock_response_invalid, mock_response_valid]
+
+            result = await client.complete_structured_with_cascade(
+                "router",
+                [{"role": "user", "content": "Hi"}],
+                response_model=SampleResponse,
+                allow_degradation=False,
+            )
+
+            assert isinstance(result, SampleResponse)
+            assert result.message == "Hi"
+            # Should have been called twice (1 fail + 1 success)
+            assert mock_acompletion.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_validation_error_triggers_retry(self) -> None:
+        """ValidationError triggers schema retry up to max_schema_retries (AC: #3)."""
+        config = LLMConfig(
+            default_provider="anthropic",
+            max_retries=3,
+            max_schema_retries=2,
+            base_retry_delay=0.01,
+            providers={"anthropic": ProviderConfig(api_key="anthropic_key")},
+            tiers={"low": TierModels(anthropic="claude-3-haiku-20240307")},
+            agents={"router": AgentConfig(tier="low")},
+        )
+        client = LLMClient(config)
+
+        # First call returns wrong schema, second succeeds
+        mock_response_wrong = MagicMock()
+        mock_response_wrong.choices = [MagicMock(message=MagicMock(content='{"wrong": "schema"}'))]
+
+        mock_response_valid = MagicMock()
+        mock_response_valid.choices = [MagicMock(message=MagicMock(content='{"message": "Hi", "score": 1}'))]
+
+        with (
+            patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion,
+            patch("quilto.llm.client.asyncio.sleep", new_callable=AsyncMock),
+        ):
+            mock_acompletion.side_effect = [mock_response_wrong, mock_response_valid]
+
+            result = await client.complete_structured_with_cascade(
+                "router",
+                [{"role": "user", "content": "Hi"}],
+                response_model=SampleResponse,
+                allow_degradation=False,
+            )
+
+            assert isinstance(result, SampleResponse)
+            assert result.message == "Hi"
+            # Should have been called twice (1 fail + 1 success)
+            assert mock_acompletion.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_schema_retries_exhausted_triggers_fallback(self) -> None:
+        """After max_schema_retries exhausted, fallback is tried (AC: #4)."""
+        config = LLMConfig(
+            default_provider="ollama",
+            fallback_provider="anthropic",
+            max_retries=1,
+            max_schema_retries=2,
+            base_retry_delay=0.01,
+            providers={
+                "ollama": ProviderConfig(api_base="http://localhost:11434"),
+                "anthropic": ProviderConfig(api_key="anthropic_key"),
+            },
+            tiers={
+                "low": TierModels(
+                    ollama="qwen2.5:7b",
+                    anthropic="claude-3-haiku-20240307",
+                ),
+            },
+            agents={"router": AgentConfig(tier="low")},
+        )
+        client = LLMClient(config)
+
+        # Primary fails twice with invalid JSON (exhausts schema retries), fallback succeeds
+        mock_response_invalid = MagicMock()
+        mock_response_invalid.choices = [MagicMock(message=MagicMock(content="not json"))]
+
+        mock_response_valid = MagicMock()
+        mock_response_valid.choices = [MagicMock(message=MagicMock(content='{"message": "Fallback", "score": 42}'))]
+
+        with (
+            patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion,
+            patch("quilto.llm.client.asyncio.sleep", new_callable=AsyncMock),
+        ):
+            # 2 fails on primary (exhaust schema retries), 1 success on fallback
+            mock_acompletion.side_effect = [
+                mock_response_invalid,
+                mock_response_invalid,
+                mock_response_valid,
+            ]
+
+            result = await client.complete_structured_with_cascade(
+                "router",
+                [{"role": "user", "content": "Hi"}],
+                response_model=SampleResponse,
+                allow_degradation=False,
+            )
+
+            assert isinstance(result, SampleResponse)
+            assert result.message == "Fallback"
+            # Primary called twice (exhaust retries) + fallback once
+            assert mock_acompletion.call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_schema_retries_separate_from_connection_retries(self) -> None:
+        """Schema retries are separate from connection retries (AC: #5)."""
+        config = LLMConfig(
+            default_provider="anthropic",
+            max_retries=3,  # Connection retries
+            max_schema_retries=2,  # Schema retries
+            base_retry_delay=0.01,
+            providers={"anthropic": ProviderConfig(api_key="anthropic_key")},
+            tiers={"low": TierModels(anthropic="claude-3-haiku-20240307")},
+            agents={"router": AgentConfig(tier="low")},
+        )
+        client = LLMClient(config)
+
+        # First call returns invalid JSON (triggers schema retry counter)
+        # Second call succeeds
+        mock_response_invalid = MagicMock()
+        mock_response_invalid.choices = [MagicMock(message=MagicMock(content="invalid"))]
+
+        mock_response_valid = MagicMock()
+        mock_response_valid.choices = [MagicMock(message=MagicMock(content='{"message": "Hi", "score": 1}'))]
+
+        with (
+            patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion,
+            patch("quilto.llm.client.asyncio.sleep", new_callable=AsyncMock),
+        ):
+            mock_acompletion.side_effect = [mock_response_invalid, mock_response_valid]
+
+            result = await client.complete_structured_with_cascade(
+                "router",
+                [{"role": "user", "content": "Hi"}],
+                response_model=SampleResponse,
+                allow_degradation=False,
+            )
+
+            assert isinstance(result, SampleResponse)
+            # Should succeed on second call (schema retry worked)
+            assert mock_acompletion.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_schema_retries_disabled_when_zero(self) -> None:
+        """Schema retries disabled when max_schema_retries=0, immediately trigger fallback."""
+        config = LLMConfig(
+            default_provider="ollama",
+            fallback_provider="anthropic",
+            max_retries=1,
+            max_schema_retries=0,  # Disabled
+            base_retry_delay=0.01,
+            providers={
+                "ollama": ProviderConfig(api_base="http://localhost:11434"),
+                "anthropic": ProviderConfig(api_key="anthropic_key"),
+            },
+            tiers={
+                "low": TierModels(
+                    ollama="qwen2.5:7b",
+                    anthropic="claude-3-haiku-20240307",
+                ),
+            },
+            agents={"router": AgentConfig(tier="low")},
+        )
+        client = LLMClient(config)
+
+        # Primary fails with invalid JSON, immediately goes to fallback
+        mock_response_invalid = MagicMock()
+        mock_response_invalid.choices = [MagicMock(message=MagicMock(content="not json"))]
+
+        mock_response_valid = MagicMock()
+        mock_response_valid.choices = [MagicMock(message=MagicMock(content='{"message": "Fallback", "score": 1}'))]
+
+        with (
+            patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion,
+            patch("quilto.llm.client.asyncio.sleep", new_callable=AsyncMock),
+        ):
+            # 1 fail on primary (no schema retries), 1 success on fallback
+            mock_acompletion.side_effect = [mock_response_invalid, mock_response_valid]
+
+            result = await client.complete_structured_with_cascade(
+                "router",
+                [{"role": "user", "content": "Hi"}],
+                response_model=SampleResponse,
+                allow_degradation=False,
+            )
+
+            assert isinstance(result, SampleResponse)
+            assert result.message == "Fallback"
+            # Primary once (no retry) + fallback once
+            assert mock_acompletion.call_count == 2
+
+
+class TestIsSchemaError:
+    """Test LLMClient._is_schema_error method."""
+
+    def test_detects_json_decode_error(self) -> None:
+        """Detects json.JSONDecodeError as schema error."""
+        import json as json_module
+
+        config = create_test_config()
+        client = LLMClient(config)
+
+        error = json_module.JSONDecodeError("Expecting value", "", 0)
+        assert client._is_schema_error(error) is True  # pyright: ignore[reportPrivateUsage]
+
+    def test_detects_validation_error(self) -> None:
+        """Detects pydantic ValidationError as schema error."""
+        from pydantic import ValidationError as PydanticValidationError
+
+        config = create_test_config()
+        client = LLMClient(config)
+
+        try:
+            SampleResponse(message="hi", score="not_an_int")  # type: ignore[arg-type]
+        except PydanticValidationError as error:
+            assert client._is_schema_error(error) is True  # pyright: ignore[reportPrivateUsage]
+
+    def test_detects_schema_validation_valueerror(self) -> None:
+        """Detects ValueError with 'schema validation' message as schema error."""
+        config = create_test_config()
+        client = LLMClient(config)
+
+        error = ValueError("LLM response failed schema validation for SampleResponse")
+        assert client._is_schema_error(error) is True  # pyright: ignore[reportPrivateUsage]
+
+    def test_detects_validation_error_valueerror(self) -> None:
+        """Detects ValueError with 'validation error' message as schema error."""
+        config = create_test_config()
+        client = LLMClient(config)
+
+        error = ValueError("Validation error in response")
+        assert client._is_schema_error(error) is True  # pyright: ignore[reportPrivateUsage]
+
+    def test_rejects_other_errors(self) -> None:
+        """Does not detect unrelated errors as schema errors."""
+        config = create_test_config()
+        client = LLMClient(config)
+
+        error = RuntimeError("Connection timeout")
+        assert client._is_schema_error(error) is False  # pyright: ignore[reportPrivateUsage]
+
+        error2 = ValueError("Some other value error")
+        assert client._is_schema_error(error2) is False  # pyright: ignore[reportPrivateUsage]
+
+
+class TestSchemaRetryLogging:
+    """Test logging for schema retry behavior (Task 8.5)."""
+
+    @pytest.mark.asyncio
+    async def test_schema_retry_logs_warning(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Logging shows schema retry attempts distinctly from connection retries."""
+        import logging
+
+        config = LLMConfig(
+            default_provider="anthropic",
+            max_retries=3,
+            max_schema_retries=2,
+            base_retry_delay=0.01,
+            providers={"anthropic": ProviderConfig(api_key="anthropic_key")},
+            tiers={"low": TierModels(anthropic="claude-3-haiku-20240307")},
+            agents={"router": AgentConfig(tier="low")},
+        )
+        client = LLMClient(config)
+
+        # First call fails with invalid JSON, second succeeds
+        mock_response_invalid = MagicMock()
+        mock_response_invalid.choices = [MagicMock(message=MagicMock(content="not valid json"))]
+
+        mock_response_valid = MagicMock()
+        mock_response_valid.choices = [MagicMock(message=MagicMock(content='{"message": "Hi", "score": 1}'))]
+
+        with (
+            patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion,
+            patch("quilto.llm.client.asyncio.sleep", new_callable=AsyncMock),
+            caplog.at_level(logging.WARNING, logger="quilto.llm.client"),
+        ):
+            mock_acompletion.side_effect = [mock_response_invalid, mock_response_valid]
+
+            await client.complete_structured_with_cascade(
+                "router",
+                [{"role": "user", "content": "Hi"}],
+                response_model=SampleResponse,
+                allow_degradation=False,
+            )
+
+            # Should log schema retry warning
+            assert any("Schema error" in record.message for record in caplog.records)
+            assert any("retry" in record.message.lower() for record in caplog.records)
