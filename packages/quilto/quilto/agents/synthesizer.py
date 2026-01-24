@@ -160,17 +160,18 @@ class SynthesizerAgent:
 
         # Response style guidance
         if synthesizer_input.response_style == "concise":
-            style_guidance = """CONCISE STYLE (target: 50-100 words):
-- 2-4 sentences for simple queries
-- Bullet points for multiple findings
-- Direct answer without elaboration
-- Focus on key insight, skip background"""
+            style_guidance = """CONCISE STYLE (target: 75-150 words):
+- Direct answer with brief reasoning (2-3 sentences on WHY)
+- Cite 1-2 key metrics with dates
+- Quantify trends briefly
+- Skip elaborate background but keep essential evidence"""
         else:  # detailed
             style_guidance = """DETAILED STYLE (target: 200-400 words):
-- Full context and explanation
-- All supporting evidence listed with dates
-- Nuanced interpretation of patterns
-- Include relevant trends and comparisons"""
+- Full reasoning chain from evidence to conclusion
+- All relevant metrics with dates
+- Comprehensive trend analysis with percentages
+- Nuanced interpretation connecting multiple log entries
+- Personalized recommendations grounded in user's specific data"""
 
         # Partial answer handling
         partial_instruction = ""
@@ -213,6 +214,27 @@ Is partial answer: {synthesizer_input.is_partial}
 
 === RESPONSE STYLE GUIDANCE ===
 {style_guidance}
+
+=== REASONING REQUIREMENTS ===
+
+CRITICAL: Responses MUST include reasoning, not just conclusions.
+
+BAD: "You should focus on progressive overload."
+GOOD: "Based on your Jan 3-10 bench logs (175→185 lbs), you're ready for progressive overload."
+
+For every recommendation:
+1. State WHAT you're recommending
+2. Explain WHY based on specific log evidence
+3. CITE metrics that support your reasoning (dates + values)
+
+=== METRIC CITATION ===
+
+When findings contain numeric data:
+- ALWAYS cite specific values with dates
+- ALWAYS quantify trends (percentages, differences)
+- NEVER give generic advice when personalized data exists
+
+Examples: "5K improved 28:30→26:45 (6%)", "Bench 175→185 lbs in 7 days"
 
 === RESPONSE GUIDELINES ===
 

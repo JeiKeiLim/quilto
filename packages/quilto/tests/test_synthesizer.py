@@ -730,8 +730,8 @@ class TestSynthesizerPromptBuilding:
         prompt = synthesizer.build_prompt(synthesizer_input)
 
         assert "CONCISE STYLE" in prompt
-        assert "50-100 words" in prompt
-        assert "2-4 sentences" in prompt
+        assert "75-150 words" in prompt
+        assert "brief reasoning" in prompt
 
     def test_prompt_detailed_style_guidance(self) -> None:
         """Prompt includes detailed style guidance."""
@@ -749,7 +749,7 @@ class TestSynthesizerPromptBuilding:
 
         assert "DETAILED STYLE" in prompt
         assert "200-400 words" in prompt
-        assert "Full context" in prompt
+        assert "Full reasoning chain" in prompt
 
     def test_prompt_partial_answer_handling(self) -> None:
         """Prompt includes partial answer instructions when is_partial=True."""
@@ -820,6 +820,72 @@ class TestSynthesizerPromptBuilding:
         assert "Address what the user asked directly" in prompt
         assert "Support claims with evidence" in prompt
         assert "domain-appropriate terminology" in prompt
+
+    def test_prompt_includes_reasoning_requirements(self) -> None:
+        """Prompt includes REASONING REQUIREMENTS section."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        synthesizer_input = SynthesizerInput(
+            query="How has my bench press progressed?",
+            query_type=QueryType.INSIGHT,
+            analysis=create_sample_analyzer_output_sufficient(),
+            vocabulary=create_sample_vocabulary(),
+        )
+        prompt = synthesizer.build_prompt(synthesizer_input)
+
+        assert "REASONING REQUIREMENTS" in prompt
+        assert "CRITICAL: Responses MUST include reasoning" in prompt
+
+    def test_prompt_includes_metric_citation(self) -> None:
+        """Prompt includes METRIC CITATION section."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        synthesizer_input = SynthesizerInput(
+            query="How has my bench press progressed?",
+            query_type=QueryType.INSIGHT,
+            analysis=create_sample_analyzer_output_sufficient(),
+            vocabulary=create_sample_vocabulary(),
+        )
+        prompt = synthesizer.build_prompt(synthesizer_input)
+
+        assert "METRIC CITATION" in prompt
+        assert "cite specific values with dates" in prompt
+
+    def test_concise_style_updated_word_count(self) -> None:
+        """Concise style has updated word count (75-150, not 50-100)."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        synthesizer_input = SynthesizerInput(
+            query="How has my bench press progressed?",
+            query_type=QueryType.INSIGHT,
+            analysis=create_sample_analyzer_output_sufficient(),
+            vocabulary=create_sample_vocabulary(),
+            response_style="concise",
+        )
+        prompt = synthesizer.build_prompt(synthesizer_input)
+
+        assert "75-150 words" in prompt
+        assert "50-100 words" not in prompt  # Verify old target removed
+
+    def test_detailed_style_includes_trend_analysis(self) -> None:
+        """Detailed style emphasizes trend analysis."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        synthesizer_input = SynthesizerInput(
+            query="How has my bench press progressed?",
+            query_type=QueryType.INSIGHT,
+            analysis=create_sample_analyzer_output_sufficient(),
+            vocabulary=create_sample_vocabulary(),
+            response_style="detailed",
+        )
+        prompt = synthesizer.build_prompt(synthesizer_input)
+
+        assert "trend analysis" in prompt.lower()
+        assert "full reasoning chain" in prompt.lower()
 
 
 # =============================================================================
