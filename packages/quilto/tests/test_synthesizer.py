@@ -887,6 +887,37 @@ class TestSynthesizerPromptBuilding:
         assert "trend analysis" in prompt.lower()
         assert "full reasoning chain" in prompt.lower()
 
+    def test_prompt_includes_language_matching(self) -> None:
+        """Prompt includes LANGUAGE MATCHING section."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        synthesizer_input = SynthesizerInput(
+            query="How has my bench press progressed?",
+            query_type=QueryType.INSIGHT,
+            analysis=create_sample_analyzer_output_sufficient(),
+            vocabulary=create_sample_vocabulary(),
+        )
+        prompt = synthesizer.build_prompt(synthesizer_input)
+
+        assert "LANGUAGE MATCHING" in prompt
+
+    def test_prompt_includes_language_instruction(self) -> None:
+        """Prompt includes instruction to match response language to query language."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        synthesizer_input = SynthesizerInput(
+            query="내 벤치프레스 기록이 어떻게 변했어?",  # Korean query
+            query_type=QueryType.INSIGHT,
+            analysis=create_sample_analyzer_output_sufficient(),
+            vocabulary=create_sample_vocabulary(),
+        )
+        prompt = synthesizer.build_prompt(synthesizer_input)
+
+        assert "respond in the same language" in prompt.lower()
+        assert "korean query -> korean response" in prompt.lower()
+
 
 # =============================================================================
 # Test Synthesize Method (Task 4, 6.4)

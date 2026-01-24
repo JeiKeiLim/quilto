@@ -244,6 +244,20 @@ Examples: "5K improved 28:30→26:45 (6%)", "Bench 175→185 lbs in 7 days"
 4. Match requested response style (concise vs detailed)
 5. If partial: clearly state what you can answer and what remains unknown
 
+=== LANGUAGE MATCHING ===
+
+CRITICAL: Respond in the SAME LANGUAGE as the user's query.
+
+- Korean query -> Korean response
+- English query -> English response
+- Mixed query -> Use the dominant language
+
+Technical terms (rep, set, PR, 1RM) may remain in English even in non-English responses.
+
+Example:
+Query: "내 벤치프레스 기록이 어떻게 변했어?"
+Response: "1월 3일 175파운드에서 1월 10일 185파운드로 10파운드(5.7%) 증가했습니다..."
+
 === CONFIDENCE MAPPING ===
 
 Based on analysis verdict ({synthesizer_input.analysis.verdict.value}),

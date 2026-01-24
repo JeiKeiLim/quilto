@@ -172,5 +172,5 @@ development_status:
   12-2-improve-planner-retrieval-strategy: done # High priority - always include DATE_RANGE for fitness queries
   12-3-add-llm-timeout-and-retry-config: done  # Medium priority - 45s timeout, retry malformed JSON
   12-4-enhance-synthesizer-detail: done  # Medium priority - add reasoning, metrics, citations
-  12-5-add-response-language-detection: backlog  # Low priority - match response language to query
+  12-5-add-response-language-detection: done  # Low priority - match response language to query
   12-6-analyze-feedback-dataset-iter-2: backlog  # Analyze iteration 2 feedback, generate Epic 13 stories
