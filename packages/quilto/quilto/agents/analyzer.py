@@ -5,6 +5,7 @@ to find patterns, assess information sufficiency, and determine if a query
 can be answered with the available evidence.
 """
 
+from datetime import date, datetime
 from typing import Any, cast
 
 from quilto.agents.models import (
@@ -137,6 +138,53 @@ class AnalyzerAgent:
             return "(No global context available)"
         return context
 
+    def _calculate_temporal_context(self, entries: list[Any]) -> str:
+        """Calculate temporal context from entries.
+
+        Computes days since the most recent entry to help the LLM
+        understand how current the data is for proper recommendations.
+
+        Args:
+            entries: List of Entry objects or dicts with date fields.
+
+        Returns:
+            Formatted string with today's date, most recent entry date,
+            days since most recent, and oldest entry date.
+        """
+        if not entries:
+            return "(No entries - cannot calculate temporal context)"
+
+        today = date.today()
+        dates: list[date] = []
+        for entry in entries:
+            raw_date: date | str | None = None
+            if isinstance(entry, dict):
+                entry_dict = cast(dict[str, Any], entry)
+                raw_date = cast(date | str | None, entry_dict.get("date"))
+            else:
+                raw_date = cast(date | str | None, getattr(entry, "date", None))
+
+            if raw_date:
+                entry_date: date
+                if isinstance(raw_date, str):
+                    entry_date = datetime.fromisoformat(raw_date).date()
+                elif isinstance(raw_date, datetime):
+                    entry_date = raw_date.date()
+                else:
+                    entry_date = raw_date
+                dates.append(entry_date)
+
+        if not dates:
+            return "(No valid dates in entries)"
+
+        most_recent = max(dates)
+        oldest = min(dates)
+        days_since = (today - most_recent).days
+
+        return f"""Today's date: {today}
+Most recent entry: {most_recent} ({days_since} days ago)
+Oldest entry: {oldest}"""
+
     def has_critical_gaps(self, evaluation: SufficiencyEvaluation) -> bool:
         """Check if evaluation has any critical gaps.
 
@@ -187,10 +235,11 @@ class AnalyzerAgent:
         if not available_domains_text:
             available_domains_text = "(No additional domains available)"
 
-        # Format entries, retrieval summary, and global context
+        # Format entries, retrieval summary, global context, and temporal context
         entries_text = self._format_entries(analyzer_input.entries)
         retrieval_text = self._format_retrieval_summary(analyzer_input.retrieval_summary)
         global_context_text = self._format_global_context(analyzer_input.global_context_summary)
+        temporal_context_text = self._calculate_temporal_context(analyzer_input.entries)
 
         # Format sub-query ID
         sub_query_text = str(analyzer_input.sub_query_id) if analyzer_input.sub_query_id is not None else "N/A"
@@ -266,6 +315,19 @@ When a gap requires expertise outside current domains:
 === GLOBAL CONTEXT ===
 
 {global_context_text}
+
+=== TEMPORAL CONTEXT ===
+
+{temporal_context_text}
+
+TEMPORAL RULES:
+- For entries > 7 days old: Do NOT reference physical state (fatigue, soreness, tiredness) as "current" or "lingering"
+- For 5+ day workout gaps: Include days_since_last_entry in your findings
+- For 7+ day gaps: Consider this a "return-to-training" scenario, not active recovery
+- 0-2 days: Normal recommendations, recovery guidance relevant
+- 3-5 days: Recovery likely complete, mention the break
+- 6-7 days: Acknowledge extended break, suggest easing back
+- 8+ days: Return-to-training approach, NOT recovery from recent workout
 
 === INPUT ===
 

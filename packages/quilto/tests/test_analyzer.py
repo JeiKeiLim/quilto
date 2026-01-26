@@ -5,6 +5,7 @@ sufficiency evaluation, helper methods, and exports.
 """
 
 import json
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock
@@ -126,21 +127,22 @@ def create_sample_entries() -> list[dict[str, Any]]:
     """Create sample entries for testing.
 
     Returns:
-        List of entry-like dicts for tests.
+        List of entry-like dicts for tests with relative dates.
     """
+    today = date.today()
     return [
         {
-            "date": "2026-01-10",
+            "date": (today - timedelta(days=2)).isoformat(),
             "raw_content": "Bench press 185x5, feeling strong",
             "domain_data": {"strength": {"exercise": "bench press", "weight": 185, "reps": 5}},
         },
         {
-            "date": "2026-01-08",
+            "date": (today - timedelta(days=4)).isoformat(),
             "raw_content": "Bench press 180x5, normal effort",
             "domain_data": {"strength": {"exercise": "bench press", "weight": 180, "reps": 5}},
         },
         {
-            "date": "2026-01-05",
+            "date": (today - timedelta(days=7)).isoformat(),
             "raw_content": "Bench press 175x5",
             "domain_data": {"strength": {"exercise": "bench press", "weight": 175, "reps": 5}},
         },
@@ -661,7 +663,10 @@ class TestAnalyzerPromptBuilding:
         )
         prompt = analyzer.build_prompt(analyzer_input)
 
-        assert "2026-01-10" in prompt
+        # Check that the most recent entry date (2 days ago) is in the prompt
+        today = date.today()
+        most_recent_date = (today - timedelta(days=2)).isoformat()
+        assert most_recent_date in prompt
         assert "Bench press 185x5" in prompt
 
     def test_prompt_includes_retrieval_summary(self) -> None:
@@ -763,6 +768,78 @@ class TestAnalyzerPromptBuilding:
         prompt = analyzer.build_prompt(analyzer_input)
 
         assert "Sub-query ID: N/A" in prompt
+
+    def test_prompt_includes_temporal_context_section(self) -> None:
+        """Prompt includes TEMPORAL CONTEXT section with entry dates."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        # Create entries with dates
+        entries = create_sample_entries()
+        analyzer_input = AnalyzerInput(
+            query="How has my bench press progressed?",
+            query_type=QueryType.INSIGHT,
+            entries=entries,
+            retrieval_summary=[],
+            domain_context=create_minimal_domain_context(),
+        )
+        prompt = analyzer.build_prompt(analyzer_input)
+
+        assert "TEMPORAL CONTEXT" in prompt
+        assert "TEMPORAL RULES" in prompt
+        assert "days ago" in prompt
+
+    def test_temporal_context_calculation(self) -> None:
+        """Temporal context calculates days since most recent entry."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        # Create entry from 5 days ago
+        five_days_ago = (date.today() - timedelta(days=5)).isoformat()
+        entries = [{"date": five_days_ago, "raw_content": "Test workout"}]
+
+        context = analyzer._calculate_temporal_context(entries)  # pyright: ignore[reportPrivateUsage]
+
+        assert "5 days ago" in context
+        assert str(date.today()) in context
+
+    def test_temporal_rules_for_old_entries(self) -> None:
+        """Prompt includes temporal rules about 7-day threshold."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        analyzer_input = AnalyzerInput(
+            query="Test",
+            query_type=QueryType.SIMPLE,
+            entries=create_sample_entries(),
+            retrieval_summary=[],
+            domain_context=create_minimal_domain_context(),
+        )
+        prompt = analyzer.build_prompt(analyzer_input)
+
+        # Check for temporal rules about old entries
+        assert "7 days" in prompt.lower()
+        assert "current" in prompt.lower() or "lingering" in prompt.lower()
+        assert "return-to-training" in prompt.lower()
+
+    def test_temporal_context_with_no_entries(self) -> None:
+        """Temporal context handles no entries gracefully."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        context = analyzer._calculate_temporal_context([])  # pyright: ignore[reportPrivateUsage]
+
+        assert "No entries" in context
+
+    def test_temporal_context_with_no_valid_dates(self) -> None:
+        """Temporal context handles entries without valid dates."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        entries = [{"raw_content": "No date entry"}]
+        context = analyzer._calculate_temporal_context(entries)  # pyright: ignore[reportPrivateUsage]
+
+        assert "No valid dates" in context
 
 
 # =============================================================================

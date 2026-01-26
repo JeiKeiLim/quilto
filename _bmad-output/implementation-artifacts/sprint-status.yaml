@@ -180,8 +180,8 @@ development_status:
   # Generated from Story 12.6 feedback analysis (2026-01-26)
   # Source: tests/eval/feedback/archive/iter-002/analysis.md
   # Key Findings: All 6 Iteration 1 patterns RESOLVED, 6 NEW patterns identified
-  epic-13: backlog
-  13-1-add-temporal-recency-awareness: backlog  # High priority - account for time since last workout
+  epic-13: in-progress
+  13-1-add-temporal-recency-awareness: done  # High priority - account for time since last workout
   13-2-simplify-retrieval-with-storage-awareness: backlog  # High priority - storage summary + date-range only + remove keyword/topical
   13-3-implement-conversation-context: backlog  # Medium priority - remember context from previous message
   13-4-fix-clarification-flow-routing: backlog  # Medium priority - actually ask clarify questions

@@ -326,7 +326,7 @@ class TestPromptForFeedback:
         """_prompt_for_feedback returns None when debug=False."""
         from swealog.cli.auto_cmd import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
 
-        result = _prompt_for_feedback(debug=False)
+        result = _prompt_for_feedback(debug=False, non_interactive=False)
         assert result is None
 
     def test_returns_user_input_when_debug_enabled(self) -> None:
@@ -334,7 +334,7 @@ class TestPromptForFeedback:
         from swealog.cli.auto_cmd import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
 
         with patch("swealog.cli.auto_cmd.typer.prompt", return_value="Great response!"):
-            result = _prompt_for_feedback(debug=True)
+            result = _prompt_for_feedback(debug=True, non_interactive=False)
             assert result == "Great response!"
 
     def test_returns_empty_string_when_user_skips(self) -> None:
@@ -342,7 +342,7 @@ class TestPromptForFeedback:
         from swealog.cli.auto_cmd import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
 
         with patch("swealog.cli.auto_cmd.typer.prompt", return_value=""):
-            result = _prompt_for_feedback(debug=True)
+            result = _prompt_for_feedback(debug=True, non_interactive=False)
             assert result == ""
 
     def test_prompt_message_is_correct(self) -> None:
@@ -350,7 +350,7 @@ class TestPromptForFeedback:
         from swealog.cli.auto_cmd import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
 
         with patch("swealog.cli.auto_cmd.typer.prompt", return_value="feedback") as mock_prompt:
-            _prompt_for_feedback(debug=True)
+            _prompt_for_feedback(debug=True, non_interactive=False)
             mock_prompt.assert_called_once_with(
                 "How was this response? (press Enter to skip)",
                 default="",
