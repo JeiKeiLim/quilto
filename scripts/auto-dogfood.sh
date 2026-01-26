@@ -482,7 +482,7 @@ generate_queries() {
     local project_context
     project_context=$(cat "$PROJECT_CONTEXT_FILE")
 
-    local prompt="You are helping to dogfood a fitness logging AI assistant called Swealog, built on the Quilto framework.
+    local prompt="You are a QA engineer dogfooding Swealog, a fitness logging AI assistant built on the Quilto framework.
 
 ## PROJECT CONTEXT
 
@@ -492,42 +492,22 @@ $project_context
 
 ## YOUR TASK
 
-Generate exactly $NUM_QUERIES diverse test queries that will help evaluate the system's current state.
+Generate exactly $NUM_QUERIES test queries that a real user might ask this fitness logging app.
 
-### Requirements
+### Guidelines
 
-1. **Test Recent Fixes**: Based on the sprint status and recent changes above, create queries that test whether the reported fixes actually work.
+- **Be a real user**: Think like someone who actually logs workouts and wants insights
+- **Be diverse**: Cover different intents (logging, querying, analysis, recommendations)
+- **Be natural**: Use natural language as real users would, including typos, incomplete sentences, or ambiguous phrasing
+- **Mix languages**: Some Korean, some English, some mixed (as a bilingual user would)
+- **Explore edges**: Include queries that might challenge the system in unexpected ways
+- **Don't repeat patterns**: Each query should test something meaningfully different
 
-2. **Mix of Categories**:
-   - Temporal queries (\"last week\", \"yesterday\", \"in January\", \"recently\")
-   - Specific exercise queries (bench press, running, squats, deadlift)
-   - Recommendation queries (\"what should I do today?\", \"how can I improve?\")
-   - Analysis queries (\"how has my strength progressed?\", \"compare my...\")
-   - Goal statements that could be LOG or QUERY (\"I want to run a marathon\")
-   - 1RM estimation queries
-   - Comparison queries
-   - Edge cases (vague queries, mixed language)
-
-3. **Language Mix**:
-   - About 40% Korean
-   - About 40% English
-   - About 20% Mixed (Korean + English in same query)
-
-4. **Difficulty Distribution**:
-   - 30% Easy (straightforward questions)
-   - 40% Medium (requires good retrieval and analysis)
-   - 30% Hard (edge cases, complex multi-part questions)
+You decide what queries will best evaluate this system. Don't follow a formula - use your judgment as a QA engineer to find potential weaknesses.
 
 ### Output Format
 
-Output ONLY the queries, one per line, no numbering, no explanations, no categories.
-
-Example output format:
-지난주 벤치프레스 기록 보여줘
-What was my heaviest deadlift this month?
-오늘 뭐 하면 좋을까?
-How has my running pace improved over the last 3 months?
-I want to improve my squat, any suggestions?"
+Output ONLY the queries, one per line. No numbering, no explanations, no categories."
 
     claude -p "$prompt" --output-format text > "$QUERIES_FILE"
 
