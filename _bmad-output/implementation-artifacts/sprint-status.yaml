@@ -188,7 +188,7 @@ development_status:
   13-5-improve-intent-classification: done  # Medium priority - treat goal statements as implicit queries
   13-6-add-indirect-estimation-fallback: done  # Low priority - estimate with disclaimers when direct data missing
   13-7-analyze-feedback-dataset-iter-3: done  # Medium priority - analyze iter-003 feedback, generate Epic 14 stories
-  epic-13-retrospective: optional
+  epic-13-retrospective: done
 
   # Epic 14: Dogfooding Iteration 4
   # Reconciled from auto-analysis + human review (2026-01-26)
