@@ -237,3 +237,13 @@ Files modified:
 - `packages/quilto/quilto/agents/router.py` - Added GOAL STATEMENTS section to prompt (lines 80-86, 7 lines added)
 - `packages/quilto/tests/test_router.py` - Added TestGoalStatementClassification (lines 1386-1594) and TestGoalStatementIntegration (lines 1596-1623) classes (237 lines added)
 
+### Known Issues / Future Improvements
+
+**[TECH-DEBT] Language-specific prompt patterns don't scale**
+- Location: `router.py:82` - Korean patterns `~하고 싶어`, `~하고 싶다`, `~목표는`, `~하려고 해`
+- Problem: Adding explicit patterns for each language (Korean, Japanese, Chinese, Spanish, etc.) is not maintainable
+- Recommendation: Remove Korean-specific patterns and rely on LLM generalization from English examples
+- The LLM should understand the *concept* of goal statements and apply it across languages it knows
+- English patterns serve as conceptual examples, not exhaustive rules
+- Action: Consider removing Korean patterns from prompt; keep Korean test case to verify multilingual handling works via LLM generalization
+
