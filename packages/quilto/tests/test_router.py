@@ -1381,3 +1381,269 @@ class TestRouterQueryIntegration:
         # Both domains should be selected for "diet affect strength training"
         assert "nutrition" in result.selected_domains, "Expected 'nutrition' domain for diet query"
         assert "strength" in result.selected_domains, "Expected 'strength' domain for training query"
+
+
+class TestGoalStatementClassification:
+    """Tests for goal statement classification as BOTH with implicit query (AC: #1, #2, #3, #4, #5)."""
+
+    @pytest.mark.asyncio
+    async def test_goal_statement_marathon(self) -> None:
+        """Goal statement 'I'd like to run a marathon' is classified as BOTH (AC: #1, #2)."""
+        response = {
+            "input_type": "BOTH",
+            "confidence": 0.85,
+            "selected_domains": ["running"],
+            "domain_selection_reasoning": "Goal statement about running a marathon",
+            "log_portion": "I'd like to run a full marathon",
+            "query_portion": "How do I prepare to run a full marathon?",
+            "reasoning": "Goal statement implies seeking guidance on achieving the goal",
+        }
+        client = create_mock_llm_client(response)
+        router = RouterAgent(client)
+
+        result = await router.classify(
+            RouterInput(
+                raw_input="I'd like to run a full marathon",
+                available_domains=create_sample_domains(),
+            )
+        )
+
+        assert result.input_type == InputType.BOTH
+        assert result.log_portion is not None
+        assert result.query_portion is not None
+        assert "running" in result.selected_domains
+
+    @pytest.mark.asyncio
+    async def test_goal_statement_weight_loss(self) -> None:
+        """Goal statement 'I want to lose 10kg' is classified as BOTH (AC: #2)."""
+        response = {
+            "input_type": "BOTH",
+            "confidence": 0.87,
+            "selected_domains": ["nutrition"],
+            "domain_selection_reasoning": "Goal statement about weight loss relates to nutrition",
+            "log_portion": "I want to lose 10kg",
+            "query_portion": "How can I lose 10kg?",
+            "reasoning": "Goal statement with 'I want to' pattern implies seeking guidance",
+        }
+        client = create_mock_llm_client(response)
+        router = RouterAgent(client)
+
+        result = await router.classify(
+            RouterInput(
+                raw_input="I want to lose 10kg",
+                available_domains=create_sample_domains(),
+            )
+        )
+
+        assert result.input_type == InputType.BOTH
+        assert result.log_portion is not None
+        assert result.query_portion is not None
+
+    @pytest.mark.asyncio
+    async def test_pure_log_no_false_positive(self) -> None:
+        """Pure log 'Ran 5k today' is classified as LOG, not BOTH (AC: #3)."""
+        response = {
+            "input_type": "LOG",
+            "confidence": 0.92,
+            "selected_domains": ["running"],
+            "domain_selection_reasoning": "Past tense activity log about running",
+            "reasoning": "Past tense declarative statement, not a goal statement",
+        }
+        client = create_mock_llm_client(response)
+        router = RouterAgent(client)
+
+        result = await router.classify(
+            RouterInput(
+                raw_input="Ran 5k today",
+                available_domains=create_sample_domains(),
+            )
+        )
+
+        assert result.input_type == InputType.LOG
+        assert result.log_portion is None  # LOG doesn't require portions
+        assert result.query_portion is None
+
+    @pytest.mark.asyncio
+    async def test_past_tense_with_time_marker(self) -> None:
+        """Past tense 'I just ran 5k' is classified as LOG (edge case AC: #3)."""
+        response = {
+            "input_type": "LOG",
+            "confidence": 0.90,
+            "selected_domains": ["running"],
+            "domain_selection_reasoning": "Recent past activity log about running",
+            "reasoning": "Past tense with time marker 'just' indicates completed action, not a goal",
+        }
+        client = create_mock_llm_client(response)
+        router = RouterAgent(client)
+
+        result = await router.classify(
+            RouterInput(
+                raw_input="I just ran 5k",
+                available_domains=create_sample_domains(),
+            )
+        )
+
+        assert result.input_type == InputType.LOG
+        assert result.log_portion is None
+        assert result.query_portion is None
+
+    @pytest.mark.asyncio
+    async def test_explicit_question_with_goal_context(self) -> None:
+        """Goal with explicit question 'I want to run a marathon, how do I start?' → BOTH (AC: #5)."""
+        response = {
+            "input_type": "BOTH",
+            "confidence": 0.91,
+            "selected_domains": ["running"],
+            "domain_selection_reasoning": "Goal statement with explicit question about running",
+            "log_portion": "I want to run a marathon",
+            "query_portion": "How do I start?",
+            "reasoning": "Explicit goal statement followed by explicit question",
+        }
+        client = create_mock_llm_client(response)
+        router = RouterAgent(client)
+
+        result = await router.classify(
+            RouterInput(
+                raw_input="I want to run a marathon, how do I start?",
+                available_domains=create_sample_domains(),
+            )
+        )
+
+        assert result.input_type == InputType.BOTH
+        assert result.log_portion is not None
+        assert result.query_portion is not None
+
+    @pytest.mark.asyncio
+    async def test_korean_goal_statement(self) -> None:
+        """Korean goal statement '마라톤을 완주하고 싶어' is classified as BOTH (AC: #4)."""
+        response = {
+            "input_type": "BOTH",
+            "confidence": 0.86,
+            "selected_domains": ["running"],
+            "domain_selection_reasoning": "Korean goal statement about completing a marathon",
+            "log_portion": "마라톤을 완주하고 싶어",
+            "query_portion": "마라톤을 완주하려면 어떻게 해야 해?",
+            "reasoning": "Korean goal pattern '~하고 싶어' implies seeking guidance",
+        }
+        client = create_mock_llm_client(response)
+        router = RouterAgent(client)
+
+        result = await router.classify(
+            RouterInput(
+                raw_input="마라톤을 완주하고 싶어",
+                available_domains=create_sample_domains(),
+            )
+        )
+
+        assert result.input_type == InputType.BOTH
+        assert result.log_portion is not None
+        assert result.query_portion is not None
+
+    @pytest.mark.asyncio
+    async def test_goal_statement_my_goal_is(self) -> None:
+        """Goal statement 'My goal is to bench 100kg' is classified as BOTH."""
+        response = {
+            "input_type": "BOTH",
+            "confidence": 0.88,
+            "selected_domains": ["strength"],
+            "domain_selection_reasoning": "Goal statement about strength training",
+            "log_portion": "My goal is to bench 100kg",
+            "query_portion": "How do I reach a 100kg bench press?",
+            "reasoning": "'My goal is' pattern indicates aspiration seeking guidance",
+        }
+        client = create_mock_llm_client(response)
+        router = RouterAgent(client)
+
+        result = await router.classify(
+            RouterInput(
+                raw_input="My goal is to bench 100kg",
+                available_domains=create_sample_domains(),
+            )
+        )
+
+        assert result.input_type == InputType.BOTH
+        assert result.log_portion is not None
+        assert result.query_portion is not None
+        assert "strength" in result.selected_domains
+
+    @pytest.mark.asyncio
+    async def test_goal_statement_im_trying_to(self) -> None:
+        """Goal statement 'I'm trying to improve my cardio' is classified as BOTH."""
+        response = {
+            "input_type": "BOTH",
+            "confidence": 0.84,
+            "selected_domains": ["running"],
+            "domain_selection_reasoning": "Goal statement about improving cardio",
+            "log_portion": "I'm trying to improve my cardio",
+            "query_portion": "How can I improve my cardio?",
+            "reasoning": "'I'm trying to' pattern indicates seeking guidance",
+        }
+        client = create_mock_llm_client(response)
+        router = RouterAgent(client)
+
+        result = await router.classify(
+            RouterInput(
+                raw_input="I'm trying to improve my cardio",
+                available_domains=create_sample_domains(),
+            )
+        )
+
+        assert result.input_type == InputType.BOTH
+        assert result.log_portion is not None
+        assert result.query_portion is not None
+
+    @pytest.mark.asyncio
+    async def test_goal_statement_i_hope_to(self) -> None:
+        """Goal statement 'I hope to compete in a triathlon' is classified as BOTH."""
+        response = {
+            "input_type": "BOTH",
+            "confidence": 0.85,
+            "selected_domains": ["running"],
+            "domain_selection_reasoning": "Goal statement about competing in triathlon",
+            "log_portion": "I hope to compete in a triathlon",
+            "query_portion": "How do I prepare for a triathlon?",
+            "reasoning": "'I hope to' pattern indicates aspiration seeking guidance",
+        }
+        client = create_mock_llm_client(response)
+        router = RouterAgent(client)
+
+        result = await router.classify(
+            RouterInput(
+                raw_input="I hope to compete in a triathlon",
+                available_domains=create_sample_domains(),
+            )
+        )
+
+        assert result.input_type == InputType.BOTH
+        assert result.log_portion is not None
+        assert result.query_portion is not None
+
+
+class TestGoalStatementIntegration:
+    """Integration tests for goal statement classification with real Ollama.
+
+    Run with: pytest --use-real-ollama -k TestGoalStatementIntegration
+    Or via: make test-ollama
+    """
+
+    @pytest.mark.asyncio
+    async def test_real_goal_statement_marathon(self, use_real_ollama: bool, integration_llm_config_path: Path) -> None:
+        """Test goal statement classification with real Ollama (AC: #1)."""
+        if not use_real_ollama:
+            pytest.skip("Requires --use-real-ollama flag")
+
+        config = load_llm_config(integration_llm_config_path)
+        real_llm_client = LLMClient(config)
+        router = RouterAgent(real_llm_client)
+
+        result = await router.classify(
+            RouterInput(
+                raw_input="I'd like to run a full marathon",
+                available_domains=create_sample_domains(),
+            )
+        )
+
+        assert result.input_type == InputType.BOTH
+        assert result.log_portion is not None
+        assert result.query_portion is not None
+        assert "running" in result.selected_domains

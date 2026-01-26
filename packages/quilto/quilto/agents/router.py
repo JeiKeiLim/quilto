@@ -77,6 +77,14 @@ SIGNALS:
 - Past tense declarative → LOG
 - Correction language → CORRECTION
 
+GOAL STATEMENTS (classify as BOTH):
+- Patterns: "I want to...", "I'd like to...", "My goal is...", "I'm trying to...", "I hope to..."
+- Korean patterns: "~하고 싶어", "~하고 싶다", "~목표는", "~하려고 해"
+- These imply implicit query seeking guidance on achieving the goal
+- For BOTH: log_portion = the goal statement, query_portion = inferred question about achieving it
+- Example: "I want to run a marathon" → log="I want to run a marathon", query="How do I prepare?"
+- IMPORTANT: Past completed actions ("I ran", "I just ran") are NOT goal statements - classify as LOG
+
 IMPORTANT:
 - If input_type is BOTH, you MUST provide both log_portion and query_portion
 - If input_type is CORRECTION, you MUST provide correction_target
