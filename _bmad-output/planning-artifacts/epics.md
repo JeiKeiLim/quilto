@@ -1850,6 +1850,55 @@ So that **patterns are identified and improvement stories are generated**.
 
 ---
 
+### Story 13.7: Analyze Feedback Dataset (Iteration 3)
+
+**Priority:** Medium | **Effort:** Medium (2-4 hours)
+
+**As a** Quilto developer,
+**I want** to analyze feedback collected during Epic 13 implementation,
+**So that** patterns are identified and improvement stories are generated for Epic 14.
+
+**Acceptance Criteria:**
+
+1. **Given** feedback records in `tests/eval/feedback/active/`
+   **When** analysis is completed
+   **Then** all records are reviewed with sentiment categorization (positive/mixed/negative)
+
+2. **Given** analyzed feedback records
+   **When** patterns are identified
+   **Then** analysis documents which Iteration 2 patterns persist vs resolved (comparing to the 6 patterns from iter-002)
+
+3. **Given** identified patterns
+   **When** improvement stories are generated
+   **Then** each story has: user story format, acceptance criteria, effort estimate, and priority
+
+4. **Given** iteration complete
+   **When** archiving
+   **Then** records move to `archive/iter-003/` with `analysis.md` and `stories-generated.md`
+
+5. **Given** generated stories
+   **When** Epic 14 is scoped
+   **Then** priority stories are added to `epics.md` and `sprint-status.yaml`
+
+**Dev Notes:**
+- Follow same methodology as Story 11.4 and 12.6
+- Compare against Iteration 2 patterns (6 new patterns identified)
+- Focus on: Did Stories 13.1-13.6 fixes resolve the identified patterns?
+- Archive to `tests/eval/feedback/archive/iter-003/`
+- This completes the dogfooding iteration cycle for Epic 13
+
+**Iteration 2 Patterns to Compare Against:**
+| # | Pattern | Severity | Fix Applied |
+|---|---------|----------|-------------|
+| 7 | Temporal Context Blindness | High | Story 13.1 |
+| 8 | Keyword Retrieval Misses Exact Matches | High | Story 13.2 |
+| 9 | Context Loss in Multi-Turn Conversations | Medium | Story 13.3 |
+| 10 | Ambiguous LOG vs QUERY Classification | Medium | Story 13.5 |
+| 11 | Clarification Questions Generated But Not Asked | Medium | Story 13.4 |
+| 12 | Analyzer Should Attempt Indirect Estimation | Low | Story 13.6 |
+
+---
+
 ## Future Epics (Iteration Pattern)
 
 ### Epic 14: Dogfooding Iteration 4
