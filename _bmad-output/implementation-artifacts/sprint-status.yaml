@@ -180,12 +180,27 @@ development_status:
   # Generated from Story 12.6 feedback analysis (2026-01-26)
   # Source: tests/eval/feedback/archive/iter-002/analysis.md
   # Key Findings: All 6 Iteration 1 patterns RESOLVED, 6 NEW patterns identified
-  epic-13: in-progress
+  epic-13: done
   13-1-add-temporal-recency-awareness: done  # High priority - account for time since last workout
   13-2-simplify-retrieval-with-storage-awareness: done  # High priority - storage summary + date-range only + remove keyword/topical (code review: PASSED - no issues found)
   13-3-implement-conversation-context: done  # Medium priority - remember context from previous message
   13-4-fix-clarification-flow-routing: done  # Medium priority - actually ask clarify questions
   13-5-improve-intent-classification: done  # Medium priority - treat goal statements as implicit queries
   13-6-add-indirect-estimation-fallback: done  # Low priority - estimate with disclaimers when direct data missing
-  13-7-analyze-feedback-dataset-iter-3: ready-for-dev  # Medium priority - analyze iter-003 feedback, generate Epic 14 stories
+  13-7-analyze-feedback-dataset-iter-3: done  # Medium priority - analyze iter-003 feedback, generate Epic 14 stories
   epic-13-retrospective: optional
+
+  # Epic 14: Dogfooding Iteration 4
+  # Reconciled from auto-analysis + human review (2026-01-26)
+  # Source: tests/eval/feedback/archive/iter-003/analysis.md + human-review-iter-003.md
+  # Human Review Findings: Auto=81% positive, Human=50% correct, 25% false positives
+  # NEW Pattern 17 (CRITICAL): Planner skips retrieval for personalization queries
+  # Pattern 7 (Temporal Blindness) partially persists
+  epic-14: backlog
+  14-1-enforce-planner-retrieval-for-personalization: backlog  # CRITICAL - must try retrieval before clarify/synthesize
+  14-2-pass-goal-context-to-synthesizer: backlog  # High priority - goal from log_portion should flow to response
+  14-3-match-response-language-to-query: backlog  # Medium priority - synthesizer matches query language
+  14-4-fix-evaluator-completeness-check: backlog  # Low priority - don't flag missing entries for empty dates
+  14-5-clarify-ambiguous-fitness-terms: backlog  # Optional - handle semantic ambiguity in terms like "leg day"
+  14-6-analyze-feedback-dataset-iter-4: backlog  # Analysis story for next iteration
+  epic-14-retrospective: optional

@@ -1899,11 +1899,211 @@ So that **patterns are identified and improvement stories are generated**.
 
 ---
 
+## Epic 14: Dogfooding Iteration 4
+
+*Stories reconciled from auto-analysis + human review (Story 13.7)*
+
+**Source:** `tests/eval/feedback/archive/iter-003/analysis.md` + `human-review-iter-003.md`
+**Analysis Date:** 2026-01-26
+**Records Analyzed:** 16
+
+**Auto-Analysis vs Human Review Discrepancy:**
+| Metric | Auto-Analysis | Human Review |
+|--------|---------------|--------------|
+| Positive | 81% (13/16) | 50% correct |
+| Mixed | 19% (3/16) | 25% partial |
+| Negative | 0% | 25% wrong (false positives) |
+
+**Key Findings (Human Review):**
+- 5/6 Iteration 2 patterns **RESOLVED** by Epic 13 fixes
+- 1/6 patterns **PARTIALLY RESOLVED** (Pattern 11: clarification questions generated but not blocking)
+- **NEW Pattern 17 (CRITICAL):** Planner skips retrieval entirely for personalization queries (Records 13, 16)
+- 4 records were false positives in auto-analysis (2, 3, 13, 16)
+- Pattern 7 (Temporal Blindness) partially persists (Record 3)
+
+**Quilto:** Planner retrieval enforcement, goal context passing, response language matching
+**Swealog:** N/A (framework-level improvements)
+
+---
+
+### Story 14.1: Enforce Planner Retrieval for Personalization Queries
+
+**Priority:** CRITICAL | **Effort:** Medium (2-4 hours)
+
+**As a** Quilto user,
+**I want** the system to always check my workout logs before giving personalized advice,
+**So that** I get responses based on my actual data, not generic guidance.
+
+**Acceptance Criteria:**
+
+1. **Given** a recommendation or personalization query (e.g., "What should I focus on?", "How should I restart training?")
+   **When** Planner generates next_action
+   **Then** it MUST attempt retrieval before setting `next_action: clarify` or `next_action: synthesize`
+
+2. **Given** Planner sets `next_action: clarify` without retrieval attempt
+   **When** storage has workout logs available
+   **Then** this is a BUG - Planner should have tried retrieval first
+
+3. **Given** a query that could benefit from user data
+   **When** Retriever returns entries (count > 0)
+   **Then** Synthesizer response includes personalized insights from those entries
+
+4. **Given** date-range retrieval returns 0 entries
+   **When** Planner decides next action
+   **Then** ONLY THEN may it fall back to clarify or generic synthesize
+
+**Evidence:**
+- Record `bca56fc1`: "요즘 운동 좀 쉬었는데 다시 시작하려면 어떤 강도로 해야할까" - Planner skipped retrieval, gave generic advice despite 19+ entries existing
+- Record `ff8c098d`: "What should I focus on?" - Planner set `next_action: clarify` without attempting retrieval, Retriever shows 0 entries/0 strategies
+
+**Root Cause:** Planner logic doesn't enforce "always try retrieval first" for recommendation/personalization queries.
+
+**Files to Modify:**
+- `packages/quilto/quilto/agents/planner.py` - Add logic to enforce retrieval before clarify/synthesize for personalization queries
+- Planner prompt - Strengthen guidance: "For ANY query that could benefit from user data, ALWAYS attempt retrieval first"
+
+---
+
+### Story 14.2: Pass Goal Context to Synthesizer
+
+**Priority:** High | **Effort:** Small (1-2 hours)
+
+**As a** Quilto user,
+**I want** my stated goals to be considered in the response,
+**So that** recommendations are tailored to what I want to achieve.
+
+**Acceptance Criteria:**
+
+1. **Given** Router identifies a goal in `log_portion` (e.g., "I want to lose 5kg by summer")
+   **When** Synthesizer generates a response
+   **Then** the response incorporates the stated goal
+
+2. **Given** input_type is BOTH with goal + query
+   **When** Synthesizer receives context
+   **Then** `log_portion` content is included in the context
+
+3. **Given** query "What should I focus on?" with goal "lose 5kg by summer"
+   **When** response is generated
+   **Then** response mentions weight loss strategies, not generic balanced fitness
+
+**Evidence:** Record `ff8c098d` - Router extracted "I want to lose 5kg by summer" but Synthesizer gave generic advice
+
+---
+
+### Story 14.3: Match Response Language to Query Language
+
+**Priority:** Medium | **Effort:** Small (1-2 hours)
+
+**As a** Quilto user,
+**I want** responses in the same language I asked my question,
+**So that** I can easily understand the answer.
+
+**Acceptance Criteria:**
+
+1. **Given** English query with Korean workout logs
+   **When** Synthesizer generates response
+   **Then** response is in English
+
+2. **Given** Korean query with English workout logs
+   **When** Synthesizer generates response
+   **Then** response is in Korean
+
+3. **Given** mixed language input
+   **When** determining response language
+   **Then** the language of the query (not logs) is used
+
+**Evidence:** Record `39b8e450` - English query "check my shoulder workout frequency" received Korean response
+
+---
+
+### Story 14.4: Fix Evaluator Completeness Check
+
+**Priority:** Low | **Effort:** Small (1-2 hours)
+
+**As a** Quilto developer,
+**I want** the Evaluator to correctly assess completeness,
+**So that** valid responses are not incorrectly flagged as incomplete.
+
+**Acceptance Criteria:**
+
+1. **Given** request for "all entries from January"
+   **When** response includes all stored entries for that period
+   **Then** Evaluator marks completeness as "sufficient"
+
+2. **Given** dates with no logged workouts in storage
+   **When** response omits those dates
+   **Then** Evaluator does not flag as "missing entries"
+
+3. **Given** Retriever output with date range coverage
+   **When** Evaluator checks completeness
+   **Then** it validates against what exists in storage, not hypothetical entries
+
+**Evidence:** Record `47d6c735` - Evaluator complained about "missing entries for 14, 16, 17, 18, 21" but those dates had no logs
+
+---
+
+### Story 14.5: Clarify Ambiguous Fitness Terms (Optional)
+
+**Priority:** Low | **Effort:** Medium (2-4 hours)
+
+**As a** Quilto user,
+**I want** ambiguous fitness terms to be clarified,
+**So that** responses match my intent.
+
+**Acceptance Criteria:**
+
+1. **Given** query with ambiguous term like "leg day"
+   **When** Planner processes the query
+   **Then** it considers asking clarification (strength training vs cardio with leg focus)
+
+2. **Given** no dedicated leg strength training in logs
+   **When** user asks about "last leg day"
+   **Then** response acknowledges ambiguity or includes both interpretations
+
+**Evidence:** Record `9edecb7c` - "what was my last leg day" returned stair climbing (cardio) instead of leg strength training
+
+**Note:** This story is optional - the current response was technically correct, just potentially not matching user intent.
+
+---
+
+### Story 14.6: Analyze Feedback Dataset (Iteration 4)
+
+**Priority:** Medium | **Effort:** Medium (2-4 hours)
+
+**As a** Quilto developer,
+**I want** to analyze feedback collected during Epic 14 implementation,
+**So that** patterns are identified and improvement stories are generated for Epic 15.
+
+**Acceptance Criteria:**
+
+1. **Given** feedback records in `tests/eval/feedback/active/`
+   **When** analysis is completed
+   **Then** all records are reviewed with sentiment categorization
+
+2. **Given** analyzed feedback records
+   **When** patterns are identified
+   **Then** analysis documents which Iteration 3 patterns persist vs resolved
+
+3. **Given** iteration complete
+   **When** archiving
+   **Then** records move to `archive/iter-004/` with `analysis.md` and `stories-generated.md`
+
+**Iteration 3 Patterns to Compare Against (Human Review):**
+| # | Pattern | Severity | Fix Applied |
+|---|---------|----------|-------------|
+| 13 | Response Language Mismatch | Minor | Story 14.3 |
+| 14 | Evaluator False Negative | Minor | Story 14.4 |
+| 15 | Semantic Interpretation Ambiguity | Minor | Story 14.5 (optional) |
+| 16 | Goal Context Loss | Moderate | Story 14.2 |
+| **17** | **Planner Skips Retrieval** | **CRITICAL** | **Story 14.1** |
+
+---
+
 ## Future Epics (Iteration Pattern)
 
-### Epic 14: Dogfooding Iteration 4
+### Epic 15+: Dogfooding Iteration 5+
 
-*Stories generated from Epic 13 feedback analysis*
+*Stories generated from subsequent iteration feedback analyses*
 
-**Status:** Backlog (depends on Epic 13 analysis)
+**Status:** Backlog (depends on previous iteration analysis)
 
