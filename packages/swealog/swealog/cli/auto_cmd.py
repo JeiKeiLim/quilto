@@ -55,18 +55,23 @@ def _display_query_result(result: dict[str, Any]) -> None:
     print_info(f"Confidence: {result['confidence']:.0%}")
 
 
-def _prompt_for_feedback(debug: bool) -> str | None:
+def _prompt_for_feedback(debug: bool, non_interactive: bool) -> str | None:
     """Prompt user for feedback if debug mode is active.
 
     Args:
         debug: Whether debug mode is enabled.
+        non_interactive: If True, skip prompting and return empty string.
 
     Returns:
         User feedback string or None if debug disabled.
-        Empty string if user skipped.
+        Empty string if user skipped or non_interactive.
     """
     if not debug:
         return None
+
+    if non_interactive:
+        # Non-interactive mode: record feedback as empty (to be filled by auto-review)
+        return ""
 
     print()  # Blank line before prompt
     return typer.prompt(
@@ -84,6 +89,7 @@ def _record_feedback(
     user_feedback: str,
     config_path: Path | None,
     storage_path: Path | None,
+    non_interactive: bool = False,
 ) -> Path | None:
     """Record feedback to disk if intermediate outputs are available.
 
@@ -95,6 +101,7 @@ def _record_feedback(
         user_feedback: User's feedback string (may be empty).
         config_path: Path to LLM config (optional).
         storage_path: Path to storage directory (optional).
+        non_interactive: Whether running in non-interactive mode (auto-dogfood).
 
     Returns:
         Path to recorded feedback file, or None if outputs not collected.
@@ -119,6 +126,7 @@ def _record_feedback(
             config_path=str(config_path) if config_path else None,
             storage_path=str(storage_path) if storage_path else None,
             debug_enabled=True,
+            non_interactive=non_interactive,
         ),
     )
 
@@ -134,6 +142,9 @@ async def auto(
     config: Annotated[Path | None, typer.Option("--config", "-c", help="Path to llm-config.yaml")] = None,
     storage_path: Annotated[Path | None, typer.Option("--storage", "-s", help="Path to storage directory")] = None,
     debug: Annotated[bool, typer.Option("--debug", "-d", help="Show debug output with agent timing")] = False,
+    non_interactive: Annotated[
+        bool, typer.Option("--non-interactive", "-n", help="Skip prompts (for automated testing)")
+    ] = False,
 ) -> None:
     """Automatically route input to the appropriate flow.
 
@@ -148,6 +159,7 @@ async def auto(
         swealog auto "how's my progress?"             # Routes to QUERY
         swealog auto "ran 5k, how does that compare?" # Routes to BOTH
         swealog auto --debug "bench 185x5"            # With debug timing
+        swealog auto --debug --non-interactive "..."  # For auto-dogfood script
     """
     dbg = DebugLogger(enabled=debug)
     try:
@@ -193,7 +205,7 @@ async def auto(
             _display_query_result(result)
 
             # Prompt for feedback and record if debug enabled
-            user_feedback = _prompt_for_feedback(debug)
+            user_feedback = _prompt_for_feedback(debug, non_interactive)
             if user_feedback is not None:
                 _record_feedback(
                     query=text,
@@ -203,6 +215,7 @@ async def auto(
                     user_feedback=user_feedback,
                     config_path=config,
                     storage_path=storage_path,
+                    non_interactive=non_interactive,
                 )
 
         elif input_type == "BOTH":
@@ -233,7 +246,7 @@ async def auto(
             _display_query_result(result)
 
             # Prompt for feedback and record if debug enabled
-            user_feedback = _prompt_for_feedback(debug)
+            user_feedback = _prompt_for_feedback(debug, non_interactive)
             if user_feedback is not None:
                 _record_feedback(
                     query=query_text,  # Use query_portion, not original text
@@ -243,6 +256,7 @@ async def auto(
                     user_feedback=user_feedback,
                     config_path=config,
                     storage_path=storage_path,
+                    non_interactive=non_interactive,
                 )
 
         elif input_type == "CORRECTION":

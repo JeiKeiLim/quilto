@@ -41,6 +41,7 @@ class SessionMetadata(BaseModel):
     config_path: str | None = None
     storage_path: str | None = None
     debug_enabled: bool = True
+    non_interactive: bool = False  # True when run via auto-dogfood script
 
 
 class FeedbackRecord(BaseModel):
