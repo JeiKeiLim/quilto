@@ -356,18 +356,28 @@ ARCH_SECTION
 
         # Count raw entries
         local raw_count
-        raw_count=$(find "$logs_dir/raw" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+        raw_count=$(find "$logs_dir/raw" -name "*.md" 2>/dev/null | wc -l | tr -d ' ' || echo "0")
         echo "- **Raw entries:** $raw_count markdown files" >> "$PROJECT_CONTEXT_FILE"
 
         # Count parsed entries
         local parsed_count
-        parsed_count=$(find "$logs_dir/parsed" -name "*.json" 2>/dev/null | wc -l | tr -d ' ')
+        parsed_count=$(find "$logs_dir/parsed" -name "*.json" 2>/dev/null | wc -l | tr -d ' ' || echo "0")
         echo "- **Parsed entries:** $parsed_count JSON files" >> "$PROJECT_CONTEXT_FILE"
 
         # Get date range
-        local earliest_date latest_date
-        earliest_date=$(find "$logs_dir/raw" -name "*.md" 2>/dev/null | sort | head -1 | xargs -I{} basename {} .md 2>/dev/null || echo "unknown")
-        latest_date=$(find "$logs_dir/raw" -name "*.md" 2>/dev/null | sort | tail -1 | xargs -I{} basename {} .md 2>/dev/null || echo "unknown")
+        local earliest_file latest_file earliest_date latest_date
+        earliest_file=$(find "$logs_dir/raw" -name "*.md" 2>/dev/null | sort | head -1 || true)
+        latest_file=$(find "$logs_dir/raw" -name "*.md" 2>/dev/null | sort | tail -1 || true)
+        if [[ -n "$earliest_file" ]]; then
+            earliest_date=$(basename "$earliest_file" .md)
+        else
+            earliest_date="unknown"
+        fi
+        if [[ -n "$latest_file" ]]; then
+            latest_date=$(basename "$latest_file" .md)
+        else
+            latest_date="unknown"
+        fi
         echo "- **Date range:** $earliest_date to $latest_date" >> "$PROJECT_CONTEXT_FILE"
         echo "" >> "$PROJECT_CONTEXT_FILE"
 
@@ -375,7 +385,7 @@ ARCH_SECTION
         echo "### Sample Recent Entry Titles" >> "$PROJECT_CONTEXT_FILE"
         echo "" >> "$PROJECT_CONTEXT_FILE"
         local recent_raw
-        recent_raw=$(find "$logs_dir/raw" -name "*.md" 2>/dev/null | sort -r | head -5)
+        recent_raw=$(find "$logs_dir/raw" -name "*.md" 2>/dev/null | sort -r | head -5 || true)
         for raw_file in $recent_raw; do
             if [[ -f "$raw_file" ]]; then
                 local entry_date
@@ -585,7 +595,7 @@ run_queries() {
 
 review_feedback() {
     log_section "REVIEWING FEEDBACK"
-    log_info "Reviewing feedback files with Claude (full context mode)..."
+    log_info "Reviewing feedback files with Claude (direct edit mode)..."
 
     local files
     files=$(find "$FEEDBACK_DIR" -name "*.json" -type f 2>/dev/null || true)
@@ -619,33 +629,8 @@ review_feedback() {
 
         log_info "[$count/$total] Reviewing $filename..."
 
-        # Extract ALL fields for comprehensive review
-        local query final_response
-        query=$(jq -r '.query' "$json_file")
-        final_response=$(jq -r '.final_response' "$json_file")
-
-        # Get ALL intermediate outputs for deep analysis
-        local router_output planner_output retriever_output analyzer_output synthesizer_output evaluator_output
-        router_output=$(jq -c '.intermediate_outputs.router // {}' "$json_file")
-        planner_output=$(jq -c '.intermediate_outputs.planner // {}' "$json_file")
-        retriever_output=$(jq -c '.intermediate_outputs.retriever // {}' "$json_file")
-        analyzer_output=$(jq -c '.intermediate_outputs.analyzer // {}' "$json_file")
-        synthesizer_output=$(jq -c '.intermediate_outputs.synthesizer // {}' "$json_file")
-        evaluator_output=$(jq -c '.intermediate_outputs.evaluator // {}' "$json_file")
-
-        # Extract key metrics for quick reference
-        local router_type planner_action retriever_count analyzer_verdict
-        router_type=$(jq -r '.intermediate_outputs.router.input_type // "unknown"' "$json_file")
-        planner_action=$(jq -r '.intermediate_outputs.planner.next_action // "unknown"' "$json_file")
-        retriever_count=$(jq -r '.intermediate_outputs.retriever.total_entries_found // 0' "$json_file")
-        analyzer_verdict=$(jq -r '.intermediate_outputs.analyzer.verdict // "unknown"' "$json_file")
-
-        # Get retrieved entries summary if available
-        local retrieved_entries_summary
-        retrieved_entries_summary=$(jq -r '.intermediate_outputs.retriever.entries_summary // "N/A"' "$json_file")
-
-        # Create comprehensive review prompt
-        local review_prompt="You are an expert QA engineer evaluating a fitness AI assistant's response. You have FULL knowledge of the system architecture and current development state.
+        # Create comprehensive review prompt - Claude will read and edit the file directly
+        local review_prompt="You are an expert QA engineer evaluating a fitness AI assistant's response.
 
 ## PROJECT CONTEXT (CRITICAL - READ THIS FIRST)
 
@@ -653,125 +638,48 @@ $project_context
 
 ---
 
-## RESPONSE TO EVALUATE
+## YOUR TASK
 
-### User Query
-$query
+1. Read the feedback file at: $json_file
+2. Analyze the query, intermediate_outputs, and final_response
+3. Evaluate the response quality using these criteria:
+   - Classification Correctness: Did Router correctly identify LOG vs QUERY vs BOTH?
+   - Retrieval Strategy: Did Planner choose appropriate strategies?
+   - Data Retrieval: Did Retriever find relevant entries?
+   - Analysis Quality: Did Analyzer correctly assess sufficiency?
+   - Response Quality: Is the final response accurate, helpful, and actionable?
+   - Language Match: Does response language match query language?
+   - Temporal Awareness: For time-related queries, does it account for recency?
+   - Known Pattern Check: Does this exhibit patterns from previous iterations?
 
-### Agent Pipeline Outputs
+4. Edit the file to add these three fields:
+   - \"user_feedback\": Your detailed feedback (2-4 sentences, be specific about what worked or failed)
+   - \"feedback_sentiment\": One of \"positive\", \"mixed\", or \"negative\"
+   - \"issues_found\": Array of specific issue strings (empty array [] if none)
 
-**Router Output:**
-\`\`\`json
-$router_output
-\`\`\`
-
-**Planner Output:**
-\`\`\`json
-$planner_output
-\`\`\`
-
-**Retriever Output:**
-\`\`\`json
-$retriever_output
-\`\`\`
-
-**Analyzer Output:**
-\`\`\`json
-$analyzer_output
-\`\`\`
-
-**Synthesizer Output:**
-\`\`\`json
-$synthesizer_output
-\`\`\`
-
-**Evaluator Output:**
-\`\`\`json
-$evaluator_output
-\`\`\`
-
-### Quick Metrics
-- Router classification: $router_type
-- Planner action: $planner_action
-- Entries retrieved: $retriever_count
-- Analyzer verdict: $analyzer_verdict
-
-### Final Response to User
-$final_response
-
----
-
-## YOUR EVALUATION TASK
-
-As an expert QA engineer with full system knowledge, evaluate this response. Consider:
-
-1. **Classification Correctness**: Did Router correctly identify LOG vs QUERY vs BOTH?
-2. **Retrieval Strategy**: Did Planner choose appropriate strategies? Was DATE_RANGE prioritized for temporal queries?
-3. **Data Retrieval**: Did Retriever find relevant entries? If count is 0, was that expected?
-4. **Analysis Quality**: Did Analyzer correctly assess sufficiency? Did it catch important patterns?
-5. **Response Quality**: Is the final response accurate, helpful, and actionable?
-6. **Language Match**: Does response language match query language (Korean↔Korean, English↔English)?
-7. **Temporal Awareness**: For time-related queries, does the response account for recency?
-8. **Known Pattern Check**: Does this response exhibit any of the patterns from previous iterations (see context)?
-9. **Edge Case Handling**: For ambiguous inputs, was the handling reasonable?
-
-### Critical Questions
-- If entries were retrieved, was the data actually used appropriately in the response?
-- If no entries were found, was clarification attempted or indirect estimation tried?
-- Does the response contain any hallucinated information not supported by retrieved data?
-
----
-
-## OUTPUT FORMAT
-
-Provide your evaluation in this exact JSON format:
-{
-  \"feedback\": \"Your detailed feedback as an expert QA engineer would give it (2-4 sentences). Be specific about what worked or failed. Reference specific agent behaviors if relevant.\",
-  \"sentiment\": \"positive|mixed|negative\",
-  \"issues_found\": [\"list\", \"of\", \"specific\", \"issues\"]
-}
-
-### Sentiment Guidelines
+## SENTIMENT GUIDELINES
 - **positive**: Response was helpful, agents worked correctly, no significant issues
-- **mixed**: Partially helpful but has specific issues that should be noted (wrong strategy, missing context, etc.)
-- **negative**: Major failure - wrong classification, hallucinated data, missed obvious relevant data, or broke expected behavior
+- **mixed**: Partially helpful but has specific issues (wrong strategy, missing context, etc.)
+- **negative**: Major failure - wrong classification, hallucinated data, or broke expected behavior
 
-### Important
-- Be critical but fair - you have system knowledge, so evaluate against what SHOULD happen
+## IMPORTANT
+- Be critical but fair
 - Note any regression from supposedly fixed patterns
-- Note any NEW patterns not seen before
 - If the response is genuinely good, say so clearly
+- DO NOT output anything except reading and editing the file"
 
-Output ONLY the JSON, no other text."
-
-        # Get Claude's review
-        local review_result
-        if ! review_result=$(claude -p "$review_prompt" --output-format text 2>/dev/null); then
+        # Let Claude directly read and edit the file
+        if ! claude -p "$review_prompt" --allowedTools "Read,Edit" 2>/dev/null; then
             log_warn "Failed to review $filename"
             continue
         fi
 
-        # Parse the review result
-        local feedback sentiment issues
-        feedback=$(echo "$review_result" | jq -r '.feedback // empty' 2>/dev/null || echo "")
-        sentiment=$(echo "$review_result" | jq -r '.sentiment // empty' 2>/dev/null || echo "")
-        issues=$(echo "$review_result" | jq -c '.issues_found // []' 2>/dev/null || echo "[]")
+        # Check what sentiment was assigned and display result
+        local sentiment
+        sentiment=$(jq -r '.feedback_sentiment // "unknown"' "$json_file")
+        local feedback
+        feedback=$(jq -r '.user_feedback // ""' "$json_file")
 
-        if [[ -z "$feedback" || -z "$sentiment" ]]; then
-            log_warn "Failed to parse review for $filename"
-            echo "Raw result: $review_result"
-            continue
-        fi
-
-        # Update the JSON file with feedback AND issues
-        local tmp_file
-        tmp_file=$(mktemp)
-        jq --arg fb "$feedback" --arg sent "$sentiment" --argjson issues "$issues" \
-            '.user_feedback = $fb | .feedback_sentiment = $sent | .issues_found = $issues' \
-            "$json_file" > "$tmp_file"
-        mv "$tmp_file" "$json_file"
-
-        # Show result with color coding
         case "$sentiment" in
             positive)
                 log_success "Updated $filename: [POSITIVE] ${feedback:0:80}..."
@@ -782,10 +690,13 @@ Output ONLY the JSON, no other text."
             negative)
                 log_error "Updated $filename: [NEGATIVE] ${feedback:0:80}..."
                 ;;
+            *)
+                log_warn "Updated $filename: [UNKNOWN] Review may have failed"
+                ;;
         esac
 
         # Small delay between API calls
-        sleep 2
+        sleep 1
 
     done
 
