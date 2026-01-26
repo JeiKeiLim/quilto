@@ -74,6 +74,10 @@ class SynthesizerAgent:
                 lines.append(f"  [{i}] {finding.claim} (confidence: {finding.confidence})")
                 if finding.evidence:
                     lines.append(f"      Evidence: {', '.join(finding.evidence)}")
+                if finding.indirect_estimate:
+                    lines.append("      ⚠️ INDIRECT ESTIMATE")
+                    if finding.estimation_methodology:
+                        lines.append(f"      Methodology: {finding.estimation_methodology}")
 
         # Format patterns
         lines.append("\nPATTERNS IDENTIFIED:")
@@ -244,6 +248,22 @@ CRITICAL: Consider time elapsed since last workout when generating recommendatio
 - If days_since_last > 7: Suggest moderate return-to-training, NOT recovery
 - NEVER say "current fatigue" or "lingering soreness" for data > 7 days old
 - Phrase appropriately: "As of your last log on [date]..." instead of "currently"
+
+=== INDIRECT ESTIMATION DISCLOSURE ===
+
+When findings contain indirect_estimate=true:
+1. State clearly this is an ESTIMATE, not actual recorded data
+2. Include methodology from estimation_methodology field
+3. Acknowledge uncertainty (confidence is typically "low")
+4. Suggest what direct data would improve the estimate
+
+NEVER present indirect estimates as definitive answers.
+ALWAYS include methodology and acknowledge uncertainty.
+
+Example phrasing:
+- "Based on your incline press records, I estimate your flat bench 1RM at approximately 69kg."
+- "This is an indirect estimate (converted from incline → flat bench using ~1.20x factor)."
+- "For a more accurate figure, log a direct bench press attempt."
 
 === RESPONSE GUIDELINES ===
 

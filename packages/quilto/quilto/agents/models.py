@@ -511,6 +511,8 @@ class Finding(BaseModel):
         claim: The insight or finding text.
         evidence: References to specific entries/dates supporting the claim.
         confidence: Confidence level in this finding (high, medium, low).
+        indirect_estimate: True if this finding is based on indirect estimation.
+        estimation_methodology: Explanation of how indirect estimate was calculated.
 
     Example:
         >>> finding = Finding(
@@ -525,6 +527,8 @@ class Finding(BaseModel):
     claim: str = Field(min_length=1)
     evidence: list[str]
     confidence: Literal["high", "medium", "low"]
+    indirect_estimate: bool = Field(default=False)
+    estimation_methodology: str | None = Field(default=None)
 
 
 class SufficiencyEvaluation(BaseModel):

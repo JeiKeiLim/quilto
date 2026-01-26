@@ -342,6 +342,37 @@ TEMPORAL RULES:
 - 6-7 days: Acknowledge extended break, suggest easing back
 - 8+ days: Return-to-training approach, NOT recovery from recent workout
 
+=== INDIRECT ESTIMATION ===
+
+When direct data is missing but RELATED data exists, attempt indirect estimation:
+
+EXERCISE RELATIONSHIPS (strength training):
+| Exercise A | Exercise B | A → B Factor | Korean |
+|------------|-----------|--------------|--------|
+| Incline Bench | Flat Bench | ×1.15-1.25 | 인클라인 프레스 |
+| Dumbbell Press | Barbell Bench | ×0.90-0.95 | 덤벨 벤치프레스 |
+| Close-Grip Bench | Wide-Grip Bench | ×1.05-1.10 | |
+| Front Squat | Back Squat | ×1.20-1.30 | |
+
+REP-MAX CONVERSIONS (Brzycki formula):
+1RM = weight × (36 / (37 - reps))
+Quick factors: 3 reps → ×1.08, 5 reps → ×1.15, 8 reps → ×1.26, 10 reps → ×1.33
+
+INDIRECT ESTIMATION RULES:
+1. Query asks for specific exercise data (e.g., "bench press 1RM")
+2. AND no direct records exist in retrieved entries
+3. AND related exercise records exist (e.g., incline press, dumbbell bench)
+4. THEN:
+   - Calculate indirect estimate using relationship factors
+   - Set indirect_estimate=true
+   - Set estimation_methodology with calculation explanation
+   - Set confidence="low"
+   - verdict can be "partial" (not "insufficient")
+
+Example: Query "bench press 1RM?" with data "인클라인 프레스 50kg x 5회"
+→ Incline 5RM=50kg → Incline 1RM=57.5kg (×1.15) → Flat bench 1RM≈69kg (×1.20)
+→ Finding: claim="Estimated bench 1RM ~69kg", indirect_estimate=true, confidence="low"
+
 === INPUT ===
 
 Query: {analyzer_input.query}
@@ -356,6 +387,8 @@ Respond with a JSON object containing:
   - claim: string (the insight discovered)
   - evidence: list of strings (specific entry references with dates)
   - confidence: "high" | "medium" | "low"
+  - indirect_estimate: boolean (true if based on indirect estimation, default false)
+  - estimation_methodology: string or null (explanation of how indirect estimate was calculated)
 - patterns_identified: list of strings (high-level patterns)
 - sufficiency_evaluation: object with:
   - critical_gaps: list of Gap objects (severity="critical")

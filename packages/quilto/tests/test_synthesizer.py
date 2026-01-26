@@ -532,6 +532,39 @@ class TestFormatAnalysisHelper:
         assert "ANALYSIS VERDICT: sufficient" in result
         assert "VERDICT REASONING:" in result
 
+    def test_format_analysis_with_indirect_estimate_finding(self) -> None:
+        """_format_analysis includes indirect estimate markers for indirect findings."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        # Create analysis with indirect estimate finding
+        analysis = AnalyzerOutput(
+            query_intent="User wants bench press 1RM estimate",
+            findings=[
+                Finding(
+                    claim="Estimated bench press 1RM ~69kg",
+                    evidence=["2026-01-10: 인클라인 프레스 50kg x 5회"],
+                    confidence="low",
+                    indirect_estimate=True,
+                    estimation_methodology="Incline 5RM→1RM (×1.15)→Flat bench 1RM≈69kg (×1.20)",
+                )
+            ],
+            patterns_identified=[],
+            sufficiency_evaluation=SufficiencyEvaluation(
+                critical_gaps=[],
+                nice_to_have_gaps=[],
+                evidence_check_passed=True,
+                speculation_risk="low",
+            ),
+            verdict_reasoning="Indirect estimate possible from related exercise data",
+            verdict=Verdict.PARTIAL,
+        )
+        result = synthesizer._format_analysis(analysis)  # pyright: ignore[reportPrivateUsage]
+
+        assert "INDIRECT ESTIMATE" in result
+        assert "Methodology:" in result
+        assert "×1.20" in result
+
 
 # =============================================================================
 # Test _format_vocabulary Helper (Task 3.2, 6.3.2)
@@ -918,6 +951,55 @@ class TestSynthesizerPromptBuilding:
         assert "respond in the same language" in prompt.lower()
         assert "korean query -> korean response" in prompt.lower()
 
+    def test_prompt_includes_indirect_estimation_disclosure_section(self) -> None:
+        """Prompt includes INDIRECT ESTIMATION DISCLOSURE section."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        synthesizer_input = SynthesizerInput(
+            query="What is my bench press 1RM?",
+            query_type=QueryType.SIMPLE,
+            analysis=create_sample_analyzer_output_sufficient(),
+            vocabulary=create_sample_vocabulary(),
+        )
+        prompt = synthesizer.build_prompt(synthesizer_input)
+
+        assert "=== INDIRECT ESTIMATION DISCLOSURE ===" in prompt
+
+    def test_prompt_indirect_disclosure_rules(self) -> None:
+        """Prompt includes indirect estimation disclosure rules."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        synthesizer_input = SynthesizerInput(
+            query="What is my bench press 1RM?",
+            query_type=QueryType.SIMPLE,
+            analysis=create_sample_analyzer_output_sufficient(),
+            vocabulary=create_sample_vocabulary(),
+        )
+        prompt = synthesizer.build_prompt(synthesizer_input)
+
+        assert "indirect_estimate=true" in prompt
+        assert "estimation_methodology" in prompt
+        assert "ESTIMATE" in prompt
+        assert "uncertainty" in prompt.lower()
+
+    def test_prompt_indirect_disclosure_example_phrasing(self) -> None:
+        """Prompt includes example phrasing for indirect estimation disclosure."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        synthesizer_input = SynthesizerInput(
+            query="What is my bench press 1RM?",
+            query_type=QueryType.SIMPLE,
+            analysis=create_sample_analyzer_output_sufficient(),
+            vocabulary=create_sample_vocabulary(),
+        )
+        prompt = synthesizer.build_prompt(synthesizer_input)
+
+        assert "indirect estimate" in prompt.lower()
+        assert "incline" in prompt.lower()
+
 
 # =============================================================================
 # Test Synthesize Method (Task 4, 6.4)
@@ -1091,6 +1173,71 @@ class TestSynthesizeMethod:
         assert len(result.response) > 100  # Detailed should be longer
         assert len(result.key_points) >= 3
         assert len(result.evidence_cited) >= 2
+
+    @pytest.mark.asyncio
+    async def test_synthesis_with_indirect_estimate_finding(self) -> None:
+        """Test synthesis correctly processes indirect_estimate=true findings."""
+        response: dict[str, Any] = {
+            "response": (
+                "Based on your incline press records, I estimate your flat bench 1RM "
+                "at approximately 69kg. This is an indirect estimate (converted from "
+                "incline → flat bench using ~1.20x factor). For a more accurate figure, "
+                "log a direct bench press attempt."
+            ),
+            "key_points": [
+                "Estimated bench 1RM: ~69kg",
+                "Indirect estimate from incline press data",
+                "Direct bench data would improve accuracy",
+            ],
+            "evidence_cited": ["2026-01-10: 인클라인 프레스 50kg x 5회"],
+            "gaps_disclosed": [],
+            "confidence": "low",
+        }
+        client = create_mock_llm_client(response)
+        synthesizer = SynthesizerAgent(client)
+
+        # Create analysis output with indirect estimate finding
+        analysis = AnalyzerOutput(
+            query_intent="User wants bench press 1RM estimate",
+            findings=[
+                Finding(
+                    claim="Estimated bench press 1RM ~69kg",
+                    evidence=["2026-01-10: 인클라인 프레스 50kg x 5회"],
+                    confidence="low",
+                    indirect_estimate=True,
+                    estimation_methodology="Incline 5RM→1RM (×1.15)→Flat bench 1RM≈69kg (×1.20)",
+                )
+            ],
+            patterns_identified=[],
+            sufficiency_evaluation=SufficiencyEvaluation(
+                critical_gaps=[],
+                nice_to_have_gaps=[
+                    Gap(
+                        description="Direct bench press data would improve accuracy",
+                        gap_type=GapType.TOPICAL,
+                        severity="nice_to_have",
+                    )
+                ],
+                evidence_check_passed=True,
+                speculation_risk="low",
+            ),
+            verdict_reasoning="Indirect estimate possible from related exercise data",
+            verdict=Verdict.PARTIAL,
+        )
+
+        result = await synthesizer.synthesize(
+            SynthesizerInput(
+                query="What is my bench press 1RM?",
+                query_type=QueryType.SIMPLE,
+                analysis=analysis,
+                vocabulary=create_sample_vocabulary(),
+            )
+        )
+
+        # Verify response acknowledges indirect estimate
+        assert "indirect estimate" in result.response.lower()
+        assert result.confidence == "low"
+        assert len(result.evidence_cited) >= 1
 
 
 # =============================================================================

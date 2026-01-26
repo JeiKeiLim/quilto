@@ -192,6 +192,53 @@ class TestFindingModel:
         assert len(finding.evidence) == 2
         assert finding.confidence == "high"
 
+    def test_finding_indirect_estimate_default_false(self) -> None:
+        """Finding has indirect_estimate=False by default."""
+        finding = Finding(claim="Test", evidence=[], confidence="high")
+        assert finding.indirect_estimate is False
+
+    def test_finding_indirect_estimate_true(self) -> None:
+        """Finding accepts indirect_estimate=True."""
+        finding = Finding(
+            claim="Estimated bench 1RM ~69kg",
+            evidence=["Incline press 50kg x 5"],
+            confidence="low",
+            indirect_estimate=True,
+        )
+        assert finding.indirect_estimate is True
+
+    def test_finding_estimation_methodology_default_none(self) -> None:
+        """Finding has estimation_methodology=None by default."""
+        finding = Finding(claim="Test", evidence=[], confidence="high")
+        assert finding.estimation_methodology is None
+
+    def test_finding_estimation_methodology_provided(self) -> None:
+        """Finding accepts estimation_methodology string."""
+        finding = Finding(
+            claim="Estimated bench 1RM ~69kg",
+            evidence=["Incline press 50kg x 5"],
+            confidence="low",
+            indirect_estimate=True,
+            estimation_methodology="Incline 5RM=50kg → Incline 1RM=57.5kg (×1.15) → Flat bench 1RM≈69kg (×1.20)",
+        )
+        assert finding.estimation_methodology is not None
+        assert "Incline" in finding.estimation_methodology
+        assert "×1.20" in finding.estimation_methodology
+
+    def test_finding_with_all_new_fields(self) -> None:
+        """Finding accepts all new indirect estimation fields together."""
+        finding = Finding(
+            claim="Estimated bench 1RM ~69kg based on incline press data",
+            evidence=["2026-01-10: 인클라인 프레스 50kg x 5회"],
+            confidence="low",
+            indirect_estimate=True,
+            estimation_methodology="Incline 5RM → 1RM conversion (×1.15), then incline → flat conversion (×1.20)",
+        )
+        assert finding.claim == "Estimated bench 1RM ~69kg based on incline press data"
+        assert finding.confidence == "low"
+        assert finding.indirect_estimate is True
+        assert finding.estimation_methodology is not None
+
     def test_finding_empty_claim_fails(self) -> None:
         """Finding with empty claim fails min_length=1."""
         with pytest.raises(ValidationError):
@@ -840,6 +887,115 @@ class TestAnalyzerPromptBuilding:
 
         assert "No valid dates" in context
 
+    def test_prompt_includes_indirect_estimation_section(self) -> None:
+        """Prompt includes INDIRECT ESTIMATION section."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        analyzer_input = AnalyzerInput(
+            query="What is my bench press 1RM?",
+            query_type=QueryType.SIMPLE,
+            entries=[],
+            retrieval_summary=[],
+            domain_context=create_minimal_domain_context(),
+        )
+        prompt = analyzer.build_prompt(analyzer_input)
+
+        assert "=== INDIRECT ESTIMATION ===" in prompt
+
+    def test_prompt_includes_exercise_relationships_table(self) -> None:
+        """Prompt includes EXERCISE RELATIONSHIPS table."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        analyzer_input = AnalyzerInput(
+            query="What is my bench press 1RM?",
+            query_type=QueryType.SIMPLE,
+            entries=[],
+            retrieval_summary=[],
+            domain_context=create_minimal_domain_context(),
+        )
+        prompt = analyzer.build_prompt(analyzer_input)
+
+        assert "EXERCISE RELATIONSHIPS" in prompt
+        assert "Incline Bench" in prompt
+        assert "Flat Bench" in prompt
+        assert "×1.15-1.25" in prompt
+        assert "인클라인 프레스" in prompt
+
+    def test_prompt_includes_rep_max_conversions(self) -> None:
+        """Prompt includes REP-MAX CONVERSIONS with Brzycki formula."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        analyzer_input = AnalyzerInput(
+            query="What is my bench press 1RM?",
+            query_type=QueryType.SIMPLE,
+            entries=[],
+            retrieval_summary=[],
+            domain_context=create_minimal_domain_context(),
+        )
+        prompt = analyzer.build_prompt(analyzer_input)
+
+        assert "REP-MAX CONVERSIONS" in prompt
+        assert "Brzycki" in prompt
+        assert "1RM = weight × (36 / (37 - reps))" in prompt
+
+    def test_prompt_includes_indirect_estimation_rules(self) -> None:
+        """Prompt includes INDIRECT ESTIMATION RULES."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        analyzer_input = AnalyzerInput(
+            query="What is my bench press 1RM?",
+            query_type=QueryType.SIMPLE,
+            entries=[],
+            retrieval_summary=[],
+            domain_context=create_minimal_domain_context(),
+        )
+        prompt = analyzer.build_prompt(analyzer_input)
+
+        assert "INDIRECT ESTIMATION RULES" in prompt
+        assert "indirect_estimate=true" in prompt
+        assert "estimation_methodology" in prompt
+
+    def test_prompt_includes_indirect_estimation_worked_example(self) -> None:
+        """Prompt includes worked example for indirect estimation."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        analyzer_input = AnalyzerInput(
+            query="What is my bench press 1RM?",
+            query_type=QueryType.SIMPLE,
+            entries=[],
+            retrieval_summary=[],
+            domain_context=create_minimal_domain_context(),
+        )
+        prompt = analyzer.build_prompt(analyzer_input)
+
+        assert "Example:" in prompt
+        # Check for "bench press 1RM" case-insensitively but accounting for "1RM" not being lowercased
+        assert "bench press 1rm" in prompt.lower() or "bench press 1RM" in prompt
+        assert "인클라인 프레스 50kg x 5회" in prompt
+
+    def test_prompt_output_schema_includes_indirect_estimate_fields(self) -> None:
+        """Prompt output schema includes indirect_estimate and estimation_methodology."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        analyzer_input = AnalyzerInput(
+            query="What is my bench press 1RM?",
+            query_type=QueryType.SIMPLE,
+            entries=[],
+            retrieval_summary=[],
+            domain_context=create_minimal_domain_context(),
+        )
+        prompt = analyzer.build_prompt(analyzer_input)
+
+        # Check output schema includes new fields
+        assert "indirect_estimate: boolean" in prompt
+        assert "estimation_methodology: string or null" in prompt
+
 
 # =============================================================================
 # Test Helper Methods (Task 6)
@@ -1209,6 +1365,61 @@ class TestAnalyzeMethod:
                     domain_context=create_minimal_domain_context(),
                 )
             )
+
+    @pytest.mark.asyncio
+    async def test_analysis_with_indirect_estimate_finding(self) -> None:
+        """Test analysis returning finding with indirect_estimate=true."""
+        methodology = "Incline 5RM=50kg → Incline 1RM=57.5kg (×1.15) → Flat bench 1RM≈69kg (×1.20)"
+        response: dict[str, Any] = {
+            "query_intent": "User wants to know bench press 1RM",
+            "findings": [
+                {
+                    "claim": "Estimated bench press 1RM ~69kg",
+                    "evidence": ["2026-01-10: 인클라인 프레스 50kg x 5회"],
+                    "confidence": "low",
+                    "indirect_estimate": True,
+                    "estimation_methodology": methodology,
+                }
+            ],
+            "patterns_identified": [],
+            "sufficiency_evaluation": {
+                "critical_gaps": [],
+                "nice_to_have_gaps": [
+                    {
+                        "description": "Direct bench press data would improve accuracy",
+                        "gap_type": "topical",
+                        "severity": "nice_to_have",
+                        "searched": True,
+                        "found": False,
+                        "outside_current_expertise": False,
+                        "suspected_domain": None,
+                    }
+                ],
+                "evidence_check_passed": True,
+                "speculation_risk": "low",
+            },
+            "verdict_reasoning": "Indirect estimate possible from incline press data",
+            "verdict": "partial",
+        }
+        client = create_mock_llm_client(response)
+        analyzer = AnalyzerAgent(client)
+
+        result = await analyzer.analyze(
+            AnalyzerInput(
+                query="What is my bench press 1RM?",
+                query_type=QueryType.SIMPLE,
+                entries=[{"date": "2026-01-10", "raw_content": "인클라인 프레스 50kg x 5회"}],
+                retrieval_summary=[],
+                domain_context=create_sample_domain_context(),
+            )
+        )
+
+        assert result.verdict == Verdict.PARTIAL
+        assert len(result.findings) == 1
+        assert result.findings[0].indirect_estimate is True
+        assert result.findings[0].estimation_methodology is not None
+        assert "×1.20" in result.findings[0].estimation_methodology
+        assert result.findings[0].confidence == "low"
 
 
 # =============================================================================
