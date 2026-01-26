@@ -12,7 +12,7 @@ from quilto.storage.context import (
     GlobalContextFrontmatter,
     GlobalContextManager,
 )
-from quilto.storage.models import DateRange, Entry
+from quilto.storage.models import DateRange, Entry, StorageSummary
 from quilto.storage.repository import StorageRepository
 
 __all__ = [
@@ -23,4 +23,5 @@ __all__ = [
     "GlobalContextFrontmatter",
     "GlobalContextManager",
     "StorageRepository",
+    "StorageSummary",
 ]

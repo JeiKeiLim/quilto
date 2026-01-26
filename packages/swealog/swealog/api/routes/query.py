@@ -135,9 +135,16 @@ async def execute_query_pipeline(
     # Build active domain context from selected domains
     active_context = selector.build_active_context(router_output.selected_domains)
 
+    # Get storage summary for Planner's date-range decisions (Story 13.2)
+    storage_summary = storage.get_storage_summary().model_dump()
+
     # Step 2: Plan retrieval
     planner = PlannerAgent(llm_client)
-    planner_input = PlannerInput(query=query, domain_context=active_context)
+    planner_input = PlannerInput(
+        query=query,
+        domain_context=active_context,
+        storage_summary=storage_summary,
+    )
     with timer.track("Planner", "query_type inference"):
         planner_output = await planner.plan(planner_input)
     timer.log_output("Planner", planner_output.model_dump())
@@ -146,7 +153,6 @@ async def execute_query_pipeline(
     retriever = RetrieverAgent(storage)
     retriever_input = RetrieverInput(
         instructions=planner_output.retrieval_instructions,
-        vocabulary=active_context.vocabulary,
         max_entries=100,
     )
     with timer.track("Retriever", f"instructions={len(planner_output.retrieval_instructions)} filters"):
@@ -236,13 +242,13 @@ async def execute_query_pipeline(
             domain_context=active_context,
             evaluation_feedback=evaluation_feedback,
             retrieval_history=[a.model_dump() for a in retriever_output.retrieval_summary],
+            storage_summary=storage_summary,
         )
         planner_output = await planner.plan(planner_input)
 
         # Re-retrieve with updated instructions
         retriever_input = RetrieverInput(
             instructions=planner_output.retrieval_instructions,
-            vocabulary=active_context.vocabulary,
             max_entries=100,
         )
         retriever_output = await retriever.retrieve(retriever_input)

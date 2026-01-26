@@ -49,6 +49,8 @@ class SessionState(TypedDict, total=False):
         is_partial: True when domain expansion is exhausted.
             Signals Synthesizer to generate partial answer.
             Set when requested domains already in history or invalid.
+        storage_summary: StorageSummary.model_dump() result for Planner awareness.
+            Provides date range and entry counts for informed retrieval decisions.
 
     Example:
         >>> state: SessionState = {
@@ -116,3 +118,8 @@ class SessionState(TypedDict, total=False):
     # Observer (Story 7-3)
     # ObserverOutput.model_dump() result from observe_node.
     observer_output: dict[str, Any] | None
+
+    # Storage awareness (Story 13.2)
+    # StorageSummary.model_dump() result for Planner awareness.
+    # Provides date range and entry counts for informed retrieval decisions.
+    storage_summary: dict[str, Any] | None

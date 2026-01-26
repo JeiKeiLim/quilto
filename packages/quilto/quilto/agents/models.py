@@ -80,15 +80,15 @@ class GapType(str, Enum):
 class RetrievalStrategy(str, Enum):
     """Retrieval strategy for sub-queries.
 
+    Only DATE_RANGE is supported. Keyword and topical searches were removed
+    in Story 13.2 due to language/spacing edge cases (e.g., "벤치 프레스" vs
+    "벤치프레스"). Analyzer performs LLM-based relevance filtering instead.
+
     Attributes:
-        DATE_RANGE: When query mentions time periods.
-        KEYWORD: When query mentions specific activities/items.
-        TOPICAL: When query is about patterns/progress.
+        DATE_RANGE: Retrieve all entries within a date range.
     """
 
     DATE_RANGE = "date_range"
-    KEYWORD = "keyword"
-    TOPICAL = "topical"
 
 
 class DomainInfo(BaseModel):
@@ -348,6 +348,7 @@ class PlannerInput(BaseModel):
         gaps_from_analyzer: Gaps identified by Analyzer agent.
         evaluation_feedback: Feedback from evaluation failure.
         global_context_summary: Summary of global context.
+        storage_summary: Summary of storage contents for date range decisions.
     """
 
     model_config = ConfigDict(strict=True)
@@ -362,6 +363,7 @@ class PlannerInput(BaseModel):
     evaluation_feedback: EvaluationFeedback | None = None
 
     global_context_summary: str | None = None
+    storage_summary: dict[str, Any] | None = None
 
 
 class PlannerOutput(BaseModel):
@@ -417,11 +419,10 @@ class RetrievalAttempt(BaseModel):
 
     Attributes:
         attempt_number: Sequential number of this attempt (1-based).
-        strategy: The strategy used ("date_range", "keyword", "topical").
+        strategy: The strategy used (only "date_range" is supported).
         params: Strategy-specific parameters used.
         entries_found: Number of entries returned.
         summary: Brief human-readable description of the attempt.
-        expanded_terms: Terms after vocabulary expansion (for keyword/topical).
         expansion_tier: Progressive expansion tier (0=original, 1-4=expansion levels).
     """
 
@@ -432,7 +433,6 @@ class RetrievalAttempt(BaseModel):
     params: dict[str, Any]
     entries_found: int = Field(ge=0)
     summary: str = Field(min_length=1)
-    expanded_terms: list[str] = Field(default_factory=list)
     expansion_tier: int = Field(default=0, ge=0)
 
 
@@ -442,7 +442,6 @@ class RetrieverInput(BaseModel):
     Attributes:
         instructions: Retrieval instructions from Planner's retrieval_instructions.
             Structure: [{"strategy": str, "params": dict, "sub_query_id": int}, ...]
-        vocabulary: Term normalization mapping for vocabulary expansion.
         max_entries: Maximum entries to return (safety limit).
         enable_progressive_expansion: If True, expand date range progressively on empty results.
     """
@@ -450,7 +449,6 @@ class RetrieverInput(BaseModel):
     model_config = ConfigDict(strict=True)
 
     instructions: list[dict[str, Any]]
-    vocabulary: dict[str, str] = Field(default_factory=dict)
     max_entries: int = Field(default=100, ge=1)
     enable_progressive_expansion: bool = True
 

@@ -119,8 +119,6 @@ class AnalyzerAgent:
             line = f"- Attempt {attempt.attempt_number}: {attempt.strategy}"
             line += f", found {attempt.entries_found} entries"
             line += f"\n  {attempt.summary}"
-            if attempt.expanded_terms:
-                line += f"\n  Expanded terms: {', '.join(attempt.expanded_terms)}"
             lines.append(line)
 
         return "\n".join(lines)
@@ -319,6 +317,21 @@ When a gap requires expertise outside current domains:
 === TEMPORAL CONTEXT ===
 
 {temporal_context_text}
+
+=== RELEVANCE FILTERING ===
+
+The retrieved entries are from date-range retrieval. Your job includes:
+1. FILTER: Identify which entries are actually relevant to the query
+2. IGNORE: Skip entries that don't address the query intent
+3. CROSS-LANGUAGE: Match regardless of language (English query → Korean log is OK)
+
+Examples:
+- Query: "bench press 1RM" → Log: "벤치 프레스 60kg x 5" → RELEVANT (same exercise)
+- Query: "how was my run?" → Log: "bench press 80kg" → NOT RELEVANT (different activity)
+- Query: "what did I eat?" → Log: "ran 5km" → NOT RELEVANT (fitness, not nutrition)
+
+Include in your findings which entries you considered relevant and why.
+Only base your claims on entries that are relevant to the query.
 
 TEMPORAL RULES:
 - For entries > 7 days old: Do NOT reference physical state (fatigue, soreness, tiredness) as "current" or "lingering"

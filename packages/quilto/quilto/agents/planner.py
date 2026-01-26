@@ -113,6 +113,37 @@ class PlannerAgent:
             lines.append(f"{i}. Strategy: {strategy}, params: {params}, result: {result}")
         return "\n".join(lines)
 
+    def _format_storage_summary(self, planner_input: PlannerInput) -> str:
+        """Format storage summary for prompt.
+
+        Args:
+            planner_input: The PlannerInput containing optional storage_summary.
+
+        Returns:
+            Formatted string describing available data range.
+        """
+        if not planner_input.storage_summary:
+            return "(Storage summary not available)"
+
+        summary = planner_input.storage_summary
+        earliest = summary.get("earliest_date")
+        latest = summary.get("latest_date")
+        total = summary.get("total_entries", 0)
+        by_month = summary.get("entries_by_month", {})
+
+        if not earliest or not latest:
+            return "(No log entries in storage)"
+
+        lines = [
+            f"Date range with data: {earliest} to {latest}",
+            f"Total entries: {total}",
+            "Entries by month:",
+        ]
+        for month, count in sorted(by_month.items()):
+            lines.append(f"  - {month}: {count} entries")
+
+        return "\n".join(lines)
+
     def build_prompt(self, planner_input: PlannerInput) -> str:
         """Build the system prompt with planning rules and examples.
 
@@ -129,15 +160,11 @@ class PlannerAgent:
         if not available_domains_text:
             available_domains_text = "(No additional domains available)"
 
-        # Format vocabulary
-        vocabulary_text = "\n".join(f"- {k} → {v}" for k, v in domain_context.vocabulary.items())
-        if not vocabulary_text:
-            vocabulary_text = "(No vocabulary defined)"
-
-        # Format gaps, feedback, and history
+        # Format gaps, feedback, history, and storage
         gaps_text = self._format_gaps(planner_input.gaps_from_analyzer)
         feedback_text = self._format_evaluation_feedback(planner_input)
         history_text = self._format_retrieval_history(planner_input)
+        storage_text = self._format_storage_summary(planner_input)
         global_context = planner_input.global_context_summary or "(No global context)"
 
         # Format query type if pre-classified
@@ -172,124 +199,41 @@ DEPENDENCY TYPES:
 
 Single questions should always be classified as COUPLED.
 
-=== RETRIEVAL STRATEGIES ===
+=== STORAGE AWARENESS ===
 
-Choose the appropriate strategy for each sub-query:
+{storage_text}
 
-DATE_RANGE: When query mentions time periods OR comparison/progress queries
-- Parameters: {{"start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "explicit_date": true/false}}
-- Use for: "last week", "yesterday", "on Tuesday", specific dates
-- ALSO use for: comparison queries, progress queries, trend queries
-- Set explicit_date=true ONLY if user specifies exact day/date (e.g., "last Monday", "on January 5th")
+Use this to make informed date-range decisions:
+- The earliest_date and latest_date show the available log range
+- entries_by_month shows data density
+- If user asks "last week" but latest_date is older, adjust accordingly
+- If user asks about a time with no logs, note this in reasoning
 
-KEYWORD: When query mentions specific activities/items
-- Parameters: {{"keywords": ["term1", "term2"], "semantic_expansion": true/false}}
-- Use for: specific exercises, foods, activities
-- NOT for comparison queries (see COMPARISON/PROGRESS section below)
+=== RETRIEVAL STRATEGY ===
 
-TOPICAL: When query is about patterns/progress
-- Parameters: {{"topics": ["topic1"], "related_terms": ["term1"]}}
-- Use for: trends, progress, patterns, insights
+Only DATE_RANGE retrieval is available. Specify start_date and end_date.
 
-=== COMPARISON/PROGRESS QUERIES (CRITICAL) ===
+Relevance filtering happens at Analyzer (LLM-based), not retrieval.
+Retrieve broadly by date, let Analyzer determine what's relevant.
 
-For queries with these trigger words: "compare", "progress", "better than", "trend",
-"improving", "stronger", "previous", "before", "last time", "history", "track record"
-→ USE DATE_RANGE (language-agnostic) NOT KEYWORD (fails cross-language)
-→ Default: today to 7 days ago if no date mentioned
-→ Set explicit_date=true if user specifies exact day/date (e.g., "last Monday")
+DATE_RANGE parameters:
+- start_date: "YYYY-MM-DD" (required)
+- end_date: "YYYY-MM-DD" (required)
+- explicit_date: true/false (set true if user specified exact date)
 
-Examples:
-- "compare this to my previous workouts" → date_range (7 days default, explicit_date=false)
-- "am I getting stronger?" → date_range (30 days for trend, explicit_date=false)
-- "how does this stack up?" → date_range (7 days default, explicit_date=false)
-- "is this better than my last workout?" → date_range (7 days default, explicit_date=false)
-- "what did I do last Monday" → date_range (specific date, explicit_date=true)
-
-KEYWORD strategy examples (unchanged):
-- "show me bench press workouts" → keyword
-- "find all entries with squats" → keyword
-
-WHY: Keyword search fails when logs are in Korean but queries are in English.
-Date-range retrieval is language-agnostic and reliable for comparison queries.
-
-=== RECOMMENDATION/INSIGHT QUERIES (CRITICAL) ===
-
-For queries with these characteristics:
-- query_type is "recommendation" or "insight"
-- Asking for advice, suggestions, guidance
-- Asking about patterns, progress, trends
-- Trigger words: "should", "recommend", "what to", "how to improve", "am I", "can I"
-
-→ ALWAYS include DATE_RANGE as priority 1 (even without temporal keywords!)
-→ Default: 30 days for insight/recommendation queries
-→ Reason: Personalized advice REQUIRES historical context
+Date range selection guidelines:
+- "yesterday": previous day only
+- "last week": 7 days back from today
+- "last month": 30 days back from today
+- insight/recommendation queries: default to 30 days for trend analysis
+- comparison queries: default to 7-14 days
+- IMPORTANT: Adjust based on storage_summary - don't query dates outside available range
 
 Examples:
-- "Can I finish a marathon in 5 hours?" → date_range (30 days, insight)
-  → Need running history to assess current fitness level
-- "What should I train tomorrow?" → date_range (7 days, recommendation)
-  → Need recent workouts to avoid overtraining
-- "Am I making progress on bench press?" → date_range (30 days, insight)
-  → Need history to identify trend
-- "How can I improve my running?" → date_range (30 days, recommendation)
-  → Need current performance data for personalized advice
-
-WHY: Recommendation and insight queries WITHOUT DATE_RANGE return generic advice.
-Generic advice violates core project value: "personalized guidance based on YOUR logs."
-
-=== RETRIEVAL STRATEGY PRIORITY (CRITICAL) ===
-
-For ALL queries (not just temporal), generate retrieval_instructions with DATE_RANGE when:
-1. Query type is "recommendation" or "insight" (ALWAYS include, default 30 days)
-2. Query mentions temporal context ("last week", "yesterday", etc.)
-3. Query is about comparison/progress
-
-ALWAYS generate retrieval_instructions in this order:
-
-1. DATE_RANGE (primary): Always FIRST for these query types
-   - Temporal trigger words: "last", "yesterday", "this week", "today", "recent", "ago", "in [month]"
-   - Recommendation/insight triggers: "should", "recommend", "how to", "can I", "am I", "improve"
-   - Comparison triggers: "compare", "progress", "better", "trend", "improving"
-   - Default date ranges: 30 days for insight/recommendation, 7 days for comparison
-   - This is language-agnostic and reliable
-
-2. KEYWORD (secondary/fallback): Add SECOND when specific items mentioned
-   - Only if query mentions specific exercises, foods, activities
-   - Serves as fallback if date_range returns empty
-   - May fail cross-language (Korean logs, English query)
-
-The `retrieval_instructions` list ORDER matters - Retriever executes in list order.
-Each instruction can have an optional `priority: int` field (lower = higher priority, default=1).
-
-Example - "yesterday's bench press":
-```json
-"retrieval_instructions": [
-  {{"strategy": "date_range", "params": {{"start_date": "2026-01-19", "end_date": "2026-01-19"}},
-    "sub_query_id": 1, "priority": 1}},
-  {{"strategy": "keyword", "params": {{"keywords": ["bench press"]}},
-    "sub_query_id": 1, "priority": 2}}
-]
-```
-
-Example - "what did I eat last week":
-```json
-"retrieval_instructions": [
-  {{"strategy": "date_range", "params": {{"start_date": "2026-01-13", "end_date": "2026-01-19"}}, "sub_query_id": 1}}
-]
-```
-
-Example - "Can I finish a marathon in 5 hours?" (recommendation without temporal keywords):
-```json
-"retrieval_instructions": [
-  {{"strategy": "date_range", "params": {{"start_date": "2025-12-25", "end_date": "2026-01-24"}},
-    "sub_query_id": 1, "priority": 1}}
-]
-```
-→ Uses 30-day default because this is an insight/recommendation query requiring personal history.
-
-WHY: Date-range is language-agnostic. Keyword search fails when logs are in Korean but queries are in English.
-Recommendation/insight queries WITHOUT DATE_RANGE return generic advice instead of personalized guidance.
+- "How did my workout go last week?" → date_range: last 7 days
+- "What's my bench press progress?" → date_range: last 30-90 days
+- "What did I eat yesterday?" → date_range: yesterday only
+- "Compare this to my previous workouts" → date_range: 7-14 days
 
 === DOMAIN EXPANSION ===
 
@@ -334,9 +278,6 @@ Query: {planner_input.query}{query_type_hint}
 Currently loaded domains: {", ".join(domain_context.domains_loaded) or "(none)"}
 Domain expertise: {domain_context.expertise or "(not specified)"}
 
-Vocabulary:
-{vocabulary_text}
-
 Available domains for expansion:
 {available_domains_text}
 
@@ -360,13 +301,12 @@ Respond with a JSON object matching this schema:
 - sub_queries: list of objects with:
   - id: integer (unique identifier)
   - question: string (the extracted question)
-  - retrieval_strategy: "date_range" | "keyword" | "topical"
-  - retrieval_params: object with strategy-specific parameters
+  - retrieval_strategy: "date_range" (only date_range is supported)
+  - retrieval_params: object with start_date and end_date
 - dependencies: list of objects {{"from": int, "to": int, "reason": string}}
 - execution_strategy: "independent" | "dependent" | "coupled"
 - execution_order: list of integers (sub_query IDs in execution order)
-- retrieval_instructions: list of objects {{"strategy": str, "params": obj, "sub_query_id": int,
-  "priority": int (optional, default=1, lower=higher priority)}}
+- retrieval_instructions: list of objects {{"strategy": "date_range", "params": obj, "sub_query_id": int}}
 - gaps_status: object where keys are gap descriptions, values are {{"searched": bool, "found": bool}}.
   Example: {{"missing data": {{"searched": true, "found": false}}}}. Use {{}} if no gaps.
 - domain_expansion_request: list of strings or null

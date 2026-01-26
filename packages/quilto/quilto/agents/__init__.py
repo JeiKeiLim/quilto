@@ -55,7 +55,7 @@ from quilto.agents.models import (
 from quilto.agents.observer import ObserverAgent
 from quilto.agents.parser import ParserAgent
 from quilto.agents.planner import PlannerAgent
-from quilto.agents.retriever import RetrieverAgent, expand_terms
+from quilto.agents.retriever import RetrieverAgent
 from quilto.agents.router import RouterAgent
 from quilto.agents.synthesizer import SynthesizerAgent
 
@@ -104,5 +104,4 @@ __all__ = [
     "SynthesizerInput",
     "SynthesizerOutput",
     "Verdict",
-    "expand_terms",
 ]

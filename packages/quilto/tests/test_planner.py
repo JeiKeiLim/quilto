@@ -150,14 +150,12 @@ class TestPlannerEnums:
         assert len(GapType) == 5
 
     def test_retrieval_strategy_values(self) -> None:
-        """RetrievalStrategy enum has correct values."""
+        """RetrievalStrategy enum has correct value (only DATE_RANGE)."""
         assert RetrievalStrategy.DATE_RANGE.value == "date_range"
-        assert RetrievalStrategy.KEYWORD.value == "keyword"
-        assert RetrievalStrategy.TOPICAL.value == "topical"
 
     def test_retrieval_strategy_count(self) -> None:
-        """RetrievalStrategy enum has exactly 3 values."""
-        assert len(RetrievalStrategy) == 3
+        """RetrievalStrategy enum has exactly 1 value (DATE_RANGE only)."""
+        assert len(RetrievalStrategy) == 1
 
 
 # =============================================================================
@@ -1217,7 +1215,7 @@ class TestPlannerPrompt:
         )
         prompt = planner.build_prompt(planner_input)
 
-        assert "(No vocabulary defined)" in prompt
+        # Note: vocabulary is no longer included in planner prompt (simplified)
         assert "(No additional domains available)" in prompt
 
     def test_prompt_includes_gaps(self) -> None:
@@ -1533,7 +1531,7 @@ class TestPlannerPromptTodaysDate:
         assert dt_date.today().isoformat() in prompt
 
     def test_prompt_includes_comparison_query_section(self) -> None:
-        """Prompt includes COMPARISON/PROGRESS QUERIES section."""
+        """Prompt includes comparison and progress guidance."""
         client = create_mock_llm_client({})
         planner = PlannerAgent(client)
 
@@ -1543,10 +1541,9 @@ class TestPlannerPromptTodaysDate:
         )
         prompt = planner.build_prompt(planner_input)
 
-        # Should contain comparison query guidance
-        assert "COMPARISON/PROGRESS QUERIES" in prompt
-        assert "compare" in prompt.lower()
-        assert "progress" in prompt.lower()
+        # Should contain comparison query type
+        assert "comparison" in prompt.lower()
+        # Progress queries now handled via date range with broader scope
         assert "explicit_date" in prompt
 
 
@@ -1559,7 +1556,7 @@ class TestPlannerStrategyPriority:
     """Tests for retrieval strategy priority ordering (Story 10.5: AC: 1, 2, 6)."""
 
     def test_prompt_includes_strategy_priority_section(self) -> None:
-        """Prompt includes RETRIEVAL STRATEGY PRIORITY section (AC: 1)."""
+        """Prompt includes RETRIEVAL STRATEGY section (only DATE_RANGE supported)."""
         client = create_mock_llm_client({})
         planner = PlannerAgent(client)
 
@@ -1569,13 +1566,13 @@ class TestPlannerStrategyPriority:
         )
         prompt = planner.build_prompt(planner_input)
 
-        assert "RETRIEVAL STRATEGY PRIORITY (CRITICAL)" in prompt
-        assert "DATE_RANGE (primary)" in prompt
-        assert "KEYWORD (secondary/fallback)" in prompt
-        assert "priority" in prompt.lower()
+        # After simplification, only DATE_RANGE is available
+        assert "RETRIEVAL STRATEGY" in prompt
+        assert "date_range" in prompt.lower()
+        assert "Only DATE_RANGE retrieval is available" in prompt
 
-    def test_prompt_shows_date_range_first_examples(self) -> None:
-        """Prompt examples show date_range first for temporal queries (AC: 1)."""
+    def test_prompt_shows_date_range_examples(self) -> None:
+        """Prompt shows date_range examples (only strategy supported)."""
         client = create_mock_llm_client({})
         planner = PlannerAgent(client)
 
@@ -1585,10 +1582,9 @@ class TestPlannerStrategyPriority:
         )
         prompt = planner.build_prompt(planner_input)
 
-        # The example should show date_range before keyword
-        assert '"strategy": "date_range"' in prompt
-        # Verify temporal trigger words are documented
-        assert "temporal trigger words" in prompt.lower()
+        # The example should show date_range usage
+        assert "date_range" in prompt.lower()
+        # Verify temporal examples are documented
         assert "yesterday" in prompt.lower()
         assert "last" in prompt.lower()
 
@@ -1774,8 +1770,8 @@ class TestPlannerStrategyPriority:
         assert result.retrieval_instructions[0].get("priority") == 1
         assert result.retrieval_instructions[1].get("priority") == 2
 
-    def test_prompt_includes_priority_in_schema(self) -> None:
-        """Prompt schema includes priority field documentation (AC: 3)."""
+    def test_prompt_includes_retrieval_instructions_in_schema(self) -> None:
+        """Prompt schema includes retrieval_instructions documentation."""
         client = create_mock_llm_client({})
         planner = PlannerAgent(client)
 
@@ -1785,9 +1781,8 @@ class TestPlannerStrategyPriority:
         )
         prompt = planner.build_prompt(planner_input)
 
-        # Schema description should mention priority
+        # Schema description should mention retrieval_instructions
         assert "retrieval_instructions" in prompt
-        assert "priority" in prompt
 
 
 # =============================================================================
@@ -1802,8 +1797,8 @@ class TestPlannerRecommendationInsightQueries:
     DATE_RANGE as priority 1 strategy, even without explicit temporal keywords.
     """
 
-    def test_prompt_includes_recommendation_insight_section(self) -> None:
-        """Prompt includes RECOMMENDATION/INSIGHT QUERIES section (AC: #1)."""
+    def test_prompt_includes_recommendation_insight_guidance(self) -> None:
+        """Prompt includes recommendation/insight query type guidance."""
         client = create_mock_llm_client({})
         planner = PlannerAgent(client)
 
@@ -1813,13 +1808,14 @@ class TestPlannerRecommendationInsightQueries:
         )
         prompt = planner.build_prompt(planner_input)
 
-        assert "RECOMMENDATION/INSIGHT QUERIES (CRITICAL)" in prompt
+        # Query types should include recommendation and insight
         assert "recommendation" in prompt.lower()
         assert "insight" in prompt.lower()
-        assert "ALWAYS include DATE_RANGE as priority 1" in prompt
+        # Date range selection guidance for these query types
+        assert "30 days" in prompt
 
     def test_prompt_includes_recommendation_trigger_words(self) -> None:
-        """Prompt includes recommendation trigger words (AC: #1)."""
+        """Prompt includes recommendation query type examples."""
         client = create_mock_llm_client({})
         planner = PlannerAgent(client)
 
@@ -1829,10 +1825,9 @@ class TestPlannerRecommendationInsightQueries:
         )
         prompt = planner.build_prompt(planner_input)
 
-        # Should list trigger words for recommendation/insight
+        # Should include recommendation query type description
         assert "should" in prompt.lower()
-        assert "recommend" in prompt.lower()
-        assert "can I" in prompt
+        assert "recommendation" in prompt.lower()
 
     def test_prompt_includes_default_date_range_30_days(self) -> None:
         """Prompt specifies 30 days default for insight/recommendation (AC: #3)."""
@@ -1848,8 +1843,8 @@ class TestPlannerRecommendationInsightQueries:
         # Should mention 30 days default for insight/recommendation
         assert "30 days" in prompt
 
-    def test_prompt_includes_marathon_example(self) -> None:
-        """Prompt includes marathon example from story (AC: #1, #3)."""
+    def test_prompt_includes_date_range_examples(self) -> None:
+        """Prompt includes date range examples for various query types."""
         client = create_mock_llm_client({})
         planner = PlannerAgent(client)
 
@@ -1859,9 +1854,9 @@ class TestPlannerRecommendationInsightQueries:
         )
         prompt = planner.build_prompt(planner_input)
 
-        # Should include the marathon example from Dev Notes
-        assert "marathon" in prompt.lower()
-        assert "running history" in prompt.lower() or "fitness level" in prompt.lower()
+        # Should include date range examples
+        assert "last week" in prompt.lower() or "7 days" in prompt.lower()
+        assert "30 days" in prompt.lower() or "last month" in prompt.lower()
 
     @pytest.mark.asyncio
     async def test_recommendation_query_generates_date_range(self) -> None:

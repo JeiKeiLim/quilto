@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 from quilto.agents.models import ParserOutput
-from quilto.storage import DateRange, Entry, StorageRepository
+from quilto.storage import DateRange, Entry, StorageRepository, StorageSummary
 
 
 def create_parser_output(
@@ -636,3 +636,149 @@ class TestEdgeCases:
 
         assert len(entries) == 1
         assert "운동 메모" in entries[0].raw_content
+
+
+class TestStorageSummary:
+    """Tests for StorageSummary model and get_storage_summary() method."""
+
+    def test_storage_summary_model_defaults(self) -> None:
+        """Test StorageSummary has correct default values."""
+        summary = StorageSummary()
+        assert summary.earliest_date is None
+        assert summary.latest_date is None
+        assert summary.total_entries == 0
+        assert summary.entries_by_month == {}
+
+    def test_storage_summary_model_with_values(self) -> None:
+        """Test StorageSummary with explicit values."""
+        summary = StorageSummary(
+            earliest_date=date(2026, 1, 1),
+            latest_date=date(2026, 1, 31),
+            total_entries=50,
+            entries_by_month={"2026-01": 50},
+        )
+        assert summary.earliest_date == date(2026, 1, 1)
+        assert summary.latest_date == date(2026, 1, 31)
+        assert summary.total_entries == 50
+        assert summary.entries_by_month == {"2026-01": 50}
+
+    def test_get_storage_summary_empty(self, tmp_path: Path) -> None:
+        """Test get_storage_summary() returns empty summary when no logs exist."""
+        repo = StorageRepository(tmp_path)
+        summary = repo.get_storage_summary()
+
+        assert summary.earliest_date is None
+        assert summary.latest_date is None
+        assert summary.total_entries == 0
+        assert summary.entries_by_month == {}
+
+    def test_get_storage_summary_single_day(self, tmp_path: Path) -> None:
+        """Test get_storage_summary() with a single day of logs."""
+        repo = StorageRepository(tmp_path)
+
+        # Create raw file with 2 entries
+        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        (raw_dir / "2026-01-15.md").write_text("## 10:00\nFirst entry\n\n## 14:00\nSecond entry\n")
+
+        summary = repo.get_storage_summary()
+
+        assert summary.earliest_date == date(2026, 1, 15)
+        assert summary.latest_date == date(2026, 1, 15)
+        assert summary.total_entries == 2
+        assert summary.entries_by_month == {"2026-01": 2}
+
+    def test_get_storage_summary_multiple_days(self, tmp_path: Path) -> None:
+        """Test get_storage_summary() with multiple days of logs."""
+        repo = StorageRepository(tmp_path)
+
+        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        (raw_dir / "2026-01-01.md").write_text("## 10:00\nEntry 1\n")
+        (raw_dir / "2026-01-15.md").write_text("## 10:00\nEntry 2\n\n## 14:00\nEntry 3\n")
+        (raw_dir / "2026-01-31.md").write_text("## 10:00\nEntry 4\n")
+
+        summary = repo.get_storage_summary()
+
+        assert summary.earliest_date == date(2026, 1, 1)
+        assert summary.latest_date == date(2026, 1, 31)
+        assert summary.total_entries == 4
+        assert summary.entries_by_month == {"2026-01": 4}
+
+    def test_get_storage_summary_multiple_months(self, tmp_path: Path) -> None:
+        """Test get_storage_summary() with logs spanning multiple months."""
+        repo = StorageRepository(tmp_path)
+
+        # Create files in January and February
+        jan_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        feb_dir = tmp_path / "logs" / "raw" / "2026" / "02"
+        jan_dir.mkdir(parents=True)
+        feb_dir.mkdir(parents=True)
+
+        (jan_dir / "2026-01-10.md").write_text("## 10:00\nJan entry 1\n\n## 12:00\nJan entry 2\n")
+        (feb_dir / "2026-02-15.md").write_text("## 10:00\nFeb entry\n")
+
+        summary = repo.get_storage_summary()
+
+        assert summary.earliest_date == date(2026, 1, 10)
+        assert summary.latest_date == date(2026, 2, 15)
+        assert summary.total_entries == 3
+        assert summary.entries_by_month == {"2026-01": 2, "2026-02": 1}
+
+    def test_get_storage_summary_multiple_years(self, tmp_path: Path) -> None:
+        """Test get_storage_summary() with logs spanning multiple years."""
+        repo = StorageRepository(tmp_path)
+
+        dec_dir = tmp_path / "logs" / "raw" / "2025" / "12"
+        jan_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        dec_dir.mkdir(parents=True)
+        jan_dir.mkdir(parents=True)
+
+        (dec_dir / "2025-12-31.md").write_text("## 23:00\nEnd of 2025\n")
+        (jan_dir / "2026-01-01.md").write_text("## 00:01\nStart of 2026\n\n## 10:00\nLater entry\n")
+
+        summary = repo.get_storage_summary()
+
+        assert summary.earliest_date == date(2025, 12, 31)
+        assert summary.latest_date == date(2026, 1, 1)
+        assert summary.total_entries == 3
+        assert summary.entries_by_month == {"2025-12": 1, "2026-01": 2}
+
+    def test_get_storage_summary_ignores_invalid_filenames(self, tmp_path: Path) -> None:
+        """Test get_storage_summary() ignores files with invalid date filenames."""
+        repo = StorageRepository(tmp_path)
+
+        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        (raw_dir / "2026-01-15.md").write_text("## 10:00\nValid entry\n")
+        (raw_dir / "invalid-filename.md").write_text("## 10:00\nInvalid entry\n")
+        (raw_dir / "notes.md").write_text("## 10:00\nNotes\n")
+
+        summary = repo.get_storage_summary()
+
+        assert summary.earliest_date == date(2026, 1, 15)
+        assert summary.latest_date == date(2026, 1, 15)
+        assert summary.total_entries == 1
+        assert summary.entries_by_month == {"2026-01": 1}
+
+    def test_get_storage_summary_sparse_data(self, tmp_path: Path) -> None:
+        """Test get_storage_summary() with sparse data (gaps in months)."""
+        repo = StorageRepository(tmp_path)
+
+        # Create entries only in January and March (gap in February)
+        jan_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        mar_dir = tmp_path / "logs" / "raw" / "2026" / "03"
+        jan_dir.mkdir(parents=True)
+        mar_dir.mkdir(parents=True)
+
+        (jan_dir / "2026-01-15.md").write_text("## 10:00\nJanuary entry\n")
+        (mar_dir / "2026-03-15.md").write_text("## 10:00\nMarch entry\n")
+
+        summary = repo.get_storage_summary()
+
+        assert summary.earliest_date == date(2026, 1, 15)
+        assert summary.latest_date == date(2026, 3, 15)
+        assert summary.total_entries == 2
+        # Note: February is not in entries_by_month (gap)
+        assert "2026-02" not in summary.entries_by_month
+        assert summary.entries_by_month == {"2026-01": 1, "2026-03": 1}

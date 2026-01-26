@@ -119,7 +119,6 @@ def create_sample_retrieval_attempt() -> RetrievalAttempt:
         params={"start_date": "2026-01-01", "end_date": "2026-01-10"},
         entries_found=5,
         summary="Retrieved 5 entries from 2026-01-01 to 2026-01-10",
-        expanded_terms=[],
     )
 
 

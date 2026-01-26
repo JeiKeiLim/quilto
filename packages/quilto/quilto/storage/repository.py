@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from quilto.agents.models import ParserOutput
-from quilto.storage.models import DateRange, Entry
+from quilto.storage.models import DateRange, Entry, StorageSummary
 
 logger = logging.getLogger(__name__)
 
@@ -382,3 +382,56 @@ class StorageRepository:
         context_path = self.base_path / "logs" / "context" / "global.md"
         context_path.parent.mkdir(parents=True, exist_ok=True)
         context_path.write_text(content, encoding="utf-8")
+
+    def get_storage_summary(self) -> StorageSummary:
+        """Get summary of storage contents for Planner awareness.
+
+        Scans the raw log directory structure to determine:
+        - Date range of available logs (earliest and latest)
+        - Total number of entries
+        - Entry count per month
+
+        Returns:
+            StorageSummary with date range and entry counts.
+            Returns empty summary if no logs exist.
+        """
+        raw_path = self.base_path / "logs" / "raw"
+        if not raw_path.exists():
+            return StorageSummary()
+
+        dates: list[date] = []
+        entries_by_month: dict[str, int] = {}
+        total_entries = 0
+
+        # Scan year/month/day structure
+        for year_dir in raw_path.iterdir():
+            if not year_dir.is_dir():
+                continue
+            for month_dir in year_dir.iterdir():
+                if not month_dir.is_dir():
+                    continue
+                for day_file in month_dir.glob("*.md"):
+                    # Parse date from filename (YYYY-MM-DD.md)
+                    try:
+                        entry_date = date.fromisoformat(day_file.stem)
+                        dates.append(entry_date)
+                        month_key = entry_date.strftime("%Y-%m")
+                        # Count entries in file (each entry starts with "## ")
+                        content = day_file.read_text(encoding="utf-8")
+                        entry_count = content.count("## ")
+                        entries_by_month[month_key] = (
+                            entries_by_month.get(month_key, 0) + entry_count
+                        )
+                        total_entries += entry_count
+                    except ValueError:
+                        continue
+
+        if not dates:
+            return StorageSummary()
+
+        return StorageSummary(
+            earliest_date=min(dates),
+            latest_date=max(dates),
+            total_entries=total_entries,
+            entries_by_month=entries_by_month,
+        )

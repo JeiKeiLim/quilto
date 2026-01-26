@@ -3,7 +3,28 @@
 from datetime import date, datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+
+class StorageSummary(BaseModel):
+    """Summary of storage contents for Planner awareness.
+
+    Provides date range and entry counts to help Planner make informed
+    date-range decisions when generating retrieval instructions.
+
+    Attributes:
+        earliest_date: Date of first log entry (None if no entries).
+        latest_date: Date of most recent log entry (None if no entries).
+        total_entries: Total number of entries across all dates.
+        entries_by_month: Count of entries per month (YYYY-MM format).
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    earliest_date: date | None = None
+    latest_date: date | None = None
+    total_entries: int = 0
+    entries_by_month: dict[str, int] = Field(default_factory=dict)
 
 
 class Entry(BaseModel):
