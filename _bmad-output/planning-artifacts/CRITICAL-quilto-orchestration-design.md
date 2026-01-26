@@ -1,206 +1,94 @@
-# CRITICAL: Quilto Framework Orchestration Design
+# Quilto Framework Public API Design
 
 **Created:** 2026-01-26
 **Source:** Epic 13 Retrospective
 **Owner:** Jongkuk Lim (Project Lead)
-**Status:** OPEN - Requires Architecture Decision
+**Status:** DESIGN REQUIRED
 
 ---
 
-## Issue Summary
+## Background
 
-Quilto currently provides individual agents but **no orchestration layer**. Applications (like Swealog) must manually import and wire all agents, defeating the purpose of a framework.
+Quilto is a domain-agnostic agent framework. Swealog is a fitness app built on it.
 
-This is the **most important design decision** in this project as it defines Quilto's public API.
+**Currently broken:** Swealog manually imports and wires 6 agents (~300 lines). When we added ObserverAgent to Quilto, Swealog didn't get it automatically. The `logs/logs/context/` directory is empty - zero personalization.
 
----
-
-## Current State
-
-Swealog's `execute_query_pipeline()` in `packages/swealog/swealog/api/routes/query.py`:
-
-```python
-from quilto.agents import (
-    AnalyzerAgent,
-    EvaluatorAgent,
-    PlannerAgent,
-    RetrieverAgent,
-    SynthesizerAgent,
-)
-# Note: ObserverAgent is NEVER imported
-
-async def execute_query_pipeline(...):
-    # Swealog manually creates each agent
-    router_agent = RouterAgent(llm_client)
-    planner = PlannerAgent(llm_client)
-    retriever = RetrieverAgent(llm_client)
-    analyzer = AnalyzerAgent(llm_client)
-    synthesizer = SynthesizerAgent(llm_client)
-    evaluator = EvaluatorAgent(llm_client)
-
-    # Swealog manually orchestrates the sequence (~300 lines)
-    router_output = await router_agent.classify(...)
-    planner_output = await planner.plan(...)
-    # ... etc
-```
-
-**Problems with this approach:**
-1. Swealog is doing Quilto's job (orchestration)
-2. Every Quilto application must copy ~300 lines of pipeline code
-3. When Quilto adds new agents (Observer), applications don't get them automatically
-4. Quilto is just a bag of agents, not a framework
+This is wrong. Quilto must provide orchestration so applications just configure and call.
 
 ---
 
-## Evidence of Impact
+## Evidence of the Problem
 
-### Observer Never Invoked
-- `packages/quilto/quilto/agents/observer.py` - EXISTS
-- `packages/quilto/quilto/state/observer_triggers.py` - EXISTS with `trigger_post_query()`, etc.
-- `logs/logs/context/` directory - EMPTY (no global context ever written)
-- **Result:** Zero personalization despite Observer infrastructure existing
-
-### Retrieval Retry Loop Missing
-- Evaluator can return `verdict: insufficient`
-- But pipeline doesn't loop back to Retriever with expanded dates
-- **Result:** Missing data that might exist with wider date range
-
-### JSON Parse Errors Not Retried
-- LLM returns malformed JSON
-- Pipeline fails instead of retrying
-- **Result:** Recoverable errors become hard failures
+1. **Observer never invoked:** `logs/logs/context/` directory is EMPTY despite Observer infrastructure existing
+2. **Manual agent wiring:** `packages/swealog/swealog/api/routes/query.py` has ~300 lines manually orchestrating agents
+3. **New agents don't propagate:** When Epic 7 added ObserverAgent to Quilto, Swealog didn't get it
+4. **No retry loops:** Evaluator can say "insufficient" but pipeline doesn't retry Retriever with wider dates
+5. **Code duplication:** Every Quilto application would have to copy the same orchestration code
 
 ---
 
-## Design Decision Required
+## The Design Task
 
-### Option A: Quilto as Framework (Automatic Orchestration)
+Design Quilto's public API for pipeline orchestration.
 
-```python
-# What Quilto SHOULD provide:
-from quilto import QueryPipeline
-
-# Application code (Swealog) - simple
-pipeline = QueryPipeline(llm_client, storage, domains)
-result = await pipeline.run(query)
-
-# Everything automatic:
-# - Router → Planner → Retriever → Analyzer → Synthesizer → Evaluator
-# - Observer triggers (post_query, significant_log, etc.)
-# - Retry loops when Evaluator says insufficient
-# - JSON parse error recovery
-# - Global context reading/writing
-```
-
-**Pros:**
-- Applications just configure and call
-- New agents automatically included
-- No code duplication
-- True framework behavior
-
-**Cons:**
-- Less flexibility for custom pipelines
-- Quilto must handle all edge cases
-
-### Option B: Quilto as Toolkit (Apps Build Pipelines)
-
-```python
-# Current approach:
-from quilto.agents import RouterAgent, PlannerAgent, ...
-
-# Application must wire everything manually (~300 lines)
-# Must remember to add new agents like Observer
-```
-
-**Pros:**
-- Maximum flexibility
-- Applications control everything
-
-**Cons:**
-- Code duplication across applications
-- New agents require manual integration
-- Not a framework, just a library
-- **Defeats stated project goals**
+**Requirements:**
+- Applications (like Swealog) configure and call ONE thing
+- All agents (Router, Planner, Retriever, Analyzer, Synthesizer, Evaluator, Observer) run automatically
+- Retry loops work (Evaluator insufficient → Retriever retries with wider dates)
+- Observer triggers automatically (post_query, significant_log, etc.)
+- New agents added to Quilto work without app changes
+- Apps can customize behavior without reimplementing the pipeline
 
 ---
 
-## Recommendation
+## Design Questions to Answer
 
-**Option A (Framework)** aligns with the project's stated goals:
-- Quilto is described as a "domain-agnostic agent framework"
-- Swealog should be able to use Quilto "without single modification of code" for new features
-- The current state contradicts this design intent
-
----
-
-## Implementation Considerations
-
-If Option A is chosen, Quilto needs:
-
-1. **Pipeline Orchestration Class**
-   ```python
-   # packages/quilto/quilto/pipeline.py
-   class QueryPipeline:
-       def __init__(self, llm_client, storage, domains, config=None): ...
-       async def run(self, query) -> PipelineResult: ...
-   ```
-
-2. **Move orchestration logic FROM Swealog INTO Quilto**
-   - `execute_query_pipeline()` logic moves to Quilto
-   - Swealog becomes thin wrapper
-
-3. **Automatic Observer Integration**
-   - `trigger_post_query()` called after successful queries
-   - `trigger_significant_log()` called after log parsing
-   - Global context automatically updated
-
-4. **Retry Loop Implementation**
-   - Evaluator insufficient → expand date range → retry Retriever
-   - Configurable max retries
-
-5. **Error Recovery**
-   - JSON parse errors → retry LLM call
-   - Configurable retry policy
+1. **Entry point naming:** What is it called? (suggest options, not "QueryPipeline")
+2. **Public API shape:** What does the API look like for a developer using Quilto?
+3. **Configuration:** How does an app provide LLM client, storage, domains?
+4. **Debugging/Logging hooks:** How does an app hook into the pipeline without reimplementing?
+5. **Customization:** How does an app customize behavior (skip agents, add custom logic)?
+6. **Return type:** What does the result look like?
+7. **Package structure:** Where does this code live in `packages/quilto/quilto/`?
 
 ---
 
-## Questions to Answer
+## Files to Read
 
-1. Should Quilto provide one standard pipeline or allow custom pipeline composition?
-2. How much configuration should applications be able to override?
-3. Should the pipeline be sync, async, or both?
-4. How should the pipeline expose intermediate outputs for debugging?
-5. Should LangGraph be used internally, or keep it as direct function calls?
-
----
-
-## Files Affected
-
-If implementing Option A:
-
-| File | Change |
-|------|--------|
-| `packages/quilto/quilto/pipeline.py` | NEW - Pipeline orchestration |
-| `packages/quilto/quilto/__init__.py` | Export QueryPipeline |
-| `packages/swealog/swealog/api/routes/query.py` | Simplify to use QueryPipeline |
-| `packages/swealog/swealog/cli/auto_cmd.py` | Simplify to use QueryPipeline |
+| File | Purpose |
+|------|---------|
+| `packages/swealog/swealog/api/routes/query.py` | Current manual wiring - this logic moves INTO Quilto |
+| `packages/quilto/quilto/state/observer_triggers.py` | Observer infrastructure that exists but isn't invoked |
+| `packages/quilto/quilto/agents/` | All agents that need orchestration |
+| `_bmad-output/planning-artifacts/architecture.md` | Current architecture to update |
+| `_bmad-output/project-context.md` | Project rules and constraints |
+| `CLAUDE.md` | Project structure (Quilto vs Swealog separation) |
 
 ---
 
-## Next Steps
+## Expected Output
 
-1. **Schedule dedicated architecture discussion** - not part of regular sprint
-2. **Review architecture.md** for original design intent
-3. **Make decision** on Option A vs Option B
-4. **If Option A:** Create epic for Quilto Pipeline implementation
-5. **Update public API documentation**
+1. **Public API design** with code examples showing how Swealog would use it
+2. **Internal architecture** - how orchestration works inside Quilto
+3. **Migration path** - how to move from current Swealog implementation to new API
+4. **Architecture.md update** - specific changes to document this decision
+5. **Implementation stories** - epic to implement the decision
+
+---
+
+## Constraints
+
+- This is Quilto's **PUBLIC API** - defines developer experience for all Quilto applications
+- Swealog should NOT need code changes when Quilto adds new agents
+- Must support: Observer auto-invocation, retry loops, error recovery
+- Local-first (Ollama), but cloud API compatible
+- Python 3.13+, async/await, Pydantic v2
 
 ---
 
 ## References
 
 - Epic 13 Retrospective: `_bmad-output/implementation-artifacts/epic-13/epic-13-retro-2026-01-26.md`
-- Current pipeline: `packages/swealog/swealog/api/routes/query.py`
+- Current manual pipeline: `packages/swealog/swealog/api/routes/query.py`
 - Observer triggers: `packages/quilto/quilto/state/observer_triggers.py`
 - Observer agent: `packages/quilto/quilto/agents/observer.py`
-- Architecture doc: `_bmad-output/planning-artifacts/architecture.md`
