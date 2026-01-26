@@ -153,6 +153,23 @@ async def execute_query_pipeline(
         planner_output = await planner.plan(planner_input)
     timer.log_output("Planner", planner_output.model_dump())
 
+    # Check if Planner requests clarification (AC #1, #3)
+    if planner_output.next_action == "clarify" and planner_output.clarify_questions:
+        result: dict[str, Any] = {
+            "response": "",
+            "sources": [],
+            "confidence": 0.0,
+            "is_partial": False,
+            "needs_clarification": True,
+            "clarification_questions": planner_output.clarify_questions,
+        }
+        if collect_outputs:
+            # Note: router_output not included - captured in auto_cmd.py
+            result["intermediate_outputs"] = {
+                "planner": planner_output.model_dump(),
+            }
+        return result
+
     # Step 3: Retrieve entries
     retriever = RetrieverAgent(storage)
     retriever_input = RetrieverInput(
@@ -262,6 +279,8 @@ async def execute_query_pipeline(
         "sources": sources,
         "confidence": confidence,
         "is_partial": is_partial,
+        "needs_clarification": False,
+        "clarification_questions": None,
     }
 
     if collect_outputs and analysis is not None and evaluation is not None:

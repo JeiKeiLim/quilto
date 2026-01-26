@@ -55,6 +55,26 @@ def _display_query_result(result: dict[str, Any]) -> None:
     print_info(f"Confidence: {result['confidence']:.0%}")
 
 
+def _handle_clarification(result: dict[str, Any]) -> bool:
+    """Handle clarification request from pipeline result.
+
+    Args:
+        result: Query pipeline result dict.
+
+    Returns:
+        True if clarification was needed and displayed, False otherwise.
+    """
+    if not result.get("needs_clarification"):
+        return False
+
+    print_warning("Clarification needed:")
+    questions = result.get("clarification_questions", [])
+    for i, question in enumerate(questions, 1):
+        print_info(f"  {i}. {question}")
+    print_info("Please re-query with more specific details.")
+    return True
+
+
 def _prompt_for_feedback(debug: bool, non_interactive: bool) -> str | None:
     """Prompt user for feedback if debug mode is active.
 
@@ -202,6 +222,11 @@ async def auto(
                 debug_callback=debug_callback,
                 collect_outputs=debug,  # Collect outputs when debug enabled
             )
+
+            # Handle clarification request (AC #2, #3)
+            if _handle_clarification(result):
+                return
+
             _display_query_result(result)
 
             # Prompt for feedback and record if debug enabled
@@ -244,6 +269,11 @@ async def auto(
                 collect_outputs=debug,  # Collect outputs when debug enabled
                 conversation_context=router_output.log_portion,  # Pass log_portion as context
             )
+
+            # Handle clarification request (AC #2, #3)
+            if _handle_clarification(result):
+                return
+
             _display_query_result(result)
 
             # Prompt for feedback and record if debug enabled
