@@ -232,7 +232,7 @@ async def auto(
             )
             print_success(f"Logged entry: {entry_id}")
 
-            # Then execute query flow with query_portion
+            # Then execute query flow with query_portion AND log_portion as context
             query_text = router_output.query_portion or text
             debug_callback = create_debug_callback(debug)
             result = await execute_query_pipeline(
@@ -242,6 +242,7 @@ async def auto(
                 domains=domains,
                 debug_callback=debug_callback,
                 collect_outputs=debug,  # Collect outputs when debug enabled
+                conversation_context=router_output.log_portion,  # Pass log_portion as context
             )
             _display_query_result(result)
 

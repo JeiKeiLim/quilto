@@ -97,6 +97,7 @@ async def execute_query_pipeline(
     domains: list[DomainModule],
     debug_callback: DebugCallback | None = None,
     collect_outputs: bool = False,
+    conversation_context: str | None = None,
 ) -> dict[str, Any]:
     """Execute the full query pipeline.
 
@@ -114,6 +115,8 @@ async def execute_query_pipeline(
         collect_outputs: If True, include intermediate_outputs in result.
             Note: router_output is NOT included here - capture it in auto_cmd.py
             since Router runs before this function in the auto flow.
+        conversation_context: Recent context from same interaction (e.g., log_portion
+            in BOTH-type inputs). Helps Planner interpret vague queries.
 
     Returns:
         Dict with response, sources, confidence, and is_partial.
@@ -144,6 +147,7 @@ async def execute_query_pipeline(
         query=query,
         domain_context=active_context,
         storage_summary=storage_summary,
+        conversation_context=conversation_context,
     )
     with timer.track("Planner", "query_type inference"):
         planner_output = await planner.plan(planner_input)

@@ -103,9 +103,7 @@ class RetrieverAgent:
             # Check if explicit_date flag is set (disables expansion)
             explicit_date = params.get("explicit_date", False)
             enable_expansion = (
-                retriever_input.enable_progressive_expansion
-                and not explicit_date
-                and strategy.lower() == "date_range"
+                retriever_input.enable_progressive_expansion and not explicit_date and strategy.lower() == "date_range"
             )
 
             # Execute strategy (with expansion for date_range if enabled)
@@ -131,9 +129,7 @@ class RetrieverAgent:
 
                     # Add warning for empty results
                     if attempt.entries_found == 0:
-                        warnings.append(
-                            f"Retrieval instruction {i} ({strategy}) returned 0 entries"
-                        )
+                        warnings.append(f"Retrieval instruction {i} ({strategy}) returned 0 entries")
 
             # Track strategy if it contributed entries
             if entries:
@@ -159,8 +155,7 @@ class RetrieverAgent:
         if len(unique_entries) > retriever_input.max_entries:
             truncated = True
             warnings.append(
-                f"Results truncated: {total_entries_found} entries found, "
-                f"returning {retriever_input.max_entries}"
+                f"Results truncated: {total_entries_found} entries found, returning {retriever_input.max_entries}"
             )
             unique_entries = unique_entries[: retriever_input.max_entries]
 
@@ -209,8 +204,7 @@ class RetrieverAgent:
         else:
             # Unknown strategy - only DATE_RANGE is supported
             warnings.append(
-                f"Unknown strategy '{strategy}' in instruction {attempt_number}, "
-                "only 'date_range' is supported"
+                f"Unknown strategy '{strategy}' in instruction {attempt_number}, only 'date_range' is supported"
             )
             return [], None
 
@@ -234,17 +228,11 @@ class RetrieverAgent:
         end_str = params.get("end_date")
 
         if not start_str:
-            warnings.append(
-                f"Missing required param 'start_date' for date_range "
-                f"in instruction {attempt_number}"
-            )
+            warnings.append(f"Missing required param 'start_date' for date_range in instruction {attempt_number}")
             return [], None
 
         if not end_str:
-            warnings.append(
-                f"Missing required param 'end_date' for date_range "
-                f"in instruction {attempt_number}"
-            )
+            warnings.append(f"Missing required param 'end_date' for date_range in instruction {attempt_number}")
             return [], None
 
         try:

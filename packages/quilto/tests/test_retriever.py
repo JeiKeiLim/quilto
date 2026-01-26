@@ -362,9 +362,7 @@ class TestRetrieverDateRange:
         ]
 
     @pytest.mark.asyncio
-    async def test_date_range_retrieval(
-        self, mock_storage: MagicMock, sample_entries: list[Entry]
-    ) -> None:
+    async def test_date_range_retrieval(self, mock_storage: MagicMock, sample_entries: list[Entry]) -> None:
         """DATE_RANGE strategy retrieves entries by date range."""
         mock_storage.get_entries_by_date_range.return_value = sample_entries
 
@@ -384,9 +382,7 @@ class TestRetrieverDateRange:
             )
         )
 
-        mock_storage.get_entries_by_date_range.assert_called_once_with(
-            date(2026, 1, 1), date(2026, 1, 7)
-        )
+        mock_storage.get_entries_by_date_range.assert_called_once_with(date(2026, 1, 1), date(2026, 1, 7))
         assert len(result.entries) == 2
         assert result.total_entries_found == 2
         assert len(result.retrieval_summary) == 1
@@ -547,9 +543,7 @@ class TestRetrieverMultiInstruction:
         return mock
 
     @pytest.mark.asyncio
-    async def test_multiple_date_range_instructions(
-        self, mock_storage: MagicMock
-    ) -> None:
+    async def test_multiple_date_range_instructions(self, mock_storage: MagicMock) -> None:
         """Multiple date_range instructions are processed in order."""
         entries1 = [
             Entry(
@@ -723,9 +717,7 @@ class TestRetrieverDateRangeCoverage:
         return mock
 
     @pytest.mark.asyncio
-    async def test_date_range_covered_calculated(
-        self, mock_storage: MagicMock
-    ) -> None:
+    async def test_date_range_covered_calculated(self, mock_storage: MagicMock) -> None:
         """date_range_covered is calculated from returned entries."""
         entries = [
             Entry(
@@ -770,9 +762,7 @@ class TestRetrieverDateRangeCoverage:
         assert result.date_range_covered.end == date(2026, 1, 5)
 
     @pytest.mark.asyncio
-    async def test_date_range_covered_none_for_empty(
-        self, mock_storage: MagicMock
-    ) -> None:
+    async def test_date_range_covered_none_for_empty(self, mock_storage: MagicMock) -> None:
         """date_range_covered is None when no entries returned."""
         mock_storage.get_entries_by_date_range.return_value = []
 
@@ -818,21 +808,15 @@ class TestRetrieverIntegration:
         )
 
         # Entry for Jan 2
-        (raw_dir / "2026-01-02.md").write_text(
-            "## 09:00\nSquat 3x5 at 185lbs. Good progress on squat.\n"
-        )
+        (raw_dir / "2026-01-02.md").write_text("## 09:00\nSquat 3x5 at 185lbs. Good progress on squat.\n")
 
         # Entry for Jan 3
-        (raw_dir / "2026-01-03.md").write_text(
-            "## 11:00\nRest day. Feeling tired but recovery is important.\n"
-        )
+        (raw_dir / "2026-01-03.md").write_text("## 11:00\nRest day. Feeling tired but recovery is important.\n")
 
         return storage
 
     @pytest.mark.asyncio
-    async def test_real_date_range(
-        self, storage_with_entries: StorageRepository
-    ) -> None:
+    async def test_real_date_range(self, storage_with_entries: StorageRepository) -> None:
         """Integration test: DATE_RANGE retrieval with real storage."""
         retriever = RetrieverAgent(storage_with_entries)
 
@@ -882,9 +866,7 @@ class TestRetrieverProgressiveExpansion:
         )
 
     @pytest.mark.asyncio
-    async def test_expansion_stops_when_entries_found(
-        self, mock_storage: MagicMock, sample_entry: Entry
-    ) -> None:
+    async def test_expansion_stops_when_entries_found(self, mock_storage: MagicMock, sample_entry: Entry) -> None:
         """Progressive expansion stops when entries are found (AC: #3)."""
         mock_storage.get_entries_by_date_range.side_effect = [[], [sample_entry]]
 
@@ -912,9 +894,7 @@ class TestRetrieverProgressiveExpansion:
         assert not result.expansion_exhausted
 
     @pytest.mark.asyncio
-    async def test_expansion_tiers_7_14_30_90(
-        self, mock_storage: MagicMock, sample_entry: Entry
-    ) -> None:
+    async def test_expansion_tiers_7_14_30_90(self, mock_storage: MagicMock, sample_entry: Entry) -> None:
         """Expansion tiers are 7, 14, 30, 90 days (AC: #3)."""
         mock_storage.get_entries_by_date_range.side_effect = [
             [],  # tier 0: original
@@ -973,9 +953,7 @@ class TestRetrieverProgressiveExpansion:
         assert any("Progressive expansion exhausted" in w for w in result.warnings)
 
     @pytest.mark.asyncio
-    async def test_expansion_disabled_no_expansion(
-        self, mock_storage: MagicMock
-    ) -> None:
+    async def test_expansion_disabled_no_expansion(self, mock_storage: MagicMock) -> None:
         """When enable_progressive_expansion=False, no expansion occurs."""
         mock_storage.get_entries_by_date_range.return_value = []
 
@@ -1044,9 +1022,7 @@ class TestRetrieverLanguageMismatch:
         raw_dir.mkdir(parents=True, exist_ok=True)
 
         # Entry with Korean content
-        (raw_dir / "2026-01-01.md").write_text(
-            "## 10:00\n벤치프레스 55kg 10x5 완료. 오늘 기분 좋음!\n"
-        )
+        (raw_dir / "2026-01-01.md").write_text("## 10:00\n벤치프레스 55kg 10x5 완료. 오늘 기분 좋음!\n")
 
         return storage
 
@@ -1151,9 +1127,7 @@ class TestRetrieverPriorityExecution:
         assert result.entries[1].id == "entry2"
 
     @pytest.mark.asyncio
-    async def test_strategies_used_populated(
-        self, mock_storage: MagicMock, sample_entries: list[Entry]
-    ) -> None:
+    async def test_strategies_used_populated(self, mock_storage: MagicMock, sample_entries: list[Entry]) -> None:
         """strategies_used field is populated correctly."""
         mock_storage.get_entries_by_date_range.return_value = sample_entries
 

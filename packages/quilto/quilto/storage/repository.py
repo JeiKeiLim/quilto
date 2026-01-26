@@ -419,9 +419,7 @@ class StorageRepository:
                         # Count entries in file (each entry starts with "## ")
                         content = day_file.read_text(encoding="utf-8")
                         entry_count = content.count("## ")
-                        entries_by_month[month_key] = (
-                            entries_by_month.get(month_key, 0) + entry_count
-                        )
+                        entries_by_month[month_key] = entries_by_month.get(month_key, 0) + entry_count
                         total_entries += entry_count
                     except ValueError:
                         continue

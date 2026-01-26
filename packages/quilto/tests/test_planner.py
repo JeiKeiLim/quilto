@@ -295,6 +295,23 @@ class TestPlannerModels:
         )
         assert planner_input.evaluation_feedback is not None
 
+    def test_planner_input_with_conversation_context(self) -> None:
+        """PlannerInput accepts conversation_context (Story 13.3)."""
+        planner_input = PlannerInput(
+            query="How do I do?",
+            domain_context=create_minimal_domain_context(),
+            conversation_context="I'd like to run a full marathon",
+        )
+        assert planner_input.conversation_context == "I'd like to run a full marathon"
+
+    def test_planner_input_conversation_context_optional(self) -> None:
+        """PlannerInput conversation_context defaults to None (Story 13.3)."""
+        planner_input = PlannerInput(
+            query="What did I eat yesterday?",
+            domain_context=create_minimal_domain_context(),
+        )
+        assert planner_input.conversation_context is None
+
     def test_planner_output_validation(self) -> None:
         """PlannerOutput validates all required fields."""
         output = PlannerOutput(
@@ -1291,6 +1308,51 @@ class TestPlannerPrompt:
         prompt = planner.build_prompt(planner_input)
 
         assert "Pre-classified query type: simple" in prompt
+
+    def test_prompt_includes_conversation_context(self) -> None:
+        """Prompt includes conversation context when provided (Story 13.3)."""
+        client = create_mock_llm_client({})
+        planner = PlannerAgent(client)
+
+        planner_input = PlannerInput(
+            query="How do I do?",
+            domain_context=create_minimal_domain_context(),
+            conversation_context="I'd like to run a full marathon",
+        )
+        prompt = planner.build_prompt(planner_input)
+
+        assert "I'd like to run a full marathon" in prompt
+        assert "CONVERSATION CONTEXT" in prompt
+
+    def test_prompt_handles_empty_conversation_context(self) -> None:
+        """Prompt handles missing conversation context (Story 13.3)."""
+        client = create_mock_llm_client({})
+        planner = PlannerAgent(client)
+
+        planner_input = PlannerInput(
+            query="How do I do?",
+            domain_context=create_minimal_domain_context(),
+            conversation_context=None,
+        )
+        prompt = planner.build_prompt(planner_input)
+
+        assert "(No recent conversation context)" in prompt
+        assert "CONVERSATION CONTEXT" in prompt
+
+    def test_prompt_handles_empty_string_conversation_context(self) -> None:
+        """Prompt treats empty string same as None (Story 13.3)."""
+        client = create_mock_llm_client({})
+        planner = PlannerAgent(client)
+
+        planner_input = PlannerInput(
+            query="How do I do?",
+            domain_context=create_minimal_domain_context(),
+            conversation_context="",
+        )
+        prompt = planner.build_prompt(planner_input)
+
+        assert "(No recent conversation context)" in prompt
+        assert "CONVERSATION CONTEXT" in prompt
 
 
 # =============================================================================

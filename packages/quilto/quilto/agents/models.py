@@ -349,6 +349,9 @@ class PlannerInput(BaseModel):
         evaluation_feedback: Feedback from evaluation failure.
         global_context_summary: Summary of global context.
         storage_summary: Summary of storage contents for date range decisions.
+        conversation_context: Recent context from same interaction (e.g., log_portion
+            in BOTH-type inputs). Helps interpret vague follow-up queries like
+            "How do I do?" when user previously stated a goal.
     """
 
     model_config = ConfigDict(strict=True)
@@ -364,6 +367,7 @@ class PlannerInput(BaseModel):
 
     global_context_summary: str | None = None
     storage_summary: dict[str, Any] | None = None
+    conversation_context: str | None = None
 
 
 class PlannerOutput(BaseModel):

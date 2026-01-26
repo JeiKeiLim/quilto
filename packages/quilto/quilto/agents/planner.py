@@ -144,6 +144,19 @@ class PlannerAgent:
 
         return "\n".join(lines)
 
+    def _format_conversation_context(self, planner_input: PlannerInput) -> str:
+        """Format conversation context for prompt.
+
+        Args:
+            planner_input: The PlannerInput containing optional conversation_context.
+
+        Returns:
+            Formatted string with recent conversation context.
+        """
+        if not planner_input.conversation_context:
+            return "(No recent conversation context)"
+        return planner_input.conversation_context
+
     def build_prompt(self, planner_input: PlannerInput) -> str:
         """Build the system prompt with planning rules and examples.
 
@@ -160,11 +173,12 @@ class PlannerAgent:
         if not available_domains_text:
             available_domains_text = "(No additional domains available)"
 
-        # Format gaps, feedback, history, and storage
+        # Format gaps, feedback, history, storage, and conversation context
         gaps_text = self._format_gaps(planner_input.gaps_from_analyzer)
         feedback_text = self._format_evaluation_feedback(planner_input)
         history_text = self._format_retrieval_history(planner_input)
         storage_text = self._format_storage_summary(planner_input)
+        conversation_context_text = self._format_conversation_context(planner_input)
         global_context = planner_input.global_context_summary or "(No global context)"
 
         # Format query type if pre-classified
@@ -208,6 +222,20 @@ Use this to make informed date-range decisions:
 - entries_by_month shows data density
 - If user asks "last week" but latest_date is older, adjust accordingly
 - If user asks about a time with no logs, note this in reasoning
+
+=== CONVERSATION CONTEXT ===
+
+{conversation_context_text}
+
+Use this recent context to interpret the current query:
+- If the query is vague ("How do I do?", "What about that?"), infer the subject from context
+- The context provides user intent that may not be explicit in the query
+- Incorporate context into your query interpretation and sub-query generation
+
+Example:
+- Context: "I'd like to run a full marathon"
+- Query: "How do I do?"
+- Interpretation: User wants guidance on how to prepare for/run a full marathon
 
 === RETRIEVAL STRATEGY ===
 
