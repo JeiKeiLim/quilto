@@ -203,6 +203,7 @@ class LLMClient:
         provider_config = self.config.providers.get(provider)
         api_base = provider_config.api_base if provider_config else None
         api_key = provider_config.api_key if provider_config else None
+        timeout = provider_config.timeout if provider_config else None
 
         # Format for litellm
         litellm_model = self._get_litellm_model(provider, model)
@@ -213,6 +214,7 @@ class LLMClient:
             litellm_model=litellm_model,
             api_base=api_base,
             api_key=api_key,
+            timeout=timeout,
         )
 
     async def complete(
@@ -238,11 +240,14 @@ class LLMClient:
         """
         resolution = self.resolve_model(agent, force_cloud=force_cloud)
 
+        # Use provider-specific timeout if configured, otherwise global timeout
+        timeout = resolution.timeout if resolution.timeout is not None else self.config.timeout
+
         # Build kwargs for litellm
         completion_kwargs: dict[str, Any] = {
             "model": resolution.litellm_model,
             "messages": messages,
-            "timeout": self.config.timeout,
+            "timeout": timeout,
             **kwargs,
         }
 

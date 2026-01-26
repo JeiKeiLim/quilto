@@ -77,6 +77,26 @@ class TestProviderConfig:
             ProviderConfig(api_key="${MISSING_KEY}")
         assert "MISSING_KEY is not set" in str(exc_info.value)
 
+    def test_accepts_timeout(self) -> None:
+        """ProviderConfig accepts optional timeout."""
+        config = ProviderConfig(timeout=120.0)
+        assert config.timeout == 120.0
+
+    def test_timeout_is_optional(self) -> None:
+        """ProviderConfig timeout defaults to None."""
+        config = ProviderConfig()
+        assert config.timeout is None
+
+    def test_timeout_must_be_positive(self) -> None:
+        """ProviderConfig rejects non-positive timeout."""
+        with pytest.raises(ValidationError) as exc_info:
+            ProviderConfig(timeout=0)
+        assert "timeout must be > 0" in str(exc_info.value)
+
+        with pytest.raises(ValidationError) as exc_info:
+            ProviderConfig(timeout=-1)
+        assert "timeout must be > 0" in str(exc_info.value)
+
 
 class TestTierModels:
     """Test TierModels model."""
@@ -148,12 +168,26 @@ class TestModelResolution:
             litellm_model="claude-3-haiku-20240307",
             api_base=None,
             api_key="key123",
+            timeout=None,
         )
         assert resolution.provider == "anthropic"
         assert resolution.model == "claude-3-haiku-20240307"
         assert resolution.litellm_model == "claude-3-haiku-20240307"
         assert resolution.api_base is None
         assert resolution.api_key == "key123"
+        assert resolution.timeout is None
+
+    def test_stores_timeout_field(self) -> None:
+        """ModelResolution stores provider-specific timeout."""
+        resolution = ModelResolution(
+            provider="ollama",
+            model="qwen2.5:7b",
+            litellm_model="ollama/qwen2.5:7b",
+            api_base="http://localhost:11434",
+            api_key=None,
+            timeout=120.0,
+        )
+        assert resolution.timeout == 120.0
 
 
 class TestLLMConfig:

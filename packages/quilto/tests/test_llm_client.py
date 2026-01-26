@@ -265,6 +265,35 @@ class TestComplete:
             assert call_kwargs["timeout"] == 90.0
 
     @pytest.mark.asyncio
+    async def test_provider_timeout_overrides_global(self) -> None:
+        """Provider-specific timeout overrides global timeout."""
+        config = LLMConfig(
+            default_provider="ollama",
+            timeout=45.0,  # Global timeout
+            providers={
+                "ollama": ProviderConfig(
+                    api_base="http://localhost:11434",
+                    timeout=120.0,  # Provider-specific timeout
+                )
+            },
+            tiers={"low": TierModels(ollama="qwen2.5:7b")},
+            agents={"router": AgentConfig(tier="low")},
+        )
+        client = LLMClient(config)
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content="Response"))]
+
+        with patch("quilto.llm.client.litellm.acompletion", new_callable=AsyncMock) as mock_acompletion:
+            mock_acompletion.return_value = mock_response
+
+            await client.complete("router", [{"role": "user", "content": "Hi"}])
+
+            call_kwargs = mock_acompletion.call_args.kwargs
+            # Provider timeout (120.0) should be used instead of global (45.0)
+            assert call_kwargs["timeout"] == 120.0
+
+    @pytest.mark.asyncio
     async def test_includes_api_base_when_set(self) -> None:
         """Complete includes api_base when provider has it configured."""
         config = create_test_config(default_provider="ollama")

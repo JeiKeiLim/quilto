@@ -48,6 +48,9 @@ class ProviderConfig(BaseModel):
         api_key: API key for the provider. Supports ${ENV_VAR} interpolation.
         api_base: Base URL for API calls. Required for Ollama and Azure.
         api_version: API version. Required for Azure.
+        timeout: Provider-specific timeout in seconds. If set, overrides
+            the global LLMConfig.timeout for this provider. Useful for
+            local Ollama which may need longer timeouts than cloud APIs.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -55,6 +58,25 @@ class ProviderConfig(BaseModel):
     api_key: str | None = None
     api_base: str | None = None
     api_version: str | None = None
+    timeout: float | None = None
+
+    @field_validator("timeout", mode="after")
+    @classmethod
+    def validate_timeout(cls, v: float | None) -> float | None:
+        """Validate timeout is positive if set.
+
+        Args:
+            v: The timeout value in seconds.
+
+        Returns:
+            The validated timeout value.
+
+        Raises:
+            ValueError: If timeout is not positive.
+        """
+        if v is not None and v <= 0:
+            raise ValueError("timeout must be > 0")
+        return v
 
     @field_validator("api_key", mode="after")
     @classmethod
@@ -122,6 +144,7 @@ class ModelResolution:
         litellm_model: The model name formatted for litellm (with prefix).
         api_base: API base URL if applicable.
         api_key: API key if applicable.
+        timeout: Provider-specific timeout if configured, None to use global default.
     """
 
     provider: ProviderName
@@ -129,6 +152,7 @@ class ModelResolution:
     litellm_model: str
     api_base: str | None
     api_key: str | None
+    timeout: float | None
 
 
 # Default tier models based on architecture spec

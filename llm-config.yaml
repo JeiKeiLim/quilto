@@ -16,6 +16,7 @@ default_provider: "ollama"
 providers:
   ollama:
     api_base: "http://localhost:11434"
+    timeout: 120.0  # Longer timeout for local Ollama (default is 45s)
   # anthropic:
   #   api_key: "${ANTHROPIC_API_KEY}"
 
