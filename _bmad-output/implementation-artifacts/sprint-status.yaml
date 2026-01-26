@@ -167,10 +167,24 @@ development_status:
   # Epic 12: Dogfooding Iteration 2
   # Generated from Story 11.4 feedback analysis (2026-01-24)
   # Source: tests/eval/feedback/archive/iter-001/analysis.md
-  epic-12: in-progress
+  epic-12: done
   12-1-fix-clarification-trigger-logic: done  # High priority - only trigger when critical gaps + 0 entries
   12-2-improve-planner-retrieval-strategy: done # High priority - always include DATE_RANGE for fitness queries
   12-3-add-llm-timeout-and-retry-config: done  # Medium priority - 45s timeout, retry malformed JSON
   12-4-enhance-synthesizer-detail: done  # Medium priority - add reasoning, metrics, citations
   12-5-add-response-language-detection: done  # Low priority - match response language to query
-  12-6-analyze-feedback-dataset-iter-2: backlog  # Analyze iteration 2 feedback, generate Epic 13 stories
+  12-6-analyze-feedback-dataset-iter-2: done  # Analyzed 7 records, generated 6 stories for Epic 13
+  epic-12-retrospective: done
+
+  # Epic 13: Dogfooding Iteration 3
+  # Generated from Story 12.6 feedback analysis (2026-01-26)
+  # Source: tests/eval/feedback/archive/iter-002/analysis.md
+  # Key Findings: All 6 Iteration 1 patterns RESOLVED, 6 NEW patterns identified
+  epic-13: backlog
+  13-1-add-temporal-recency-awareness: backlog  # High priority - account for time since last workout
+  13-2-simplify-retrieval-with-storage-awareness: backlog  # High priority - storage summary + date-range only + remove keyword/topical
+  13-3-implement-conversation-context: backlog  # Medium priority - remember context from previous message
+  13-4-fix-clarification-flow-routing: backlog  # Medium priority - actually ask clarify questions
+  13-5-improve-intent-classification: backlog  # Medium priority - treat goal statements as implicit queries
+  13-6-add-indirect-estimation-fallback: backlog  # Low priority - estimate with disclaimers when direct data missing
+  epic-13-retrospective: optional

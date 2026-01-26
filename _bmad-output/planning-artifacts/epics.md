@@ -1628,10 +1628,233 @@ So that **patterns are identified and improvement stories are generated**.
 
 ---
 
+## Epic 13: Dogfooding Iteration 3
+
+*Improvements derived from Iteration 2 feedback analysis (7 records)*
+
+**Origin:** Story 12.6 Analysis (2026-01-26)
+**Analyst:** Mary (Dev Agent) + Jongkuk Lim
+**Source:** `tests/eval/feedback/archive/iter-002/analysis.md`
+
+**Key Findings from Iteration 2:**
+- All 6 Iteration 1 patterns RESOLVED by Stories 12.1-12.5
+- 6 NEW patterns identified requiring fixes
+- Most critical: Temporal recency unawareness (29% of records affected)
+
+**Quilto:** Temporal awareness, retrieval simplification, conversation context, clarification routing
+**Swealog:** N/A (framework-level improvements)
+
+---
+
+### Story 13.1: Add Temporal Recency Awareness to Analyzer
+
+**Priority:** High | **Effort:** Medium (2-4 hours)
+
+**As a** Quilto user,
+**I want** the system to consider how long ago my workout logs were recorded,
+**So that** recommendations account for recovery time and current fitness state.
+
+**Acceptance Criteria:**
+
+1. **Given** retrieved log entries with timestamps
+   **When** Analyzer processes the data
+   **Then** it calculates "days since most recent entry" and includes this in findings
+
+2. **Given** a recommendation query with logs older than 5 days
+   **When** generating recommendations
+   **Then** the response acknowledges the time gap
+
+3. **Given** fatigue/soreness evidence from logs older than 7 days
+   **When** synthesizing response
+   **Then** the system does NOT reference that soreness as "current" or "lingering"
+
+4. **Given** a user who hasn't logged in 7+ days
+   **When** asked for a workout recommendation
+   **Then** the response suggests a moderate return-to-training approach rather than recovery
+
+**Evidence:** Records `14b9034b`, `4d876936`, `7e6d1d9a` - Users received recovery recommendations despite 6-7 day workout gaps
+
+---
+
+### Story 13.2: Simplify Retrieval with Storage Awareness
+
+**Priority:** High | **Effort:** Medium-Large (4-6 hours)
+
+**As a** Quilto developer,
+**I want** retrieval to use date-range strategy with storage awareness and LLM-based relevance filtering,
+**So that** Planner makes informed decisions and we eliminate keyword matching edge cases.
+
+**Acceptance Criteria:**
+
+**Part A: Storage Awareness (enables smart date-range selection)**
+
+1. **Given** `StorageRepository`
+   **When** `get_storage_summary()` is called
+   **Then** it returns: date range with logs (first_date, last_date), entry count per month
+
+2. **Given** Planner generates retrieval instructions
+   **When** processing a query
+   **Then** Planner first calls storage summary to know what dates have data
+
+3. **Given** storage summary shows logs exist from 2026-01-01 to 2026-01-20
+   **When** user asks "what did I do last month?"
+   **Then** Planner generates date range within available data (not guessing blindly)
+
+**Part B: Date-Range Only (remove keyword/topical)**
+
+4. **Given** any query requiring context retrieval
+   **When** Retriever executes
+   **Then** only DATE_RANGE strategy is used (keyword and topical strategies removed)
+
+5. **Given** Planner generates retrieval instructions
+   **When** instructions are created
+   **Then** only date_range strategy is specified (no keyword/topical instructions)
+
+6. **Given** RetrieverAgent code
+   **When** reviewing implementation
+   **Then** `_execute_keyword()`, `_execute_topical()`, and `expand_terms()` are removed
+
+**Part C: LLM-Based Relevance Filtering**
+
+7. **Given** date-range returns entries
+   **When** Analyzer processes them
+   **Then** Analyzer filters entries by query relevance (LLM-based filtering replaces keyword pre-filtering)
+
+8. **Given** a query for "bench press 1RM"
+   **When** logs in date range contain "벤치 프레스 60kg"
+   **Then** Analyzer identifies and uses that entry (no keyword matching required)
+
+**Rationale:**
+- Architecture decision: ~109k chars/year fits in context window
+- Original design intent: "Date-based retrieval + hierarchical summarization"
+- Keyword retrieval introduced infinite edge cases (Korean spacing, synonyms, abbreviations)
+- Storage awareness enables Planner to make informed date-range decisions
+- LLM-based filtering at Analyzer is more robust than regex/keyword matching
+
+**Evidence:** Record `151de3d9` - Keyword search failed due to Korean spacing; this architectural change eliminates such issues entirely
+
+**Files to Modify:**
+- `packages/quilto/quilto/storage/repository.py` - Add `get_storage_summary()` method
+- `packages/quilto/quilto/storage/models.py` - Add `StorageSummary` model
+- `packages/quilto/quilto/agents/planner.py` - Call storage summary, only generate date_range instructions
+- `packages/quilto/quilto/agents/retriever.py` - Remove keyword/topical methods
+- `packages/quilto/quilto/agents/analyzer.py` - Add relevance filtering guidance to prompt
+
+---
+
+### Story 13.3: Implement Conversation Context for Multi-Turn Queries
+
+**Priority:** Medium | **Effort:** Medium (2-4 hours)
+
+**As a** Quilto user,
+**I want** the system to remember context from my previous message,
+**So that** I don't have to repeat information in follow-up questions.
+
+**Acceptance Criteria:**
+
+1. **Given** user states "I'd like to run a full marathon"
+   **When** user immediately follows with "How do I do?"
+   **Then** the system understands "do" refers to running a marathon
+
+2. **Given** a LOG-type input that could be a goal statement
+   **When** user's next message is a vague question
+   **Then** Planner incorporates the previous message context
+
+3. **Given** multi-turn conversation context
+   **When** generating retrieval instructions
+   **Then** context from previous turns informs date range and Analyzer's relevance filtering
+
+**Evidence:** Record `8628f945` - Marathon context lost between "I'd like to run a full marathon" and "How do I do?"
+
+---
+
+### Story 13.4: Fix Clarification Flow Routing
+
+**Priority:** Medium | **Effort:** Small (1-2 hours)
+
+**As a** Quilto user,
+**I want** the system to actually ask clarification questions when needed,
+**So that** I can provide missing information for better responses.
+
+**Acceptance Criteria:**
+
+1. **Given** Planner sets `next_action: "clarify"` with `clarify_questions` populated
+   **When** the flow processes this output
+   **Then** the Clarifier agent is invoked to ask the user
+
+2. **Given** Planner generates clarification questions
+   **When** the flow does not route to Clarifier
+   **Then** an error is logged indicating routing failure
+
+3. **Given** a vague query like "How do I do?"
+   **When** Planner identifies critical subjective gaps
+   **Then** the user receives the clarification questions before a response is generated
+
+**Evidence:** Record `8628f945` - Planner generated clarify_questions but they were never asked to user
+
+---
+
+### Story 13.5: Improve Intent Classification for Goal Statements
+
+**Priority:** Medium | **Effort:** Small (1-2 hours)
+
+**As a** Quilto user,
+**I want** goal statements like "I want to run a marathon" to be treated as implicit queries,
+**So that** I receive guidance without needing to explicitly ask a question.
+
+**Acceptance Criteria:**
+
+1. **Given** input "I'd like to run a full marathon"
+   **When** Router classifies input_type
+   **Then** it is classified as BOTH (log of goal + implicit query for guidance)
+
+2. **Given** input starting with "I want to..." or "I'd like to..."
+   **When** no explicit question is present
+   **Then** Router includes query_portion with the implied question
+
+3. **Given** a goal-statement LOG without follow-up
+   **When** processing completes
+   **Then** the response offers guidance related to the goal
+
+**Evidence:** Record `8628f945` - "I'd like to run a full marathon" was treated as LOG only
+
+---
+
+### Story 13.6: Add Indirect Estimation Fallback in Analyzer
+
+**Priority:** Low | **Effort:** Medium (2-4 hours)
+
+**As a** Quilto user,
+**I want** the system to provide indirect estimates when direct data is missing,
+**So that** I get useful answers with appropriate disclaimers.
+
+**Acceptance Criteria:**
+
+1. **Given** query for bench press 1RM with only incline press data available
+   **When** Analyzer finds no direct bench press records
+   **Then** it attempts indirect estimation using related exercises
+
+2. **Given** indirect estimation is performed
+   **When** Synthesizer generates response
+   **Then** the response clearly states "This is an indirect estimate based on..."
+
+3. **Given** multiple related exercises in logs
+   **When** calculating indirect 1RM
+   **Then** the system combines information
+
+4. **Given** insufficient data for even indirect estimation
+   **When** verdict is "insufficient"
+   **Then** the response explains what data would be needed
+
+**Evidence:** Record `151de3d9` - System said "I don't have enough information" instead of attempting indirect estimation
+
+---
+
 ## Future Epics (Iteration Pattern)
 
-### Epic 13: Dogfooding Iteration 3
+### Epic 14: Dogfooding Iteration 4
 
-*Stories generated from Epic 12 feedback analysis*
+*Stories generated from Epic 13 feedback analysis*
 
-**Status:** Backlog (depends on Epic 12 analysis)
+**Status:** Backlog (depends on Epic 13 analysis)
+
