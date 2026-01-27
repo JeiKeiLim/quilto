@@ -229,7 +229,7 @@ development_status:
   #
   # Decision: Swealog was half-migrated in Epic 15 - CLI still imports agents directly.
   # Instead of patching, rewrite Swealog CLI as proper Quilto reference implementation.
-  epic-16: in-progress
+  epic-16: done
   # --- Quilto Framework Fixes (keep) ---
   16-1-add-agent-output-to-progress-callback: done  # HIGH - on_agent_complete needs output: dict[str, Any] parameter
   16-2-fix-response-generation-failure: done  # CRITICAL - Fixed cascade failure: added logging + error traces + fallback analyzer_output
@@ -240,3 +240,4 @@ development_status:
   16-6-update-swealog-tests-for-new-cli: done  # MEDIUM - Tests already rewritten as part of 16-4 implementation
   # --- Optional ---
   16-7-review-batch-import-command: done  # LOW - Decision: Keep separate. Found/fixed timestamp parsing bug + test leakage.
+  epic-16-retrospective: done
