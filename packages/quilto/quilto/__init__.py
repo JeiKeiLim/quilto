@@ -30,6 +30,7 @@ from quilto.models import (
     ProcessDebug,
     ProcessResult,
 )
+from quilto.quilto import Quilto
 from quilto.session import (
     ConversationTurn,
     Session,
@@ -80,6 +81,7 @@ __all__ = [
     "ProcessResult",
     "ProgressHandler",
     "ProviderConfig",
+    "Quilto",
     "RouterAgent",
     "RouterInput",
     "RouterOutput",

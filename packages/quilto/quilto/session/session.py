@@ -4,12 +4,15 @@ This module provides the Session class which wraps SessionData and
 handles turn management including automatic pruning and persistence.
 """
 
+import time
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal
 
+from quilto.models import ClarificationQuestion, ProcessResult
 from quilto.session.models import ConversationTurn, SessionConfig, SessionData
 
 if TYPE_CHECKING:
+    from quilto.quilto import Quilto
     from quilto.session.stores.base import SessionStore
 
 
@@ -19,6 +22,9 @@ class Session:
     Wraps SessionData and provides methods for adding turns,
     automatic pruning when max turns is exceeded, and auto-saving
     to the backing store.
+
+    The session also provides the process() method for running input
+    through the Quilto orchestration pipeline.
 
     Attributes:
         data: The underlying SessionData.
@@ -30,6 +36,9 @@ class Session:
         session.add_turn("user", "Hello!")
         session.add_turn("agent", "Hi there!")
         history = session.get_history()
+
+        # Using process() with Quilto orchestration
+        result = await session.process("How was my workout?")
     """
 
     def __init__(
@@ -48,6 +57,18 @@ class Session:
         self._data = data
         self._store = store
         self._config = config
+        self._quilto: Quilto | None = None
+
+    def _set_quilto(self, quilto: "Quilto") -> None:
+        """Set the Quilto reference for orchestration.
+
+        This is called by Quilto.create_session() to enable the
+        process() method.
+
+        Args:
+            quilto: The Quilto instance to use for processing.
+        """
+        self._quilto = quilto
 
     @property
     def session_id(self) -> str:
@@ -106,3 +127,173 @@ class Session:
             List of ConversationTurn objects in chronological order.
         """
         return list(self._data.conversation)
+
+    def _build_conversation_context(self) -> str | None:
+        """Build conversation context string from history.
+
+        Uses the last 4 turns formatted as "{role}: {content}".
+        This respects the 20-turn overall limit via pruning.
+
+        Returns:
+            Formatted context string, or None if no history.
+        """
+        history = self.get_history()
+        if not history:
+            return None
+
+        # Take last 4 turns for context
+        recent = history[-4:]
+        lines = [f"{turn.role}: {turn.content}" for turn in recent]
+        return "\n".join(lines)
+
+    async def process(
+        self,
+        text: str,
+        mode: Literal["auto", "log", "query"] | None = None,
+    ) -> ProcessResult:
+        """Process user input through the Quilto orchestration pipeline.
+
+        Routes input through agents based on Router classification or
+        forced mode. Adds user turn before processing and agent turn
+        after processing.
+
+        For QUERY inputs:
+            - Router → Planner → Retriever → Analyzer → Synthesizer → Evaluator
+            - Retry loop on INSUFFICIENT verdict
+            - Observer triggers on completion
+
+        For LOG inputs:
+            - Router → Parser → Observer
+
+        For BOTH inputs:
+            - Query flow first, then Parser
+
+        For CORRECTION inputs:
+            - Router → Correction flow with upsert semantics
+
+        Args:
+            text: The user input text to process.
+            mode: Force input type classification. "auto" uses Router
+                classification (default). "log" bypasses Router and
+                treats as LOG. "query" bypasses Router and treats as QUERY.
+
+        Returns:
+            ProcessResult with response, parsed_data, or clarification_questions
+            depending on the flow that executed.
+
+        Raises:
+            RuntimeError: If session not connected to Quilto instance.
+        """
+        if self._quilto is None:
+            raise RuntimeError(
+                "Session not connected to Quilto. Use quilto.create_session() "
+                "to create sessions with process() capability."
+            )
+
+        # Add user turn before processing
+        self.add_turn("user", text)
+
+        # Build conversation context from history (excluding the turn just added)
+        conversation_context = self._build_conversation_context()
+
+        # Get orchestration graph and run
+        graph = self._quilto._get_graph()  # pyright: ignore[reportPrivateUsage]
+
+        # Build initial state
+        initial_state = {
+            "user_input": text,
+            "mode": mode or "auto",
+            "conversation_context": conversation_context,
+            "max_retries": self._quilto.max_retries,
+            "retry_count": 0,
+            "is_partial": False,
+            "error": None,
+            "traces": [],
+        }
+
+        # Run the graph with timing
+        start_time = time.perf_counter()
+        final_state = await graph.ainvoke(initial_state)
+        total_elapsed_ms = (time.perf_counter() - start_time) * 1000
+        final_state["total_elapsed_ms"] = total_elapsed_ms
+
+        # Build ProcessResult from final state
+        result = self._build_process_result(final_state)
+
+        # Add agent turn with response
+        agent_content = result.response or ""
+        if result.clarification_questions:
+            # Format clarification questions for conversation
+            questions_text = "\n".join(f"- {q.question}" for q in result.clarification_questions)
+            agent_content = f"I need some clarification:\n{questions_text}"
+
+        if agent_content:
+            metadata: dict[str, Any] | None = None
+            if result.clarification_questions:
+                metadata = {"clarification_questions": [q.model_dump() for q in result.clarification_questions]}
+            self.add_turn("agent", agent_content, metadata)
+
+        return result
+
+    def _build_process_result(self, state: dict[str, Any]) -> ProcessResult:
+        """Build ProcessResult from orchestration final state.
+
+        Args:
+            state: Final state dict from orchestration graph.
+
+        Returns:
+            ProcessResult populated from state fields.
+        """
+        from quilto.models import AgentTrace, ProcessDebug
+
+        # Map state to ProcessResult fields
+        input_type = state.get("input_type", "query")
+        response = state.get("response")
+        confidence = state.get("confidence")
+        source_entry_ids = state.get("source_entry_ids", [])
+        parsed_data = state.get("parsed_data")
+        selected_domains = state.get("selected_domains", [])
+
+        # Handle clarification questions
+        clarify_questions_raw = state.get("clarify_questions")
+        clarification_questions: list[ClarificationQuestion] | None = None
+        if clarify_questions_raw:
+            clarification_questions = [
+                ClarificationQuestion(
+                    question=q.get("question", ""),
+                    options=q.get("options"),
+                )
+                for q in clarify_questions_raw
+                if q.get("question")
+            ]
+
+        # Build debug info if enabled
+        debug: ProcessDebug | None = None
+        if self._quilto and self._quilto.debug:
+            traces_raw = state.get("traces", [])
+            traces = [
+                AgentTrace(
+                    agent_name=t.get("agent_name", "unknown"),
+                    input_summary=t.get("input_summary", ""),
+                    output_summary=t.get("output_summary", ""),
+                    elapsed_ms=t.get("elapsed_ms", 0.0),
+                    timestamp=t.get("timestamp", datetime.now(UTC)),
+                )
+                for t in traces_raw
+            ]
+            debug = ProcessDebug(
+                traces=traces,
+                total_elapsed_ms=state.get("total_elapsed_ms", 0.0),
+                retry_count=state.get("retry_count", 0),
+            )
+
+        return ProcessResult(
+            response=response,
+            confidence=confidence,
+            source_entry_ids=source_entry_ids,
+            parsed_data=parsed_data,
+            input_type=input_type,
+            selected_domains=selected_domains,
+            clarification_questions=clarification_questions if clarification_questions else None,
+            debug=debug,
+        )
