@@ -313,9 +313,9 @@ async def plan_node(state: QuiltoState) -> dict[str, Any]:
             evaluation_feedback = eval_feedback[0] if eval_feedback else None
 
         # Get retrieval history from previous retry if any
-        retrieval_history: list[dict[str, Any]] | None = None
+        retrieval_history: list[dict[str, Any]] = []
         if state.get("retry_count", 0) > 0 and state.get("retrieval_summary"):
-            retrieval_history = state.get("retrieval_summary")
+            retrieval_history = state.get("retrieval_summary") or []
 
         planner = PlannerAgent(quilto.llm_client)
         planner_input = PlannerInput(
@@ -324,7 +324,7 @@ async def plan_node(state: QuiltoState) -> dict[str, Any]:
             storage_summary=storage_summary,  # type: ignore[arg-type]
             conversation_context=conversation_context,
             evaluation_feedback=evaluation_feedback,  # type: ignore[arg-type]
-            retrieval_history=retrieval_history,  # type: ignore[arg-type]
+            retrieval_history=retrieval_history,
         )
         planner_output = await planner.plan(planner_input)
 
@@ -802,8 +802,11 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
         return {
             "traces": _add_trace(state, "observer", "post_query", f"updates={len(observer_output.updates)}", elapsed),
         }
-    except Exception:
-        # Observer failures are non-fatal
+    except Exception as e:
+        # Observer failures are non-fatal but should be logged for debugging
+        import logging
+
+        logging.getLogger(__name__).warning("observe_node failed: %s", e)
         return {}
 
 
