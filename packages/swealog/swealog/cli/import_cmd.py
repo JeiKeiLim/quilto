@@ -196,9 +196,10 @@ class BatchImporter:
                 vocabulary.update(d.vocabulary)
 
             # Parse using entry_id timestamp (strip counter suffix if present)
-            base_timestamp = entry_id.split("-", 3)[:3]  # Get YYYY-MM-DD part
-            time_part = entry_id.split("_")[1].split("-")[0:3]  # Get HH-MM-SS part
-            timestamp_str = "-".join(base_timestamp) + "_" + "-".join(time_part)
+            # entry_id format: "YYYY-MM-DD_HH-MM-SS-NNNN" where -NNNN is batch counter
+            date_part = entry_id.split("_")[0]  # "YYYY-MM-DD"
+            time_part = entry_id.split("_")[1].split("-")[0:3]  # ["HH", "MM", "SS"]
+            timestamp_str = date_part + "_" + "-".join(time_part)
             timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d_%H-%M-%S")
 
             # Handle CORRECTION type (same as /input API)

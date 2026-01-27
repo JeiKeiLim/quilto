@@ -389,6 +389,104 @@ class TestBatchImporter:
             # Storage should NOT be called for QUERY
             storage.save_entry.assert_not_called()
 
+    @pytest.mark.asyncio
+    async def test_import_entry_timestamp_parsing_with_batch_suffix(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that entry_id with batch counter suffix is parsed correctly.
+
+        The batch importer generates entry_ids like "2024-01-15_10-30-00-0001"
+        where -0001 is the batch counter. The timestamp parsing must correctly
+        extract "2024-01-15_10-30-00" from this format.
+
+        This test verifies the fix for the bug where the old parsing logic:
+            base_timestamp = entry_id.split("-", 3)[:3]
+        incorrectly produced "2024-01-15_10" instead of "2024-01-15".
+        """
+        from datetime import datetime
+
+        from pydantic import BaseModel
+        from quilto.agents.models import InputType, ParserOutput, RouterOutput
+
+        # Create a simple schema for testing
+        class MockLogSchema(BaseModel):
+            exercise: str = ""
+
+        llm_client = MagicMock()
+        storage = MagicMock()
+
+        mock_domain = MagicMock()
+        mock_domain.name = "test_domain"
+        mock_domain.description = "Test domain"
+        mock_domain.log_schema = MockLogSchema
+        mock_domain.vocabulary = {}
+        domains = [mock_domain]
+
+        importer = BatchImporter(llm_client, storage, domains, dry_run=True)  # type: ignore[arg-type]
+
+        entry = RawEntry(
+            content="Bench press 100kg x 5 reps",
+            source_file=tmp_path / "test.txt",
+            entry_number=1,
+            line_start=1,
+        )
+
+        # Mock RouterAgent.classify to return LOG type (reaches timestamp parsing)
+        mock_router_output = RouterOutput(
+            input_type=InputType.LOG,
+            confidence=0.95,
+            selected_domains=["test_domain"],
+            domain_selection_reasoning="Fitness domain for log",
+            query_portion=None,
+            correction_target=None,
+            reasoning="This is a log entry",
+        )
+
+        # Mock ParserAgent.parse
+        from datetime import date as date_type
+
+        mock_parser_output = ParserOutput(
+            date=date_type(2024, 1, 15),
+            timestamp=datetime(2024, 1, 15, 10, 30, 0),
+            domain_data={"test_domain": {"exercise": "bench press"}},
+            raw_content="Bench press 100kg x 5 reps",
+            confidence=0.95,
+            is_correction=False,
+        )
+
+        captured_parser_input = None
+
+        async def capture_parser_input(parser_input: MagicMock) -> ParserOutput:
+            nonlocal captured_parser_input
+            captured_parser_input = parser_input
+            return mock_parser_output
+
+        with (
+            patch("swealog.cli.import_cmd.RouterAgent") as mock_router_class,
+            patch("swealog.cli.import_cmd.ParserAgent") as mock_parser_class,
+        ):
+            mock_router = mock_router_class.return_value
+            mock_router.classify = AsyncMock(return_value=mock_router_output)
+
+            mock_parser = mock_parser_class.return_value
+            mock_parser.parse = AsyncMock(side_effect=capture_parser_input)
+
+            # Use entry_id with batch counter suffix (the problematic format)
+            entry_id_with_suffix = "2024-01-15_10-30-00-0001"
+
+            result = await importer.import_entry(entry, entry_id_with_suffix)
+
+            # Should succeed (no error)
+            assert result is None
+
+            # Verify parser was called
+            mock_parser.parse.assert_called_once()
+
+            # Verify the timestamp was correctly extracted
+            assert captured_parser_input is not None
+            expected_timestamp = datetime(2024, 1, 15, 10, 30, 0)
+            assert captured_parser_input.timestamp == expected_timestamp
+
 
 class TestImportCommand:
     """Tests for import CLI command."""

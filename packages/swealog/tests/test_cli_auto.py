@@ -229,6 +229,7 @@ class TestUnifiedCommandDebugFlag:
             patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
             patch("swealog.cli.app.Quilto") as mock_quilto_cls,
             patch("swealog.cli.app.typer.prompt", return_value=""),  # Skip feedback prompt
+            patch("swealog.cli.app.FeedbackRecorder"),  # Prevent writing to real directory
         ):
             mock_quilto = MagicMock()
             mock_quilto.create_session.return_value = mock_session
