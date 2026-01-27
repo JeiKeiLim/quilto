@@ -398,25 +398,25 @@ class TestImportCommand:
         result = runner.invoke(app, ["import", "--help"])
 
         assert result.exit_code == 0
-        assert "Import log entries" in result.stdout
-        assert "--dry-run" in result.stdout
-        assert "--delimiter" in result.stdout
-        assert "--error-log" in result.stdout
-        assert "--verbose" in result.stdout
+        assert "Import log entries" in result.output
+        assert "--dry-run" in result.output
+        assert "--delimiter" in result.output
+        assert "--error-log" in result.output
+        assert "--verbose" in result.output
 
     def test_import_nonexistent_path(self) -> None:
         """Test import with nonexistent path."""
         result = runner.invoke(app, ["import", "/nonexistent/path.txt"])
 
         assert result.exit_code == 1
-        assert "not found" in result.stdout.lower()
+        assert "not found" in result.output.lower()
 
     def test_import_empty_directory(self, tmp_path: Path) -> None:
         """Test import from empty directory."""
         result = runner.invoke(app, ["import", str(tmp_path)])
 
         assert result.exit_code == 1
-        assert "no" in result.stdout.lower()
+        assert "no" in result.output.lower()
 
     @patch("swealog.cli.import_cmd.load_cli_config")
     @patch("swealog.cli.import_cmd.LLMClient")
@@ -441,7 +441,7 @@ class TestImportCommand:
         result = runner.invoke(app, ["import", str(file)])
 
         # Should succeed (imports were mocked)
-        assert "2" in result.stdout or result.exit_code == 0
+        assert "2" in result.output or result.exit_code == 0
 
     @patch("swealog.cli.import_cmd.load_cli_config")
     @patch("swealog.cli.import_cmd.LLMClient")
@@ -467,7 +467,7 @@ class TestImportCommand:
         result = runner.invoke(app, ["import", "--dry-run", str(file)])
 
         # Dry run message should appear
-        assert "DRY RUN" in result.stdout.upper() or "dry" in result.stdout.lower()
+        assert "DRY RUN" in result.output.upper() or "dry" in result.output.lower()
 
     @patch("swealog.cli.import_cmd.load_cli_config")
     @patch("swealog.cli.import_cmd.LLMClient")
@@ -525,7 +525,7 @@ class TestImportCommand:
         result = runner.invoke(app, ["import", "--verbose", str(file)])
 
         # Verbose output should include file details
-        assert "logs.txt" in result.stdout or result.exit_code == 0
+        assert "logs.txt" in result.output or result.exit_code == 0
 
     @patch("swealog.cli.import_cmd.load_cli_config")
     @patch("swealog.cli.import_cmd.LLMClient")
@@ -592,4 +592,4 @@ class TestImportCommandExports:
         """Test that import command is registered with main app."""
         result = runner.invoke(app, ["--help"])
 
-        assert "import" in result.stdout.lower()
+        assert "import" in result.output.lower()

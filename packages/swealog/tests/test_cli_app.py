@@ -36,11 +36,11 @@ def test_help_flag() -> None:
 
 
 def test_no_args_shows_help() -> None:
-    """Test that no arguments shows help (output shown)."""
+    """Test that no arguments requires a command (subcommands exist)."""
     result = runner.invoke(app)
-    # no_args_is_help=True shows help, and for rich panels the exit code may be 2
-    # The important thing is that help content is shown
-    assert "Usage" in result.stdout or "--help" in result.stdout
+    # With subcommands and no default, Typer shows error about missing command
+    # Check that usage info is shown in output
+    assert "Usage" in result.output or "swealog" in result.output.lower()
 
 
 def test_app_can_add_command() -> None:

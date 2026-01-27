@@ -1,4 +1,7 @@
-"""Tests for swealog auto CLI command."""
+"""Tests for swealog unified CLI command.
+
+Tests the `swealog run` command that routes all input through Quilto.
+"""
 
 from dataclasses import dataclass
 from typing import Any
@@ -40,12 +43,16 @@ def _create_mock_process_result(
     debug_retry_count: int = 0,
     clarification_questions: list[str] | None = None,
     with_debug: bool = False,
+    input_type: str = "query",
+    parsed_data: dict[str, Any] | None = None,
 ) -> MagicMock:
     """Create a mock ProcessResult for testing."""
     mock_result = MagicMock()
     mock_result.response = response
     mock_result.source_entry_ids = sources or []
     mock_result.confidence = confidence
+    mock_result.input_type = input_type
+    mock_result.parsed_data = parsed_data
 
     # Set up clarification questions
     if clarification_questions:
@@ -53,6 +60,7 @@ def _create_mock_process_result(
         for q in clarification_questions:
             mock_q = MagicMock()
             mock_q.question = q
+            mock_q.options = None
             mock_questions.append(mock_q)
         mock_result.clarification_questions = mock_questions
     else:
@@ -70,251 +78,222 @@ def _create_mock_process_result(
     return mock_result
 
 
-class TestAutoCommandRoutesLog:
-    """AC1: Auto command routes LOG correctly."""
+class TestUnifiedCommandRoutesLog:
+    """AC1: Unified command routes LOG correctly via Quilto."""
 
-    def test_auto_routes_log(
+    def test_command_routes_log(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """Auto routes LOG input to log flow and shows success message."""
-        with (
-            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies),
-            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
-            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.auto_cmd.execute_log_flow") as mock_log_flow,
-        ):
-            mock_selector.return_value.get_domain_infos.return_value = []
-            mock_router_cls.return_value.classify = AsyncMock(
-                return_value=MagicMock(
-                    input_type=MagicMock(value="LOG"),
-                    selected_domains=["GeneralFitness"],
-                    query_portion=None,
-                    correction_target=None,
-                    confidence=0.9,
-                )
-            )
-            mock_log_flow.return_value = "2026-01-19_12-00-00"
+        """Command routes LOG input through Quilto and shows success message."""
+        mock_result = _create_mock_process_result(
+            input_type="log",
+            parsed_data={"entry_id": "2026-01-19_12-00-00"},
+        )
 
-            result = runner.invoke(app, ["auto", "bench 185x5"])
+        mock_session = MagicMock()
+        mock_session.process = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+        ):
+            mock_quilto = MagicMock()
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
+
+            result = runner.invoke(app, ["run", "bench 185x5"])
 
             assert result.exit_code == 0
             assert "Logged entry:" in result.output
-            mock_log_flow.assert_called_once()
+            mock_session.process.assert_called_once_with("bench 185x5", mode="auto")
 
 
-class TestAutoCommandRoutesQuery:
-    """AC2: Auto command routes QUERY correctly."""
+class TestUnifiedCommandRoutesQuery:
+    """AC2: Unified command routes QUERY correctly via Quilto."""
 
-    def test_auto_routes_query(
+    def test_command_routes_query(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """Auto routes QUERY input to query flow via Quilto and shows response panel."""
+        """Command routes QUERY input through Quilto and shows response panel."""
         mock_result = _create_mock_process_result(
             response="Your bench improved by 10 lbs.",
             sources=["2026-01-15"],
             confidence=0.85,
+            input_type="query",
         )
 
         mock_session = MagicMock()
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
-            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies),
-            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
-            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.auto_cmd.Quilto") as mock_quilto_cls,
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
         ):
-            mock_selector.return_value.get_domain_infos.return_value = []
-            mock_router_cls.return_value.classify = AsyncMock(
-                return_value=MagicMock(
-                    input_type=MagicMock(value="QUERY"),
-                    selected_domains=["GeneralFitness"],
-                    query_portion=None,
-                    correction_target=None,
-                    confidence=0.9,
-                    model_dump=MagicMock(return_value={"input_type": "QUERY"}),
-                )
-            )
             mock_quilto = MagicMock()
             mock_quilto.create_session.return_value = mock_session
             mock_quilto_cls.return_value = mock_quilto
 
-            result = runner.invoke(app, ["auto", "how's my bench progress?"])
+            result = runner.invoke(app, ["run", "how's my bench progress?"])
 
             assert result.exit_code == 0
             assert "bench improved" in result.output
+            mock_session.process.assert_called_once_with("how's my bench progress?", mode="auto")
 
 
-class TestAutoCommandHandlesBoth:
-    """AC3: Auto command handles BOTH."""
+class TestUnifiedCommandHandlesBoth:
+    """AC3: Unified command handles BOTH input type."""
 
-    def test_auto_handles_both(
+    def test_command_handles_both(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """Auto with BOTH logs first, then queries with query_portion via Quilto."""
+        """Command handles BOTH input_type showing log success and response."""
         mock_result = _create_mock_process_result(
             response="Compared to last week, you lifted 5 more lbs.",
             sources=["2026-01-12", "2026-01-19"],
             confidence=0.8,
+            input_type="both",
+            parsed_data={"entry_id": "2026-01-19_12-00-00"},
         )
 
         mock_session = MagicMock()
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
-            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies),
-            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
-            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.auto_cmd.execute_log_flow") as mock_log_flow,
-            patch("swealog.cli.auto_cmd.Quilto") as mock_quilto_cls,
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
         ):
-            mock_selector.return_value.get_domain_infos.return_value = []
-            mock_router_cls.return_value.classify = AsyncMock(
-                return_value=MagicMock(
-                    input_type=MagicMock(value="BOTH"),
-                    selected_domains=["GeneralFitness"],
-                    query_portion="how does this compare to last week?",
-                    correction_target=None,
-                    confidence=0.9,
-                    model_dump=MagicMock(return_value={"input_type": "BOTH"}),
-                )
-            )
-            mock_log_flow.return_value = "2026-01-19_12-00-00"
             mock_quilto = MagicMock()
             mock_quilto.create_session.return_value = mock_session
             mock_quilto_cls.return_value = mock_quilto
 
-            result = runner.invoke(app, ["auto", "bench 185x5, how does this compare to last week?"])
+            result = runner.invoke(app, ["run", "bench 185x5, how does this compare to last week?"])
 
             assert result.exit_code == 0
             # Both results shown
             assert "Logged entry:" in result.output
             assert "Compared to last week" in result.output
-            mock_log_flow.assert_called_once()
 
 
-class TestAutoCommandHandlesCorrection:
-    """AC4: Auto command handles CORRECTION."""
+class TestUnifiedCommandHandlesCorrection:
+    """AC4: Unified command handles CORRECTION input type."""
 
-    def test_auto_handles_correction(
+    def test_command_handles_correction(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """Auto with CORRECTION executes correction flow."""
-        with (
-            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies),
-            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
-            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.auto_cmd.execute_log_flow") as mock_log_flow,
-        ):
-            mock_selector.return_value.get_domain_infos.return_value = []
-            mock_router_cls.return_value.classify = AsyncMock(
-                return_value=MagicMock(
-                    input_type=MagicMock(value="CORRECTION"),
-                    selected_domains=["GeneralFitness"],
-                    query_portion=None,
-                    correction_target="yesterday",
-                    confidence=0.9,
-                )
-            )
-            mock_log_flow.return_value = "2026-01-19_12-00-00"
+        """Command handles CORRECTION input_type showing corrected message."""
+        mock_result = _create_mock_process_result(
+            input_type="correction",
+            parsed_data={"entry_id": "2026-01-19_12-00-00"},
+        )
 
-            result = runner.invoke(app, ["auto", "actually yesterday was 195x5 not 185x5"])
+        mock_session = MagicMock()
+        mock_session.process = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+        ):
+            mock_quilto = MagicMock()
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
+
+            result = runner.invoke(app, ["run", "actually yesterday was 195x5 not 185x5"])
 
             assert result.exit_code == 0
-            assert "Logged entry:" in result.output
-            # Verify correction mode was passed
-            call_kwargs = mock_log_flow.call_args.kwargs
-            assert call_kwargs.get("is_correction") is True
+            assert "Corrected entry:" in result.output
 
 
-class TestAutoCommandDebugFlag:
+class TestUnifiedCommandDebugFlag:
     """AC5: Debug flag support."""
 
-    def test_auto_debug_shows_timing(
+    def test_debug_shows_traces(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """Auto --debug shows all agent timing."""
-        with (
-            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies),
-            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
-            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.auto_cmd.execute_log_flow") as mock_log_flow,
-        ):
-            mock_selector.return_value.get_domain_infos.return_value = []
-            mock_router_cls.return_value.classify = AsyncMock(
-                return_value=MagicMock(
-                    input_type=MagicMock(value="LOG"),
-                    selected_domains=["GeneralFitness"],
-                    query_portion=None,
-                    correction_target=None,
-                    confidence=0.9,
-                )
-            )
-            mock_log_flow.return_value = "2026-01-19_12-00-00"
+        """--debug shows agent traces."""
+        mock_trace = MagicMock()
+        mock_trace.agent_name = "router"
+        mock_trace.elapsed_ms = 150.5
+        mock_trace.output_summary = "input_type=log"
 
-            result = runner.invoke(app, ["auto", "--debug", "bench 185x5"])
+        mock_result = _create_mock_process_result(
+            input_type="log",
+            parsed_data={"entry_id": "2026-01-19_12-00-00"},
+            with_debug=True,
+        )
+        mock_result.debug.traces = [mock_trace]
+
+        mock_session = MagicMock()
+        mock_session.process = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+            patch("swealog.cli.app.typer.prompt", return_value=""),  # Skip feedback prompt
+        ):
+            mock_quilto = MagicMock()
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
+
+            result = runner.invoke(app, ["run", "--debug", "bench 185x5"])
 
             assert result.exit_code == 0
-            # Debug output shows Router timing (AC5 format: [AgentName] time: Xs)
-            assert "[Router]" in result.output
-            assert "time:" in result.output
+            # Debug output shows agent traces - format is "[agent] Xms - summary"
+            # Rich output strips some formatting, so just check for timing
+            assert "150ms" in result.output or "151ms" in result.output
+            assert "input_type=log" in result.output
 
 
-class TestAutoCommandOptions:
-    """Test auto command options work correctly."""
+class TestUnifiedCommandOptions:
+    """Test unified command options work correctly."""
 
-    def test_auto_with_config_option(
+    def test_with_config_option(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """Auto command respects --config option."""
-        with (
-            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies) as mock_get_deps,
-            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
-            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.auto_cmd.execute_log_flow") as mock_log_flow,
-        ):
-            mock_selector.return_value.get_domain_infos.return_value = []
-            mock_router_cls.return_value.classify = AsyncMock(
-                return_value=MagicMock(
-                    input_type=MagicMock(value="LOG"),
-                    selected_domains=["GeneralFitness"],
-                    query_portion=None,
-                    correction_target=None,
-                    confidence=0.9,
-                )
-            )
-            mock_log_flow.return_value = "2026-01-19_12-00-00"
+        """Command respects --config option."""
+        mock_result = _create_mock_process_result(
+            input_type="log",
+            parsed_data={"entry_id": "2026-01-19_12-00-00"},
+        )
 
-            result = runner.invoke(app, ["auto", "--config", "/custom/config.yaml", "bench 185x5"])
+        mock_session = MagicMock()
+        mock_session.process = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies) as mock_get_deps,
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+        ):
+            mock_quilto = MagicMock()
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
+
+            result = runner.invoke(app, ["run", "--config", "/custom/config.yaml", "bench 185x5"])
 
             assert result.exit_code == 0
             call_args = mock_get_deps.call_args
             assert call_args is not None
             assert str(call_args[0][0]) == "/custom/config.yaml"
 
-    def test_auto_with_storage_option(
+    def test_with_storage_option(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """Auto command respects --storage option."""
-        with (
-            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies) as mock_get_deps,
-            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
-            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.auto_cmd.execute_log_flow") as mock_log_flow,
-        ):
-            mock_selector.return_value.get_domain_infos.return_value = []
-            mock_router_cls.return_value.classify = AsyncMock(
-                return_value=MagicMock(
-                    input_type=MagicMock(value="LOG"),
-                    selected_domains=["GeneralFitness"],
-                    query_portion=None,
-                    correction_target=None,
-                    confidence=0.9,
-                )
-            )
-            mock_log_flow.return_value = "2026-01-19_12-00-00"
+        """Command respects --storage option."""
+        mock_result = _create_mock_process_result(
+            input_type="log",
+            parsed_data={"entry_id": "2026-01-19_12-00-00"},
+        )
 
-            result = runner.invoke(app, ["auto", "--storage", "/custom/storage", "bench 185x5"])
+        mock_session = MagicMock()
+        mock_session.process = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies) as mock_get_deps,
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+        ):
+            mock_quilto = MagicMock()
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
+
+            result = runner.invoke(app, ["run", "--storage", "/custom/storage", "bench 185x5"])
 
             assert result.exit_code == 0
             call_args = mock_get_deps.call_args
@@ -322,50 +301,87 @@ class TestAutoCommandOptions:
             assert str(call_args[0][1]) == "/custom/storage"
 
 
-class TestAutoCommandErrors:
-    """Test error handling in auto command."""
+class TestUnifiedCommandErrors:
+    """Test error handling in unified command."""
 
-    def test_auto_error_shows_message(self, runner: CliRunner) -> None:
-        """Auto error shows user-friendly message and exits with error code."""
-        with patch("swealog.cli.auto_cmd.get_dependencies", side_effect=Exception("Config error")):
-            result = runner.invoke(app, ["auto", "test"])
+    def test_error_shows_message(self, runner: CliRunner) -> None:
+        """Error shows user-friendly message and exits with error code."""
+        with patch("swealog.cli.app.get_dependencies", side_effect=Exception("Config error")):
+            result = runner.invoke(app, ["run", "test"])
 
             assert result.exit_code == 1
             assert "Failed to process input" in result.output
 
+    def test_empty_text_shows_error(self, runner: CliRunner) -> None:
+        """Empty text input shows error message."""
+        result = runner.invoke(app, ["run", "   "])  # Whitespace-only
 
-class TestAutoCommandUnexpectedInputType:
-    """Test fallback for unexpected input types."""
+        assert result.exit_code == 1
+        assert "Input text cannot be empty" in result.output
 
-    def test_auto_unexpected_input_type_falls_back_to_log(
+
+class TestUnifiedCommandClarification:
+    """Test clarification question handling."""
+
+    def test_clarification_questions_displayed(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """Auto with unexpected input_type falls back to LOG flow."""
-        with (
-            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies),
-            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
-            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.auto_cmd.execute_log_flow") as mock_log_flow,
-        ):
-            mock_selector.return_value.get_domain_infos.return_value = []
-            # Simulate an unexpected input type (e.g., future enum value)
-            mock_router_cls.return_value.classify = AsyncMock(
-                return_value=MagicMock(
-                    input_type=MagicMock(value="UNKNOWN_FUTURE_TYPE"),
-                    selected_domains=["GeneralFitness"],
-                    query_portion=None,
-                    correction_target=None,
-                    confidence=0.9,
-                )
-            )
-            mock_log_flow.return_value = "2026-01-19_12-00-00"
+        """Clarification questions are displayed properly."""
+        mock_result = _create_mock_process_result(
+            clarification_questions=["What exercise did you do?", "What weight?"],
+            input_type="query",
+        )
 
-            result = runner.invoke(app, ["auto", "test input"])
+        mock_session = MagicMock()
+        mock_session.process = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+        ):
+            mock_quilto = MagicMock()
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
+
+            result = runner.invoke(app, ["run", "something ambiguous"])
 
             assert result.exit_code == 0
-            # Falls back to LOG flow
-            assert "Logged entry:" in result.output
-            mock_log_flow.assert_called_once()
+            assert "Clarification needed" in result.output
+            assert "What exercise did you do?" in result.output
+            assert "What weight?" in result.output
+
+
+class TestUnifiedCommandSession:
+    """Test session support for multi-turn conversations."""
+
+    def test_session_id_creates_persistent_session(
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+    ) -> None:
+        """--session option uses persistent session database."""
+        mock_result = _create_mock_process_result(
+            input_type="log",
+            parsed_data={"entry_id": "2026-01-19_12-00-00"},
+        )
+
+        mock_session = MagicMock()
+        mock_session.session_id = "test-session-123"
+        mock_session.process = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+        ):
+            mock_quilto = MagicMock()
+            mock_quilto.get_session.return_value = None  # New session
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
+
+            result = runner.invoke(app, ["run", "--session", "my-session", "bench 185x5"])
+
+            assert result.exit_code == 0
+            # Verify persistent db path was used
+            call_kwargs = mock_quilto_cls.call_args.kwargs
+            assert call_kwargs["session_db_path"] == "quilto_sessions.db"
 
 
 class TestPromptForFeedback:
@@ -373,32 +389,32 @@ class TestPromptForFeedback:
 
     def test_returns_none_when_debug_disabled(self) -> None:
         """_prompt_for_feedback returns None when debug=False."""
-        from swealog.cli.auto_cmd import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
+        from swealog.cli.app import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
 
         result = _prompt_for_feedback(debug=False, non_interactive=False)
         assert result is None
 
     def test_returns_user_input_when_debug_enabled(self) -> None:
         """_prompt_for_feedback returns user input when debug=True."""
-        from swealog.cli.auto_cmd import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
+        from swealog.cli.app import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
 
-        with patch("swealog.cli.auto_cmd.typer.prompt", return_value="Great response!"):
+        with patch("swealog.cli.app.typer.prompt", return_value="Great response!"):
             result = _prompt_for_feedback(debug=True, non_interactive=False)
             assert result == "Great response!"
 
     def test_returns_empty_string_when_user_skips(self) -> None:
         """_prompt_for_feedback returns empty string when user presses Enter."""
-        from swealog.cli.auto_cmd import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
+        from swealog.cli.app import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
 
-        with patch("swealog.cli.auto_cmd.typer.prompt", return_value=""):
+        with patch("swealog.cli.app.typer.prompt", return_value=""):
             result = _prompt_for_feedback(debug=True, non_interactive=False)
             assert result == ""
 
     def test_prompt_message_is_correct(self) -> None:
         """_prompt_for_feedback uses correct prompt message."""
-        from swealog.cli.auto_cmd import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
+        from swealog.cli.app import _prompt_for_feedback  # pyright: ignore[reportPrivateUsage]
 
-        with patch("swealog.cli.auto_cmd.typer.prompt", return_value="feedback") as mock_prompt:
+        with patch("swealog.cli.app.typer.prompt", return_value="feedback") as mock_prompt:
             _prompt_for_feedback(debug=True, non_interactive=False)
             mock_prompt.assert_called_once_with(
                 "How was this response? (press Enter to skip)",
@@ -412,7 +428,7 @@ class TestRecordSimplifiedFeedback:
 
     def test_returns_none_when_no_debug_info(self, tmp_path: Any) -> None:
         """_record_simplified_feedback returns None when result.debug is None."""
-        from swealog.cli.auto_cmd import _record_simplified_feedback  # pyright: ignore[reportPrivateUsage]
+        from swealog.cli.app import _record_simplified_feedback  # pyright: ignore[reportPrivateUsage]
 
         mock_result = _create_mock_process_result(
             response="Test response",
@@ -422,7 +438,6 @@ class TestRecordSimplifiedFeedback:
         path = _record_simplified_feedback(
             query="test query",
             input_type="QUERY",
-            router_output={"input_type": "QUERY"},
             result=mock_result,
             user_feedback="Good",
             config_path=None,
@@ -433,14 +448,14 @@ class TestRecordSimplifiedFeedback:
 
     def test_records_feedback_with_debug_info(self, tmp_path: Any) -> None:
         """_record_simplified_feedback creates file when debug info present."""
-        from swealog.cli.auto_cmd import _record_simplified_feedback  # pyright: ignore[reportPrivateUsage]
+        from swealog.cli.app import _record_simplified_feedback  # pyright: ignore[reportPrivateUsage]
 
         mock_result = _create_mock_process_result(
             response="Test response",
             with_debug=True,
         )
 
-        with patch("swealog.cli.auto_cmd.FeedbackRecorder") as mock_recorder_cls:
+        with patch("swealog.cli.app.FeedbackRecorder") as mock_recorder_cls:
             mock_recorder = MagicMock()
             mock_recorder.record_simplified.return_value = tmp_path / "feedback.json"
             mock_recorder_cls.return_value = mock_recorder
@@ -448,7 +463,6 @@ class TestRecordSimplifiedFeedback:
             path = _record_simplified_feedback(
                 query="test query",
                 input_type="QUERY",
-                router_output={"input_type": "QUERY", "confidence": 0.9},
                 result=mock_result,
                 user_feedback="Great!",
                 config_path=None,
@@ -459,49 +473,37 @@ class TestRecordSimplifiedFeedback:
             mock_recorder.record_simplified.assert_called_once()
 
 
-class TestAutoCommandFeedbackIntegration:
-    """Integration tests for feedback recording in auto command."""
+class TestUnifiedCommandFeedbackIntegration:
+    """Integration tests for feedback recording in unified command."""
 
     def test_query_flow_prompts_feedback_when_debug(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """Auto QUERY flow with --debug prompts for feedback and records it."""
+        """QUERY flow with --debug prompts for feedback and records it."""
         mock_result = _create_mock_process_result(
             response="Your progress is good.",
             sources=["2026-01-15"],
             confidence=0.85,
             with_debug=True,
+            input_type="query",
         )
 
         mock_session = MagicMock()
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
-            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies),
-            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
-            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.auto_cmd.Quilto") as mock_quilto_cls,
-            patch("swealog.cli.auto_cmd.typer.prompt", return_value="Good answer!"),
-            patch("swealog.cli.auto_cmd.FeedbackRecorder") as mock_recorder_cls,
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+            patch("swealog.cli.app.typer.prompt", return_value="Good answer!"),
+            patch("swealog.cli.app.FeedbackRecorder") as mock_recorder_cls,
         ):
-            mock_selector.return_value.get_domain_infos.return_value = []
-            mock_router_cls.return_value.classify = AsyncMock(
-                return_value=MagicMock(
-                    input_type=MagicMock(value="QUERY"),
-                    selected_domains=["GeneralFitness"],
-                    query_portion=None,
-                    correction_target=None,
-                    confidence=0.9,
-                    model_dump=MagicMock(return_value={"input_type": "QUERY"}),
-                )
-            )
             mock_quilto = MagicMock()
             mock_quilto.create_session.return_value = mock_session
             mock_quilto_cls.return_value = mock_quilto
             mock_recorder = MagicMock()
             mock_recorder_cls.return_value = mock_recorder
 
-            result = runner.invoke(app, ["auto", "--debug", "how's my progress?"])
+            result = runner.invoke(app, ["run", "--debug", "how's my progress?"])
 
             assert result.exit_code == 0
             # Verify feedback was recorded
@@ -510,53 +512,41 @@ class TestAutoCommandFeedbackIntegration:
     def test_query_flow_no_feedback_prompt_without_debug(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """Auto QUERY flow without --debug does not prompt for feedback."""
+        """QUERY flow without --debug does not prompt for feedback."""
         mock_result = _create_mock_process_result(
             response="Your progress is good.",
             sources=["2026-01-15"],
             confidence=0.85,
+            input_type="query",
         )
 
         mock_session = MagicMock()
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
-            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies),
-            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
-            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.auto_cmd.Quilto") as mock_quilto_cls,
-            patch("swealog.cli.auto_cmd.typer.prompt") as mock_prompt,
-            patch("swealog.cli.auto_cmd.FeedbackRecorder") as mock_recorder_cls,
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+            patch("swealog.cli.app.typer.prompt") as mock_prompt,
+            patch("swealog.cli.app.FeedbackRecorder") as mock_recorder_cls,
         ):
-            mock_selector.return_value.get_domain_infos.return_value = []
-            mock_router_cls.return_value.classify = AsyncMock(
-                return_value=MagicMock(
-                    input_type=MagicMock(value="QUERY"),
-                    selected_domains=["GeneralFitness"],
-                    query_portion=None,
-                    correction_target=None,
-                    confidence=0.9,
-                )
-            )
             mock_quilto = MagicMock()
             mock_quilto.create_session.return_value = mock_session
             mock_quilto_cls.return_value = mock_quilto
 
-            result = runner.invoke(app, ["auto", "how's my progress?"])
+            result = runner.invoke(app, ["run", "how's my progress?"])
 
             assert result.exit_code == 0
             # No prompt, no recording
             mock_prompt.assert_not_called()
             mock_recorder_cls.return_value.record_simplified.assert_not_called()
 
-    def test_both_flow_prompts_feedback_when_debug(
+    def test_log_flow_prompts_feedback_when_debug(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """Auto BOTH flow with --debug prompts for feedback after query portion."""
+        """LOG flow with --debug still prompts for feedback."""
         mock_result = _create_mock_process_result(
-            response="Compared to last week...",
-            sources=[],
-            confidence=0.8,
+            input_type="log",
+            parsed_data={"entry_id": "2026-01-20_12-00-00"},
             with_debug=True,
         )
 
@@ -564,62 +554,88 @@ class TestAutoCommandFeedbackIntegration:
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
-            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies),
-            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
-            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.auto_cmd.execute_log_flow") as mock_log_flow,
-            patch("swealog.cli.auto_cmd.Quilto") as mock_quilto_cls,
-            patch("swealog.cli.auto_cmd.typer.prompt", return_value="Helpful!"),
-            patch("swealog.cli.auto_cmd.FeedbackRecorder") as mock_recorder_cls,
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+            patch("swealog.cli.app.typer.prompt", return_value="Works well"),
+            patch("swealog.cli.app.FeedbackRecorder") as mock_recorder_cls,
         ):
-            mock_selector.return_value.get_domain_infos.return_value = []
-            mock_router_cls.return_value.classify = AsyncMock(
-                return_value=MagicMock(
-                    input_type=MagicMock(value="BOTH"),
-                    selected_domains=["GeneralFitness"],
-                    query_portion="how does this compare?",
-                    correction_target=None,
-                    confidence=0.9,
-                    model_dump=MagicMock(return_value={"input_type": "BOTH"}),
-                )
-            )
-            mock_log_flow.return_value = "2026-01-20_12-00-00"
             mock_quilto = MagicMock()
             mock_quilto.create_session.return_value = mock_session
             mock_quilto_cls.return_value = mock_quilto
             mock_recorder = MagicMock()
             mock_recorder_cls.return_value = mock_recorder
 
-            result = runner.invoke(app, ["auto", "--debug", "bench 200x5, how does this compare?"])
+            result = runner.invoke(app, ["run", "--debug", "bench 200x5"])
 
             assert result.exit_code == 0
             mock_recorder.record_simplified.assert_called_once()
 
-    def test_log_flow_no_feedback_prompt(
+
+class TestUnifiedCommandNonInteractive:
+    """Test --non-interactive option."""
+
+    def test_non_interactive_skips_prompt(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """Auto LOG flow does not prompt for feedback even with --debug."""
-        with (
-            patch("swealog.cli.auto_cmd.get_dependencies", return_value=mock_dependencies),
-            patch("swealog.cli.auto_cmd.DomainSelector") as mock_selector,
-            patch("swealog.cli.auto_cmd.RouterAgent") as mock_router_cls,
-            patch("swealog.cli.auto_cmd.execute_log_flow") as mock_log_flow,
-            patch("swealog.cli.auto_cmd.typer.prompt") as mock_prompt,
-        ):
-            mock_selector.return_value.get_domain_infos.return_value = []
-            mock_router_cls.return_value.classify = AsyncMock(
-                return_value=MagicMock(
-                    input_type=MagicMock(value="LOG"),
-                    selected_domains=["GeneralFitness"],
-                    query_portion=None,
-                    correction_target=None,
-                    confidence=0.9,
-                )
-            )
-            mock_log_flow.return_value = "2026-01-20_12-00-00"
+        """--non-interactive skips feedback prompt even with --debug."""
+        mock_result = _create_mock_process_result(
+            response="Your progress is good.",
+            input_type="query",
+            with_debug=True,
+        )
 
-            result = runner.invoke(app, ["auto", "--debug", "bench 200x5"])
+        mock_session = MagicMock()
+        mock_session.process = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+            patch("swealog.cli.app.typer.prompt") as mock_prompt,
+            patch("swealog.cli.app.FeedbackRecorder") as mock_recorder_cls,
+        ):
+            mock_quilto = MagicMock()
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
+            mock_recorder = MagicMock()
+            mock_recorder_cls.return_value = mock_recorder
+
+            result = runner.invoke(app, ["run", "--debug", "--non-interactive", "how's my progress?"])
 
             assert result.exit_code == 0
-            # LOG flow should never prompt for feedback
+            # No interactive prompt
             mock_prompt.assert_not_called()
+            # But feedback still recorded (with empty string)
+            mock_recorder.record_simplified.assert_called_once()
+
+
+class TestUnifiedCommandVersion:
+    """Test --version option."""
+
+    def test_version_shows_version(self, runner: CliRunner) -> None:
+        """--version shows version and exits."""
+        result = runner.invoke(app, ["--version"])
+
+        assert result.exit_code == 0
+        assert "swealog version" in result.output
+
+
+class TestUnifiedCommandHelp:
+    """Test help display."""
+
+    def test_help_flag_shows_help(self, runner: CliRunner) -> None:
+        """--help flag shows help text."""
+        result = runner.invoke(app, ["--help"])
+
+        assert result.exit_code == 0
+        assert "swealog" in result.output.lower()
+
+
+class TestRunCommandHelp:
+    """Test run command help."""
+
+    def test_run_help_shows_usage(self, runner: CliRunner) -> None:
+        """Run --help shows command usage."""
+        result = runner.invoke(app, ["run", "--help"])
+
+        assert result.exit_code == 0
+        assert "Process any input through Quilto" in result.output

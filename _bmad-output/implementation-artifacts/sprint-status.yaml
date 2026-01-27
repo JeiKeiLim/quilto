@@ -235,8 +235,8 @@ development_status:
   16-2-fix-response-generation-failure: done  # CRITICAL - Fixed cascade failure: added logging + error traces + fallback analyzer_output
   16-3-fix-path-doubling-in-observer-context: done  # LOW - logs/logs/context/ → logs/context/
   # --- Swealog Rewrite (new) ---
-  16-4-implement-single-swealog-command: backlog  # HIGH - Replace all CLI with `swealog "text"` using session.process(mode="auto"). Delete ask_cmd.py, log_cmd.py, simplify auto_cmd.py
-  16-5-implement-feedback-recording-via-callback: backlog  # MEDIUM - Use ProgressHandler.on_agent_complete(output) for full intermediate outputs (depends: 16.1)
-  16-6-update-swealog-tests-for-new-cli: backlog  # MEDIUM - Rewrite CLI tests for single-command architecture, remove tests for deleted commands
+  16-4-implement-single-swealog-command: done  # HIGH - Replace all CLI with `swealog "text"` using session.process(mode="auto"). Delete ask_cmd.py, log_cmd.py, simplify auto_cmd.py
+  16-5-implement-feedback-recording-via-callback: backlog  # MEDIUM - Use ProgressHandler.on_agent_complete(output) for full intermediate outputs
+  16-6-update-swealog-tests-for-new-cli: done  # MEDIUM - Tests already rewritten as part of 16-4 implementation
   # --- Optional ---
   16-7-review-batch-import-command: backlog  # LOW - Decide if `swealog import` stays separate or becomes `swealog --batch`. Can defer.
