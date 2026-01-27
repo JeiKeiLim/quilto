@@ -1,0 +1,80 @@
+{
+  "id": "2026-01-27_14b9034b",
+  "query": "내가 지금까지 했던 모든 운동을 총 정리해서 알려주는데 나의 운동 상태가 어떤지 종합적으로 분석하여 알려줘",
+  "traces": [
+    {
+      "agent_name": "router",
+      "input_summary": "내가 지금까지 했던 모든 운동을 총 정리해서 알려주는데 나의 운동 상태가 어떤지 종합적으로...",
+      "output_summary": "input_type=InputType.QUERY",
+      "elapsed_ms": 8947.35704199411,
+      "timestamp": "2026-01-27T13:08:08.502128"
+    },
+    {
+      "agent_name": "router",
+      "input_summary": "내가 지금까지 했던 모든 운동을 총 정리해서 알려주는데 나의 운동 상태가 어떤지 종합적으로",
+      "output_summary": "type=query",
+      "elapsed_ms": 3736.5250000730157,
+      "timestamp": "2026-01-27T04:07:15.900551+00:00"
+    },
+    {
+      "agent_name": "planner",
+      "input_summary": "query analysis",
+      "output_summary": "action=retrieve",
+      "elapsed_ms": 10104.205165989697,
+      "timestamp": "2026-01-27T04:07:26.012529+00:00"
+    },
+    {
+      "agent_name": "retriever",
+      "input_summary": "1 instructions",
+      "output_summary": "23 entries",
+      "elapsed_ms": 13.00158305093646,
+      "timestamp": "2026-01-27T04:07:26.034820+00:00"
+    },
+    {
+      "agent_name": "planner",
+      "input_summary": "query analysis",
+      "output_summary": "action=retrieve",
+      "elapsed_ms": 19202.307207975537,
+      "timestamp": "2026-01-27T04:07:45.242476+00:00"
+    },
+    {
+      "agent_name": "retriever",
+      "input_summary": "2 instructions",
+      "output_summary": "23 entries",
+      "elapsed_ms": 17.251875018700957,
+      "timestamp": "2026-01-27T04:07:45.272335+00:00"
+    },
+    {
+      "agent_name": "planner",
+      "input_summary": "query analysis",
+      "output_summary": "action=retrieve",
+      "elapsed_ms": 8445.775916101411,
+      "timestamp": "2026-01-27T04:07:53.722771+00:00"
+    },
+    {
+      "agent_name": "retriever",
+      "input_summary": "1 instructions",
+      "output_summary": "23 entries",
+      "elapsed_ms": 6.854417035356164,
+      "timestamp": "2026-01-27T04:07:53.739974+00:00"
+    },
+    {
+      "agent_name": "observer",
+      "input_summary": "post_query",
+      "output_summary": "updates=1",
+      "elapsed_ms": 2961.9883340783417,
+      "timestamp": "2026-01-27T04:07:56.706624+00:00"
+    }
+  ],
+  "final_response": "I encountered an error generating a response.",
+  "user_feedback": "I don't know what's going on there.",
+  "session": {
+    "timestamp": "2026-01-27 13:08:08.502447",
+    "input_type": "QUERY",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": false
+  },
+  "feedback_sentiment": null
+}

@@ -218,5 +218,18 @@ development_status:
   15-3-implement-quilto-class: done  # CRITICAL - Quilto class with LangGraph orchestration (code-reviewed 2026-01-27)
   15-4-migrate-swealog-to-quilto-api: done  # Replace ~400 lines manual wiring with Quilto API (code-reviewed 2026-01-27)
   15-5-verify-observer-integration: done  # Fixed retrieval_history bug, Observer now creates context files
-  15-6-analyze-feedback-dataset-post-migration: backlog  # Fresh dogfooding on new architecture, generates Epic 16
+  15-6-analyze-feedback-dataset-post-migration: in-progress  # Fresh dogfooding on new architecture, generates Epic 16
   epic-15-retrospective: optional
+
+  # Epic 16: Post-Migration Fixes
+  # Generated from Story 15.6 analysis (2026-01-27)
+  # Source: tests/eval/feedback/active/ (2 records analyzed)
+  # Key Findings: Incomplete migration - lost observability, response generation broken
+  epic-16: backlog
+  16-1-add-agent-output-to-progress-callback: backlog  # HIGH - on_agent_complete needs output parameter
+  16-2-fix-response-generation-failure: backlog  # CRITICAL - Synthesizer returns error, investigate root cause
+  16-3-fix-path-doubling-in-observer-context: backlog  # LOW - logs/logs/context/ → logs/context/
+  16-4-remove-redundant-router-call-in-cli: backlog  # MEDIUM - Router called twice (Swealog + Quilto)
+  16-5-update-feedback-recording-with-callback: backlog  # MEDIUM - Use callback for full intermediate outputs (depends: 16.1)
+  16-6-migrate-log-correction-flows-to-quilto: backlog  # HIGH - LOG/CORRECTION bypass Quilto, Observer never triggers for LOG
+  16-7-consolidate-cli-to-single-auto-command: backlog  # MEDIUM - Remove ask_cmd.py, log_cmd.py; single entry point via auto
