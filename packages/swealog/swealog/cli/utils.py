@@ -49,17 +49,17 @@ def load_cli_config(config_path: Path | None = None) -> LLMConfig:
 
 
 def resolve_storage_path(storage_path: Path | None = None) -> Path:
-    """Resolve storage directory path.
+    """Resolve storage base directory path.
 
     Args:
-        storage_path: Explicit path. Defaults to ./logs
+        storage_path: Explicit base path. Defaults to current directory.
+            StorageRepository will create logs/ subdirectories automatically.
 
     Returns:
-        Resolved Path, created if needed.
+        Resolved base Path for StorageRepository.
     """
     if storage_path is None:
-        storage_path = Path("logs")
-    storage_path.mkdir(parents=True, exist_ok=True)
+        storage_path = Path(".")
     return storage_path
 
 

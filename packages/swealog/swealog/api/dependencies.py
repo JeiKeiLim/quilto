@@ -56,11 +56,10 @@ def get_storage() -> StorageRepository:
     """Get storage repository instance.
 
     Returns:
-        StorageRepository configured with ./logs path.
+        StorageRepository with base path at current directory.
+        StorageRepository creates logs/ subdirectories automatically.
     """
-    storage_path = Path("logs")
-    storage_path.mkdir(parents=True, exist_ok=True)
-    return StorageRepository(base_path=storage_path)
+    return StorageRepository(base_path=Path("."))
 
 
 def get_domains() -> list[DomainModule]:

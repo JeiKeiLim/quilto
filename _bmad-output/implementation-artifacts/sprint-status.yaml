@@ -233,7 +233,7 @@ development_status:
   # --- Quilto Framework Fixes (keep) ---
   16-1-add-agent-output-to-progress-callback: done  # HIGH - on_agent_complete needs output: dict[str, Any] parameter
   16-2-fix-response-generation-failure: done  # CRITICAL - Fixed cascade failure: added logging + error traces + fallback analyzer_output
-  16-3-fix-path-doubling-in-observer-context: backlog  # LOW - logs/logs/context/ → logs/context/
+  16-3-fix-path-doubling-in-observer-context: done  # LOW - logs/logs/context/ → logs/context/
   # --- Swealog Rewrite (new) ---
   16-4-implement-single-swealog-command: backlog  # HIGH - Replace all CLI with `swealog "text"` using session.process(mode="auto"). Delete ask_cmd.py, log_cmd.py, simplify auto_cmd.py
   16-5-implement-feedback-recording-via-callback: backlog  # MEDIUM - Use ProgressHandler.on_agent_complete(output) for full intermediate outputs (depends: 16.1)

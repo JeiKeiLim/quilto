@@ -1,7 +1,6 @@
 """Tests for swealog.cli.utils module."""
 
 import asyncio
-import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -134,44 +133,21 @@ class TestResolveStoragePath:
     """Tests for resolve_storage_path function."""
 
     def test_resolve_storage_path_default(self) -> None:
-        """Test resolve_storage_path uses ./logs by default."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            import os
-
-            original_cwd = os.getcwd()
-            os.chdir(tmpdir)
-            try:
-                path = resolve_storage_path(None)
-                assert path == Path("logs")
-                assert path.exists()
-                assert path.is_dir()
-            finally:
-                os.chdir(original_cwd)
+        """Test resolve_storage_path uses current directory by default."""
+        path = resolve_storage_path(None)
+        assert path == Path(".")
 
     def test_resolve_storage_path_explicit(self, tmp_path: Path) -> None:
         """Test resolve_storage_path uses explicit path."""
         custom_path = tmp_path / "custom_logs"
         result = resolve_storage_path(custom_path)
         assert result == custom_path
-        assert result.exists()
-        assert result.is_dir()
-
-    def test_resolve_storage_path_creates_nested(self, tmp_path: Path) -> None:
-        """Test resolve_storage_path creates nested directories."""
-        nested_path = tmp_path / "a" / "b" / "c" / "logs"
-        result = resolve_storage_path(nested_path)
-        assert result == nested_path
-        assert result.exists()
 
     def test_resolve_storage_path_existing(self, tmp_path: Path) -> None:
-        """Test resolve_storage_path works with existing directory."""
+        """Test resolve_storage_path returns path as-is."""
         existing_path = tmp_path / "existing"
-        existing_path.mkdir()
-        (existing_path / "test.txt").write_text("test")
-
         result = resolve_storage_path(existing_path)
         assert result == existing_path
-        assert (result / "test.txt").exists()  # Original content preserved
 
 
 class TestGetDependencies:
@@ -204,8 +180,8 @@ tiers:
         assert len(domains) == 5  # 5 fitness domains
         assert all(isinstance(d, DomainModule) for d in domains)
 
-    def test_get_dependencies_creates_storage_directory(self, tmp_path: Path) -> None:
-        """Test get_dependencies creates storage directory if missing."""
+    def test_get_dependencies_creates_storage_subdirectories(self, tmp_path: Path) -> None:
+        """Test get_dependencies creates logs subdirectories via StorageRepository."""
         config_path = tmp_path / "llm-config.yaml"
         config_content = """
 default_provider: ollama
@@ -221,12 +197,14 @@ tiers:
     ollama: qwen2.5:7b
 """
         config_path.write_text(config_content)
-        storage_path = tmp_path / "nested" / "storage"
+        storage_path = tmp_path
 
-        _llm_client, _storage, _domains = get_dependencies(config_path, storage_path)
+        _llm_client, storage, _domains = get_dependencies(config_path, storage_path)
 
-        assert storage_path.exists()
-        assert storage_path.is_dir()
+        # StorageRepository creates logs/ subdirectories
+        assert (storage.base_path / "logs" / "raw").exists()
+        assert (storage.base_path / "logs" / "parsed").exists()
+        assert (storage.base_path / "logs" / "context").exists()
 
     def test_get_dependencies_returns_all_five_domains(self, tmp_path: Path) -> None:
         """Test get_dependencies returns all 5 fitness domains."""
@@ -262,7 +240,7 @@ tiers:
             patch("swealog.cli.utils.resolve_storage_path") as mock_resolve,
         ):
             mock_load.return_value = MagicMock()
-            mock_resolve.return_value = Path("logs")
+            mock_resolve.return_value = Path(".")
 
             get_dependencies(config_path=Path("test.yaml"), storage_path=None)
 
