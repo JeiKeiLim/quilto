@@ -8,6 +8,7 @@ Quilto agents through the processing flows:
 - CORRECTION: Route → Correction → Observe
 """
 
+import inspect
 import time
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal, TypedDict
@@ -104,6 +105,9 @@ class QuiltoState(TypedDict, total=False):
     # Correction output (for CORRECTION)
     correction_result: dict[str, Any] | None
 
+    # Observer output
+    observer_output: dict[str, Any]
+
     # Control
     retry_count: int
     max_retries: int
@@ -150,12 +154,45 @@ def _calculate_confidence(analysis: AnalyzerOutput, evaluation: EvaluatorOutput)
     return min(1.0, max(0.0, base + adjustment))
 
 
+# Cache for handler method signatures (handler_id, method_name) -> param_count
+_HANDLER_SIGNATURE_CACHE: dict[tuple[int, str], int] = {}
+
+
+def _get_method_param_count(handler: Any, method_name: str) -> int:
+    """Get parameter count for handler method (cached).
+
+    Args:
+        handler: Progress handler instance.
+        method_name: Method name to check.
+
+    Returns:
+        Number of parameters (excluding self).
+    """
+    cache_key = (id(handler), method_name)
+    if cache_key in _HANDLER_SIGNATURE_CACHE:
+        return _HANDLER_SIGNATURE_CACHE[cache_key]
+
+    method_fn = getattr(handler, method_name, None)
+    if method_fn is None:
+        _HANDLER_SIGNATURE_CACHE[cache_key] = 0
+        return 0
+
+    sig = inspect.signature(method_fn)
+    # Parameters does not include 'self' for bound methods
+    param_count = len(sig.parameters)
+    _HANDLER_SIGNATURE_CACHE[cache_key] = param_count
+    return param_count
+
+
 async def _call_progress_handler(
     quilto: "Quilto",
     method: str,
     *args: Any,
 ) -> None:
     """Call progress handler method if available.
+
+    Supports backward compatibility for on_agent_complete - handlers
+    without the output parameter receive only (agent, elapsed).
 
     Args:
         quilto: Quilto instance with optional progress_handler.
@@ -167,7 +204,17 @@ async def _call_progress_handler(
         return
 
     method_fn = getattr(handler, method, None)
-    if method_fn is not None:
+    if method_fn is None:
+        return
+
+    if method == "on_agent_complete":
+        param_count = _get_method_param_count(handler, method)
+        if param_count >= 3:  # agent, elapsed, output
+            await method_fn(*args)
+        else:
+            # Old handler: only agent, elapsed (backward compatibility)
+            await method_fn(args[0], args[1])
+    else:
         await method_fn(*args)
 
 
@@ -245,7 +292,9 @@ async def route_node(state: QuiltoState) -> dict[str, Any]:
         router_output = await router.classify(router_input)
 
         elapsed = (time.perf_counter() - start) * 1000
-        await _call_progress_handler(quilto, "on_agent_complete", "router", elapsed / 1000)
+        await _call_progress_handler(
+            quilto, "on_agent_complete", "router", elapsed / 1000, router_output.model_dump(mode="json")
+        )
 
         # Map InputType to string
         input_type_map = {
@@ -271,6 +320,8 @@ async def route_node(state: QuiltoState) -> dict[str, Any]:
             "traces": _add_trace(state, "router", user_input[:50], f"type={input_type}", elapsed),
         }
     except Exception as e:
+        elapsed = (time.perf_counter() - start) * 1000
+        await _call_progress_handler(quilto, "on_agent_complete", "router", elapsed / 1000, {})
         return {
             "error": f"Router failed: {e!s}",
             "input_type": "query",  # Default to query on error
@@ -329,7 +380,9 @@ async def plan_node(state: QuiltoState) -> dict[str, Any]:
         planner_output = await planner.plan(planner_input)
 
         elapsed = (time.perf_counter() - start) * 1000
-        await _call_progress_handler(quilto, "on_agent_complete", "planner", elapsed / 1000)
+        await _call_progress_handler(
+            quilto, "on_agent_complete", "planner", elapsed / 1000, planner_output.model_dump(mode="json")
+        )
 
         # Get query type value
         query_type_val = planner_output.query_type
@@ -358,6 +411,8 @@ async def plan_node(state: QuiltoState) -> dict[str, Any]:
             "traces": _add_trace(state, "planner", "query analysis", f"action={planner_output.next_action}", elapsed),
         }
     except Exception as e:
+        elapsed = (time.perf_counter() - start) * 1000
+        await _call_progress_handler(quilto, "on_agent_complete", "planner", elapsed / 1000, {})
         return {
             "error": f"Planner failed: {e!s}",
             "next_action": "clarify",
@@ -391,7 +446,9 @@ async def retrieve_node(state: QuiltoState) -> dict[str, Any]:
         retriever_output = await retriever.retrieve(retriever_input)
 
         elapsed = (time.perf_counter() - start) * 1000
-        await _call_progress_handler(quilto, "on_agent_complete", "retriever", elapsed / 1000)
+        await _call_progress_handler(
+            quilto, "on_agent_complete", "retriever", elapsed / 1000, retriever_output.model_dump(mode="json")
+        )
 
         return {
             "entries": [e.model_dump() for e in retriever_output.entries],
@@ -407,6 +464,8 @@ async def retrieve_node(state: QuiltoState) -> dict[str, Any]:
             ),
         }
     except Exception as e:
+        elapsed = (time.perf_counter() - start) * 1000
+        await _call_progress_handler(quilto, "on_agent_complete", "retriever", elapsed / 1000, {})
         return {
             "error": f"Retriever failed: {e!s}",
             "entries": [],
@@ -452,7 +511,9 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
         analyzer_output = await analyzer.analyze(analyzer_input)
 
         elapsed = (time.perf_counter() - start) * 1000
-        await _call_progress_handler(quilto, "on_agent_complete", "analyzer", elapsed / 1000)
+        await _call_progress_handler(
+            quilto, "on_agent_complete", "analyzer", elapsed / 1000, analyzer_output.model_dump(mode="json")
+        )
 
         return {
             "analysis_verdict": analyzer_output.verdict.value,
@@ -463,6 +524,8 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
             ),
         }
     except Exception as e:
+        elapsed = (time.perf_counter() - start) * 1000
+        await _call_progress_handler(quilto, "on_agent_complete", "analyzer", elapsed / 1000, {})
         return {
             "error": f"Analyzer failed: {e!s}",
             "analysis_verdict": "insufficient",
@@ -512,7 +575,9 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
         synthesizer_output = await synthesizer.synthesize(synthesizer_input)
 
         elapsed = (time.perf_counter() - start) * 1000
-        await _call_progress_handler(quilto, "on_agent_complete", "synthesizer", elapsed / 1000)
+        await _call_progress_handler(
+            quilto, "on_agent_complete", "synthesizer", elapsed / 1000, synthesizer_output.model_dump(mode="json")
+        )
 
         return {
             "response": synthesizer_output.response,
@@ -522,6 +587,8 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
             ),
         }
     except Exception as e:
+        elapsed = (time.perf_counter() - start) * 1000
+        await _call_progress_handler(quilto, "on_agent_complete", "synthesizer", elapsed / 1000, {})
         return {
             "error": f"Synthesizer failed: {e!s}",
             "response": "I encountered an error generating a response.",
@@ -574,7 +641,9 @@ async def evaluate_node(state: QuiltoState) -> dict[str, Any]:
         evaluator_output = await evaluator.evaluate(evaluator_input)
 
         elapsed = (time.perf_counter() - start) * 1000
-        await _call_progress_handler(quilto, "on_agent_complete", "evaluator", elapsed / 1000)
+        await _call_progress_handler(
+            quilto, "on_agent_complete", "evaluator", elapsed / 1000, evaluator_output.model_dump(mode="json")
+        )
 
         # Calculate confidence
         confidence = _calculate_confidence(analyzer_output, evaluator_output)
@@ -593,6 +662,8 @@ async def evaluate_node(state: QuiltoState) -> dict[str, Any]:
             ),
         }
     except Exception as e:
+        elapsed = (time.perf_counter() - start) * 1000
+        await _call_progress_handler(quilto, "on_agent_complete", "evaluator", elapsed / 1000, {})
         return {
             "error": f"Evaluator failed: {e!s}",
             "eval_verdict": "insufficient",
@@ -660,7 +731,9 @@ async def parse_node(state: QuiltoState) -> dict[str, Any]:
         parser_output = await parser.parse(parser_input)
 
         elapsed = (time.perf_counter() - start) * 1000
-        await _call_progress_handler(quilto, "on_agent_complete", "parser", elapsed / 1000)
+        await _call_progress_handler(
+            quilto, "on_agent_complete", "parser", elapsed / 1000, parser_output.model_dump(mode="json")
+        )
 
         return {
             "parsed_data": parser_output.domain_data,
@@ -670,6 +743,8 @@ async def parse_node(state: QuiltoState) -> dict[str, Any]:
             ),
         }
     except Exception as e:
+        elapsed = (time.perf_counter() - start) * 1000
+        await _call_progress_handler(quilto, "on_agent_complete", "parser", elapsed / 1000, {})
         return {
             "error": f"Parser failed: {e!s}",
             "parsed_data": None,
@@ -723,13 +798,17 @@ async def correction_node(state: QuiltoState) -> dict[str, Any]:
         )
 
         elapsed = (time.perf_counter() - start) * 1000
-        await _call_progress_handler(quilto, "on_agent_complete", "correction", elapsed / 1000)
+        await _call_progress_handler(
+            quilto, "on_agent_complete", "correction", elapsed / 1000, result.model_dump(mode="json")
+        )
 
         return {
             "correction_result": result.model_dump(),
             "traces": _add_trace(state, "correction", "upsert", f"success={result.success}", elapsed),
         }
     except Exception as e:
+        elapsed = (time.perf_counter() - start) * 1000
+        await _call_progress_handler(quilto, "on_agent_complete", "correction", elapsed / 1000, {})
         return {
             "error": f"Correction failed: {e!s}",
             "correction_result": CorrectionResult(success=False, error_message=str(e)).model_dump(),
@@ -797,15 +876,20 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
             context_manager.apply_updates(observer_output.updates)
 
         elapsed = (time.perf_counter() - start) * 1000
-        await _call_progress_handler(quilto, "on_agent_complete", "observer", elapsed / 1000)
+        await _call_progress_handler(
+            quilto, "on_agent_complete", "observer", elapsed / 1000, observer_output.model_dump(mode="json")
+        )
 
         return {
+            "observer_output": observer_output.model_dump(),
             "traces": _add_trace(state, "observer", "post_query", f"updates={len(observer_output.updates)}", elapsed),
         }
     except Exception as e:
         # Observer failures are non-fatal but should be logged for debugging
         import logging
 
+        elapsed = (time.perf_counter() - start) * 1000
+        await _call_progress_handler(quilto, "on_agent_complete", "observer", elapsed / 1000, {})
         logging.getLogger(__name__).warning("observe_node failed: %s", e)
         return {}
 
