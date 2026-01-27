@@ -1901,7 +1901,11 @@ So that **patterns are identified and improvement stories are generated**.
 
 ## Epic 14: Dogfooding Iteration 4
 
-*Stories reconciled from auto-analysis + human review (Story 13.7)*
+**Status: SKIPPED**
+
+*Skipped on 2026-01-27: Epic 15 restructures orchestration entirely. Fixing issues in old architecture (query.py manual wiring) would be wasted effort. Do fresh dogfooding iteration after Epic 15 completes on new Quilto API.*
+
+*Original stories preserved below for reference when creating post-Epic-15 dogfooding.*
 
 **Source:** `tests/eval/feedback/archive/iter-003/analysis.md` + `human-review-iter-003.md`
 **Analysis Date:** 2026-01-26
@@ -2099,11 +2103,263 @@ So that **patterns are identified and improvement stories are generated**.
 
 ---
 
+## Epic 15: Quilto Public API
+
+*Single entry point for Quilto framework with LangGraph orchestration*
+
+**Origin:** Epic 13 Retrospective + CRITICAL Design Document (2026-01-26)
+**Design Session:** `_bmad-output/planning-artifacts/quilto-api-design-session.md`
+**Architecture:** `_bmad-output/planning-artifacts/architecture.md` (Quilto Public API section)
+
+**Problem Statement:**
+- Swealog manually wires 6 agents (~400 lines in query.py)
+- Observer infrastructure exists but is NEVER invoked (logs/logs/context/ is EMPTY)
+- New agents added to Quilto don't propagate to apps
+- Every Quilto application would have to copy the same orchestration code
+
+**Solution:**
+- `Quilto` class as single entry point
+- `Session` for multi-round conversations with SQLite persistence
+- LangGraph for internal orchestration (Router → Planner → Retriever → Analyzer → Synthesizer → Evaluator → Observer)
+- Observer triggers automatically on query completion
+
+**Quilto:** Quilto class, Session management, ProcessResult models, ProgressHandler protocol
+**Swealog:** Migration from manual wiring to Quilto API
+
+---
+
+### Story 15.1: Create Quilto Public API Models
+
+**Priority:** High | **Effort:** Small (1-2 hours)
+
+**As a** Quilto framework developer,
+**I want** well-defined Pydantic models for the public API,
+**So that** applications have a clear, type-safe contract for interacting with Quilto.
+
+**Acceptance Criteria:**
+
+1. **Given** a LOG input processed by Quilto
+   **When** the result is returned
+   **Then** `ProcessResult.parsed_data` contains the structured data
+
+2. **Given** a QUERY input processed by Quilto
+   **When** the result is returned
+   **Then** `ProcessResult.response`, `confidence`, and `source_entry_ids` are populated
+
+3. **Given** a query requiring clarification
+   **When** the agent needs more information
+   **Then** `ProcessResult.clarification_questions` contains `ClarificationQuestion` objects with optional options
+
+4. **Given** debug mode enabled
+   **When** processing completes
+   **Then** `ProcessResult.debug` contains `ProcessDebug` with agent traces
+
+**Files to Create:**
+- `packages/quilto/quilto/models.py` - ProcessResult, ClarificationQuestion, ProcessDebug
+- `packages/quilto/quilto/handlers.py` - ProgressHandler protocol
+
+---
+
+### Story 15.2: Implement Session Management with SQLite Storage
+
+**Priority:** High | **Effort:** Medium (3-4 hours)
+
+**As a** Quilto framework developer,
+**I want** session management with SQLite persistence,
+**So that** multi-round conversations are tracked and can survive process restarts.
+
+**Acceptance Criteria:**
+
+1. **Given** a new conversation
+   **When** `q.create_session()` is called
+   **Then** a new Session is created with unique ID and persisted to SQLite
+
+2. **Given** an existing session ID
+   **When** `session_manager.get_session(id)` is called
+   **Then** the session is loaded from SQLite with full conversation history
+
+3. **Given** a session with 25 conversation turns
+   **When** a new turn is added
+   **Then** oldest turns are pruned to keep first + last 19 (20 total)
+
+4. **Given** clarification questions in agent response
+   **When** the turn is stored
+   **Then** questions (with options) are stored in turn metadata
+
+**Package Structure:**
+```
+quilto/session/
+├── manager.py     # SessionManager
+├── session.py     # Session class
+├── models.py      # SessionData, ConversationTurn, SessionConfig
+└── stores/
+    ├── base.py    # SessionStore protocol
+    └── sqlite.py  # SQLiteSessionStore
+```
+
+---
+
+### Story 15.3: Implement Quilto Class with LangGraph Orchestration
+
+**Priority:** CRITICAL | **Effort:** Large (6-8 hours)
+
+**As a** Quilto framework developer,
+**I want** a Quilto class that orchestrates all agents via LangGraph,
+**So that** applications have a single entry point and new agents automatically propagate.
+
+**Acceptance Criteria:**
+
+1. **Given** a Quilto instance configured with llm_client, storage, and domains
+   **When** `q.create_session()` is called
+   **Then** a new Session is returned, ready for processing
+
+2. **Given** a session and user input
+   **When** `session.process("text")` is called
+   **Then** Router classifies input and appropriate flow executes (LOG/QUERY/CORRECTION)
+
+3. **Given** a QUERY input
+   **When** processed through the pipeline
+   **Then** all agents run: Router → Planner → Retriever → Analyzer → Synthesizer → Evaluator
+
+4. **Given** Evaluator returns INSUFFICIENT verdict
+   **When** retry limit not reached
+   **Then** Planner re-plans and Retriever re-retrieves with updated instructions
+
+5. **Given** Observer triggers enabled
+   **When** query completes successfully
+   **Then** Observer is invoked with post_query trigger
+
+6. **Given** a ProgressHandler configured
+   **When** agents execute
+   **Then** handler methods are called (on_agent_start, on_agent_complete, on_stage)
+
+**Public API:**
+```python
+from quilto import Quilto
+
+q = Quilto(
+    llm_client=llm_client,
+    storage=storage,
+    domains=[FitnessDomain()],
+    progress_handler=MyUIHandler(),
+)
+
+session = q.create_session()
+result = await session.process("How was my workout?")
+```
+
+---
+
+### Story 15.4: Migrate Swealog to Use Quilto Public API
+
+**Priority:** High | **Effort:** Medium (3-4 hours)
+
+**As a** Swealog application developer,
+**I want** to use Quilto's public API instead of manual agent wiring,
+**So that** Swealog benefits from new Quilto features automatically.
+
+**Acceptance Criteria:**
+
+1. **Given** the Swealog FastAPI `/query` endpoint
+   **When** a query is submitted
+   **Then** it uses `Quilto.create_session().process()` internally
+
+2. **Given** the Swealog CLI `auto` command
+   **When** user input is processed
+   **Then** it uses the same Quilto API
+
+3. **Given** the migration is complete
+   **When** `execute_query_pipeline()` is searched for
+   **Then** it no longer exists in Swealog (moved to Quilto)
+
+4. **Given** identical inputs before and after migration
+   **When** processed through the system
+   **Then** outputs are functionally equivalent
+
+**Before (~400 lines):**
+```python
+router_agent = RouterAgent(llm_client)
+planner = PlannerAgent(llm_client)
+# ... 300+ more lines ...
+```
+
+**After (~50 lines):**
+```python
+from quilto import Quilto
+q = Quilto(...)
+session = q.create_session()
+result = await session.process(request.text)
+```
+
+---
+
+### Story 15.5: Verify Observer Integration and Context Population
+
+**Priority:** High | **Effort:** Small (1-2 hours)
+
+**As a** Quilto framework developer,
+**I want** to verify Observer triggers work and context is populated,
+**So that** users get personalized responses based on accumulated knowledge.
+
+**Acceptance Criteria:**
+
+1. **Given** a query processed through Quilto
+   **When** the query completes successfully
+   **Then** `trigger_post_query()` is invoked
+
+2. **Given** Observer determines context should update
+   **When** `should_update=True` in ObserverOutput
+   **Then** `logs/logs/context/global-context.md` is updated
+
+3. **Given** multiple queries over time
+   **When** context accumulates
+   **Then** preferences/patterns/facts sections grow
+
+**Evidence of Problem:**
+- `logs/logs/context/` directory is currently EMPTY despite Observer infrastructure existing
+- This story validates the fix works
+
+---
+
+### Story 15.6: Analyze Feedback Dataset Post-Migration
+
+**Priority:** Medium | **Effort:** Medium (2-3 hours)
+
+**As a** Quilto framework developer,
+**I want** to analyze user feedback after migrating to the new Quilto API,
+**So that** we identify any new issues or regressions introduced by the architecture change.
+
+**Acceptance Criteria:**
+
+1. **Given** Epic 15 stories 15-1 through 15-5 are complete
+   **When** this story begins
+   **Then** the new Quilto API is fully functional
+
+2. **Given** at least 10 new feedback records collected
+   **When** analyzed
+   **Then** patterns are identified and categorized
+
+3. **Given** the analysis is complete
+   **When** issues are found
+   **Then** stories for Epic 16 are generated
+
+4. **Given** Observer should now be working
+   **When** checking logs/logs/context/
+   **Then** global-context.md contains accumulated knowledge
+
+5. **Given** skipped Epic 14 issues
+   **When** reviewing feedback
+   **Then** determine if those issues persist, resolved, or changed
+
+**Archived To:** `tests/eval/feedback/archive/iter-004/`
+
+---
+
 ## Future Epics (Iteration Pattern)
 
-### Epic 15+: Dogfooding Iteration 5+
+### Epic 16+: Dogfooding Iteration 5+
 
-*Stories generated from subsequent iteration feedback analyses*
+*Stories generated from Epic 15.6 feedback analysis on new Quilto API architecture*
 
-**Status:** Backlog (depends on previous iteration analysis)
+**Status:** Backlog (depends on Epic 15 completion and feedback analysis)
 
