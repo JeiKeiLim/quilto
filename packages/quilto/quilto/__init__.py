@@ -30,6 +30,15 @@ from quilto.models import (
     ProcessDebug,
     ProcessResult,
 )
+from quilto.session import (
+    ConversationTurn,
+    Session,
+    SessionConfig,
+    SessionData,
+    SessionInfo,
+    SessionManager,
+)
+from quilto.session.stores import SessionStore, SQLiteSessionStore
 from quilto.state import (
     ObserverTriggerConfig,
     SessionState,
@@ -52,6 +61,7 @@ __all__ = [
     "AgentConfig",
     "AgentTrace",
     "ClarificationQuestion",
+    "ConversationTurn",
     "CorrectionResult",
     "DateRange",
     "DomainInfo",
@@ -73,7 +83,14 @@ __all__ = [
     "RouterAgent",
     "RouterInput",
     "RouterOutput",
+    "Session",
+    "SessionConfig",
+    "SessionData",
+    "SessionInfo",
+    "SessionManager",
     "SessionState",
+    "SessionStore",
+    "SQLiteSessionStore",
     "StorageRepository",
     "TierModels",
     "UserClarificationResponse",
