@@ -2355,11 +2355,278 @@ result = await session.process(request.text)
 
 ---
 
-## Future Epics (Iteration Pattern)
+## Epic 16: Clean Swealog Implementation
 
-### Epic 16+: Dogfooding Iteration 5+
+*Rewrite Swealog CLI as proper Quilto reference implementation*
 
-*Stories generated from Epic 15.6 feedback analysis on new Quilto API architecture*
+**Origin:** Epic 15 Retrospective (2026-01-27)
+**Source:** Story 15.6 analysis + retrospective discussion
 
-**Status:** Backlog (depends on Epic 15 completion and feedback analysis)
+**Problem Statement:**
+- Story 15.4 only migrated QUERY flow to Quilto
+- Swealog CLI still imports `RouterAgent`, `ParserAgent` directly
+- Router runs twice (Swealog calls it, then Quilto calls it again)
+- LOG and CORRECTION flows bypass Quilto entirely
+- Observer never triggers for LOG inputs
+- Half-migration created mixed architecture nightmare
+
+**Solution:**
+- Fix Quilto framework gaps (ProgressHandler output, Synthesizer bug, path doubling)
+- Rewrite Swealog CLI to single `swealog` command
+- All flows through `session.process(mode="auto")`
+- Delete `ask_cmd.py`, `log_cmd.py`, simplify `auto_cmd.py`
+- Feedback recording via ProgressHandler callbacks
+
+**Target Architecture:**
+```bash
+# Before (mixed architecture):
+swealog auto "text"   # Partial Quilto, Router called twice
+swealog ask "query"   # Quilto for query only
+swealog log "entry"   # Direct agent calls, bypasses Quilto
+
+# After (clean architecture):
+swealog "text"        # Everything through session.process(mode="auto")
+swealog --session ID "follow-up"  # Multi-turn conversation
+swealog import file.txt           # Batch import (separate command)
+```
+
+**Quilto:** ProgressHandler enhancement, Synthesizer fix, path fix
+**Swealog:** Complete CLI rewrite as reference implementation
+
+---
+
+### Story 16.1: Add Agent Output to ProgressHandler Callback
+
+**Priority:** HIGH | **Effort:** Small (1-2 hours)
+
+**As a** Quilto framework developer,
+**I want** `on_agent_complete` to receive the agent's output,
+**So that** applications can capture full intermediate data for debugging and feedback.
+
+**Acceptance Criteria:**
+
+1. **Given** a ProgressHandler implementation
+   **When** `on_agent_complete` is called
+   **Then** it receives `(agent: str, elapsed: float, output: dict[str, Any])`
+
+2. **Given** the Router agent completes
+   **When** `on_agent_complete` is called
+   **Then** `output` contains `input_type`, `selected_domains`, etc.
+
+3. **Given** existing ProgressHandler implementations
+   **When** the signature changes
+   **Then** backwards compatibility is maintained (output is optional with default)
+
+**Files to Modify:**
+- `packages/quilto/quilto/handlers.py` - Update Protocol signature
+- `packages/quilto/quilto/orchestration.py` - Pass output to callback
+
+---
+
+### Story 16.2: Fix Response Generation Failure
+
+**Priority:** CRITICAL | **Effort:** Medium (2-3 hours)
+
+**As a** Quilto framework developer,
+**I want** to fix the Synthesizer error,
+**So that** queries actually return useful responses.
+
+**Acceptance Criteria:**
+
+1. **Given** a query processed through Quilto
+   **When** the Synthesizer runs
+   **Then** it returns a valid response (not "I encountered an error")
+
+2. **Given** the root cause is identified
+   **When** the fix is applied
+   **Then** feedback records show actual responses
+
+3. **Given** debug mode enabled
+   **When** Synthesizer fails
+   **Then** the error is logged (not silently swallowed)
+
+**Investigation Points:**
+- Check if Analyzer output is malformed
+- Check if LLM response parsing fails in synthesize_node
+- Check for silent exceptions (like retrieval_history bug in 15.5)
+
+**Files to Investigate:**
+- `packages/quilto/quilto/orchestration.py` - analyze_node, synthesize_node
+- `packages/quilto/quilto/agents/synthesizer.py` - SynthesizerAgent
+
+---
+
+### Story 16.3: Fix Path Doubling in Observer Context
+
+**Priority:** LOW | **Effort:** Small (30 min)
+
+**As a** Quilto framework developer,
+**I want** Observer to write to the correct path,
+**So that** context files are where expected.
+
+**Acceptance Criteria:**
+
+1. **Given** Observer updates context
+   **When** `apply_updates()` is called
+   **Then** file is written to `logs/context/global.md` (not `logs/logs/context/`)
+
+2. **Given** StorageRepository initialized with `base_path="logs"`
+   **When** context path is constructed
+   **Then** no path doubling occurs
+
+**Root Cause:**
+- `StorageRepository` adds `/logs/` but `base_path` may already be set to `logs/`
+
+**Files to Fix:**
+- `packages/quilto/quilto/storage/repository.py` OR
+- `packages/swealog/swealog/api/dependencies.py`
+
+---
+
+### Story 16.4: Implement Single `swealog` Command
+
+**Priority:** HIGH | **Effort:** Medium (3-4 hours)
+
+**As a** Swealog user,
+**I want** a single `swealog` command for all inputs,
+**So that** I don't need to choose between `auto`, `ask`, or `log`.
+
+**Acceptance Criteria:**
+
+1. **Given** any text input
+   **When** `swealog "text"` is run
+   **Then** Quilto classifies and processes appropriately (LOG/QUERY/BOTH/CORRECTION)
+
+2. **Given** a multi-turn conversation
+   **When** `swealog --session ID "follow-up"` is run
+   **Then** conversation context is preserved
+
+3. **Given** debug mode requested
+   **When** `swealog --debug "text"` is run
+   **Then** agent traces are displayed
+
+4. **Given** the rewrite is complete
+   **When** searching for direct agent imports
+   **Then** Swealog CLI has no `from quilto.agents import ...`
+
+**Files to Delete:**
+- `packages/swealog/swealog/cli/ask_cmd.py`
+- `packages/swealog/swealog/cli/log_cmd.py`
+
+**Files to Simplify:**
+- `packages/swealog/swealog/cli/auto_cmd.py` → rename to `main_cmd.py` (~100 lines)
+- `packages/swealog/swealog/cli/app.py` - Single command registration
+- `packages/swealog/swealog/cli/flows.py` - Delete `execute_log_flow()` (no longer needed)
+
+**Target Implementation:**
+```python
+@app.command()
+def main(
+    text: str,
+    session_id: str | None = None,
+    debug: bool = False,
+) -> None:
+    quilto = create_quilto(debug=debug)
+    session = quilto.get_session(session_id) if session_id else quilto.create_session()
+    result = asyncio.run(session.process(text, mode="auto"))
+    display_result(result)
+```
+
+---
+
+### Story 16.5: Implement Feedback Recording via Callback
+
+**Priority:** MEDIUM | **Effort:** Small (1-2 hours)
+**Depends On:** Story 16.1
+
+**As a** Swealog developer,
+**I want** feedback recording to capture full agent outputs,
+**So that** dogfooding analysis has complete data.
+
+**Acceptance Criteria:**
+
+1. **Given** a ProgressHandler that captures outputs
+   **When** query completes
+   **Then** all agent outputs are available for feedback recording
+
+2. **Given** `--debug` flag used
+   **When** feedback is recorded
+   **Then** full intermediate outputs are stored (not just trace summaries)
+
+3. **Given** the new callback signature (from 16.1)
+   **When** feedback recorder implements ProgressHandler
+   **Then** it receives output dict from each agent
+
+**Files to Modify:**
+- `packages/swealog/swealog/cli/feedback.py` - Implement ProgressHandler
+- `packages/swealog/swealog/cli/main_cmd.py` - Pass handler to Quilto
+
+---
+
+### Story 16.6: Update Swealog Tests for New CLI
+
+**Priority:** MEDIUM | **Effort:** Medium (2-3 hours)
+
+**As a** Swealog developer,
+**I want** tests updated for the single-command architecture,
+**So that** CI validates the new design.
+
+**Acceptance Criteria:**
+
+1. **Given** the CLI rewrite (16.4) is complete
+   **When** running `make validate`
+   **Then** all tests pass
+
+2. **Given** deleted command files (`ask_cmd.py`, `log_cmd.py`)
+   **When** their tests are searched for
+   **Then** tests are also deleted or migrated
+
+3. **Given** the new `swealog` command
+   **When** tested
+   **Then** LOG, QUERY, BOTH, CORRECTION flows are all covered
+
+**Files to Update:**
+- `packages/swealog/tests/test_cli_ask.py` - DELETE
+- `packages/swealog/tests/test_cli_log.py` - DELETE
+- `packages/swealog/tests/test_cli_auto.py` - REWRITE for new command
+- `packages/swealog/tests/test_cli_debug.py` - UPDATE for new structure
+
+---
+
+### Story 16.7: Review Batch Import Command
+
+**Priority:** LOW | **Effort:** Small (1 hour)
+**Status:** Optional - can defer
+
+**As a** Swealog developer,
+**I want** to decide if batch import stays as separate command,
+**So that** the CLI design is consistent.
+
+**Options:**
+1. Keep `swealog import file.txt` as separate command (batch processing is special)
+2. Add `swealog --batch file.txt` flag to main command
+3. Keep as-is for now, revisit later
+
+**Acceptance Criteria:**
+
+1. **Given** batch import functionality
+   **When** design decision is made
+   **Then** document the rationale
+
+2. **Given** the chosen approach
+   **When** implemented (if any changes)
+   **Then** batch import still works correctly
+
+**Files to Review:**
+- `packages/swealog/swealog/cli/import_cmd.py`
+
+---
+
+## Future Epics
+
+### Epic 17+: Dogfooding Iteration 5+
+
+*Stories generated from Epic 16 completion and fresh dogfooding on clean Swealog architecture*
+
+**Status:** Backlog (depends on Epic 16 completion)
 

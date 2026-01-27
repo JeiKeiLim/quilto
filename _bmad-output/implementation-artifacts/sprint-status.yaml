@@ -212,24 +212,31 @@ development_status:
   # Source: _bmad-output/planning-artifacts/quilto-api-design-session.md
   # CRITICAL: Provides single entry point for Quilto framework, enables Observer auto-invocation
   # Internal orchestration uses LangGraph; apps interact via clean Quilto class
-  epic-15: in-progress
+  epic-15: done
   15-1-create-quilto-models: done  # ProcessResult, ClarificationQuestion, ProgressHandler
   15-2-implement-session-management: done  # Session, SessionManager, SQLiteSessionStore
   15-3-implement-quilto-class: done  # CRITICAL - Quilto class with LangGraph orchestration (code-reviewed 2026-01-27)
   15-4-migrate-swealog-to-quilto-api: done  # Replace ~400 lines manual wiring with Quilto API (code-reviewed 2026-01-27)
   15-5-verify-observer-integration: done  # Fixed retrieval_history bug, Observer now creates context files
-  15-6-analyze-feedback-dataset-post-migration: in-progress  # Fresh dogfooding on new architecture, generates Epic 16
-  epic-15-retrospective: optional
+  15-6-analyze-feedback-dataset-post-migration: done  # Fresh dogfooding on new architecture, generates Epic 16
+  epic-15-retrospective: done
 
-  # Epic 16: Post-Migration Fixes
-  # Generated from Story 15.6 analysis (2026-01-27)
-  # Source: tests/eval/feedback/active/ (2 records analyzed)
-  # Key Findings: Incomplete migration - lost observability, response generation broken
+  # Epic 16: Clean Swealog Implementation
+  # RESTRUCTURED from Epic 15 Retrospective (2026-01-27)
+  # Original: 7 incremental patches to broken architecture
+  # New: 3 Quilto fixes + 3 Swealog rewrite stories + 1 optional
+  # Goal: Single `swealog` command using Quilto API properly
+  #
+  # Decision: Swealog was half-migrated in Epic 15 - CLI still imports agents directly.
+  # Instead of patching, rewrite Swealog CLI as proper Quilto reference implementation.
   epic-16: backlog
-  16-1-add-agent-output-to-progress-callback: backlog  # HIGH - on_agent_complete needs output parameter
+  # --- Quilto Framework Fixes (keep) ---
+  16-1-add-agent-output-to-progress-callback: backlog  # HIGH - on_agent_complete needs output: dict[str, Any] parameter
   16-2-fix-response-generation-failure: backlog  # CRITICAL - Synthesizer returns error, investigate root cause
   16-3-fix-path-doubling-in-observer-context: backlog  # LOW - logs/logs/context/ → logs/context/
-  16-4-remove-redundant-router-call-in-cli: backlog  # MEDIUM - Router called twice (Swealog + Quilto)
-  16-5-update-feedback-recording-with-callback: backlog  # MEDIUM - Use callback for full intermediate outputs (depends: 16.1)
-  16-6-migrate-log-correction-flows-to-quilto: backlog  # HIGH - LOG/CORRECTION bypass Quilto, Observer never triggers for LOG
-  16-7-consolidate-cli-to-single-auto-command: backlog  # MEDIUM - Remove ask_cmd.py, log_cmd.py; single entry point via auto
+  # --- Swealog Rewrite (new) ---
+  16-4-implement-single-swealog-command: backlog  # HIGH - Replace all CLI with `swealog "text"` using session.process(mode="auto"). Delete ask_cmd.py, log_cmd.py, simplify auto_cmd.py
+  16-5-implement-feedback-recording-via-callback: backlog  # MEDIUM - Use ProgressHandler.on_agent_complete(output) for full intermediate outputs (depends: 16.1)
+  16-6-update-swealog-tests-for-new-cli: backlog  # MEDIUM - Rewrite CLI tests for single-command architecture, remove tests for deleted commands
+  # --- Optional ---
+  16-7-review-batch-import-command: backlog  # LOW - Decide if `swealog import` stays separate or becomes `swealog --batch`. Can defer.
