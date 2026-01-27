@@ -9,9 +9,23 @@ import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class TraceDict(TypedDict):
+    """Type-safe dict structure for agent traces from ProcessResult.debug.traces.
+
+    This documents the expected structure. At runtime, traces are passed as
+    dict[str, Any] for Pydantic compatibility with list invariance.
+    """
+
+    agent_name: str
+    input_summary: str
+    output_summary: str
+    elapsed_ms: float
+    timestamp: str
 
 
 class IntermediateOutputs(BaseModel):
@@ -56,6 +70,24 @@ class FeedbackRecord(BaseModel):
     id: str = Field(..., min_length=1)  # {YYYY-MM-DD}_{short-hash}
     query: str = Field(..., min_length=1)
     intermediate_outputs: IntermediateOutputs
+    final_response: str
+    user_feedback: str  # Empty string if skipped
+    session: SessionMetadata
+    feedback_sentiment: str | None = None  # Future: auto-classify
+
+
+class SimplifiedFeedbackRecord(BaseModel):
+    """Simplified feedback record using ProcessResult traces.
+
+    Records user feedback with traces from Quilto ProcessResult instead of
+    full intermediate outputs. Used after migration to Quilto API.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    id: str = Field(..., min_length=1)  # {YYYY-MM-DD}_{short-hash}
+    query: str = Field(..., min_length=1)
+    traces: list[dict[str, Any]]  # Structure documented in TraceDict
     final_response: str
     user_feedback: str  # Empty string if skipped
     session: SessionMetadata
@@ -136,6 +168,23 @@ class FeedbackRecorder:
 
         Args:
             feedback: The FeedbackRecord to persist.
+
+        Returns:
+            Path to the created feedback file.
+        """
+        self._feedback_dir.mkdir(parents=True, exist_ok=True)
+        file_path = get_unique_feedback_path(self._feedback_dir, feedback.id)
+        file_path.write_text(
+            json.dumps(feedback.model_dump(), indent=2, default=str, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        return file_path
+
+    def record_simplified(self, feedback: SimplifiedFeedbackRecord) -> Path:
+        """Write simplified feedback record to disk.
+
+        Args:
+            feedback: The SimplifiedFeedbackRecord to persist (uses traces instead of full outputs).
 
         Returns:
             Path to the created feedback file.

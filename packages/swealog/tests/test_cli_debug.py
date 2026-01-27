@@ -263,6 +263,31 @@ class TestDebugFlagLog:
             assert "input:" not in result.output
 
 
+def _create_mock_process_result(
+    response: str = "Test response",
+    sources: list[str] | None = None,
+    confidence: float = 0.85,
+    debug_retry_count: int = 0,
+) -> MagicMock:
+    """Create a mock ProcessResult for testing."""
+    mock_result = MagicMock()
+    mock_result.response = response
+    mock_result.source_entry_ids = sources or []
+    mock_result.confidence = confidence
+    mock_result.clarification_questions = None
+
+    # Set up debug info
+    if debug_retry_count >= 2:
+        mock_debug = MagicMock()
+        mock_debug.retry_count = debug_retry_count
+        mock_debug.traces = []
+        mock_result.debug = mock_debug
+    else:
+        mock_result.debug = None
+
+    return mock_result
+
+
 class TestDebugFlagAsk:
     """Tests for --debug flag on ask command."""
 
@@ -279,113 +304,52 @@ class TestDebugFlagAsk:
         mock_domains = [MockDomain(name="GeneralFitness", log_schema={}, vocabulary={})]
         return (mock_client, mock_storage, mock_domains)
 
-    def test_debug_flag_shows_pipeline_agents(
+    def test_debug_flag_calls_quilto_with_debug(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """--debug flag shows all pipeline agents in ask command."""
+        """--debug flag passes debug=True to Quilto."""
+        mock_result = _create_mock_process_result()
+
+        mock_session = MagicMock()
+        mock_session.process = AsyncMock(return_value=mock_result)
+
         with (
             patch("swealog.cli.ask_cmd.get_dependencies", return_value=mock_dependencies),
-            patch("swealog.cli.ask_cmd.execute_query_pipeline") as mock_pipeline,
+            patch("swealog.cli.ask_cmd.Quilto") as mock_quilto_cls,
         ):
-            mock_pipeline.return_value = {
-                "response": "Your bench has improved!",
-                "sources": ["entry1", "entry2"],
-                "confidence": 0.85,
-                "is_partial": False,
-            }
+            mock_quilto = MagicMock()
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
 
             result = runner.invoke(app, ["ask", "--debug", "how is my bench progress?"])
 
             assert result.exit_code == 0
-            # Pipeline should be called with a debug callback
-            assert mock_pipeline.called
-            call_kwargs = mock_pipeline.call_args.kwargs
-            assert "debug_callback" in call_kwargs
-            # With debug enabled, callback should not be None
-            assert call_kwargs["debug_callback"] is not None
+            # Quilto should be called with debug=True
+            call_kwargs = mock_quilto_cls.call_args.kwargs
+            assert call_kwargs.get("debug") is True
 
-    def test_no_debug_no_callback(
+    def test_no_debug_no_debug_flag(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """Without --debug, no debug callback is passed."""
+        """Without --debug, Quilto is called with debug=False."""
+        mock_result = _create_mock_process_result()
+
+        mock_session = MagicMock()
+        mock_session.process = AsyncMock(return_value=mock_result)
+
         with (
             patch("swealog.cli.ask_cmd.get_dependencies", return_value=mock_dependencies),
-            patch("swealog.cli.ask_cmd.execute_query_pipeline") as mock_pipeline,
+            patch("swealog.cli.ask_cmd.Quilto") as mock_quilto_cls,
         ):
-            mock_pipeline.return_value = {
-                "response": "Your bench has improved!",
-                "sources": ["entry1"],
-                "confidence": 0.85,
-                "is_partial": False,
-            }
+            mock_quilto = MagicMock()
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
 
             result = runner.invoke(app, ["ask", "how is my bench progress?"])
 
             assert result.exit_code == 0
-            call_kwargs = mock_pipeline.call_args.kwargs
-            assert call_kwargs.get("debug_callback") is None
-
-
-class TestDebugTimerInQueryPipeline:
-    """Tests for _DebugTimer class in query pipeline (H2 fix)."""
-
-    def test_debug_timer_track_without_callback(self) -> None:
-        """_DebugTimer.track works without callback."""
-        from swealog.api.routes.query import _DebugTimer  # pyright: ignore[reportPrivateUsage]
-
-        timer = _DebugTimer(callback=None)
-        with timer.track("Router", "test input") as result:
-            pass
-
-        # Should populate elapsed time even without callback
-        assert "elapsed" in result
-        assert result["elapsed"] >= 0.0
-
-    def test_debug_timer_track_with_callback(self) -> None:
-        """_DebugTimer.track calls callback with start and end events."""
-        from swealog.api.routes.query import _DebugTimer  # pyright: ignore[reportPrivateUsage]
-
-        events: list[tuple[str, str, str, float]] = []
-
-        def capture(agent_name: str, event: str, summary: str, elapsed: float) -> None:
-            events.append((agent_name, event, summary, elapsed))
-
-        timer = _DebugTimer(callback=capture)
-        with timer.track("Router", "test input") as result:
-            pass
-
-        # Should have start and end events
-        assert len(events) == 2
-        assert events[0] == ("Router", "start", "test input", 0.0)
-        assert events[1][0] == "Router"
-        assert events[1][1] == "end"
-        assert events[1][3] >= 0.0  # elapsed time
-
-        # Result should have elapsed
-        assert result["elapsed"] >= 0.0
-
-    def test_debug_timer_log_output_without_callback(self) -> None:
-        """_DebugTimer.log_output does nothing without callback."""
-        from swealog.api.routes.query import _DebugTimer  # pyright: ignore[reportPrivateUsage]
-
-        timer = _DebugTimer(callback=None)
-        # Should not raise
-        timer.log_output("Router", "test output")
-
-    def test_debug_timer_log_output_with_callback(self) -> None:
-        """_DebugTimer.log_output calls callback with output event."""
-        from swealog.api.routes.query import _DebugTimer  # pyright: ignore[reportPrivateUsage]
-
-        events: list[tuple[str, str, str, float]] = []
-
-        def capture(agent_name: str, event: str, summary: str, elapsed: float) -> None:
-            events.append((agent_name, event, summary, elapsed))
-
-        timer = _DebugTimer(callback=capture)
-        timer.log_output("Router", "input_type=LOG, confidence=0.92")
-
-        assert len(events) == 1
-        assert events[0] == ("Router", "output", "input_type=LOG, confidence=0.92", 0.0)
+            call_kwargs = mock_quilto_cls.call_args.kwargs
+            assert call_kwargs.get("debug") is False
 
 
 class TestDebugOutputFormat:

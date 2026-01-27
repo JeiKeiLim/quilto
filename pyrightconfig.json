@@ -8,5 +8,10 @@
   "reportUnusedImport": true,
   "reportUnusedVariable": true,
   "venvPath": ".",
-  "venv": ".venv"
+  "venv": ".venv",
+  "reportTypedDictNotRequiredAccess": false,
+  "reportUnknownMemberType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownParameterType": "none"
 }

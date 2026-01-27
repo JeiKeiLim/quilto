@@ -4,11 +4,7 @@ Tests use mocked dependencies to avoid actual LLM calls.
 """
 
 from collections.abc import Generator
-from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock, patch
-
-if TYPE_CHECKING:
-    from quilto.agents.models import ActiveDomainContext
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -18,6 +14,7 @@ from swealog.api.dependencies import (
     get_llm_client,
     get_storage,
 )
+from swealog.api.routes.query import get_quilto_dependency
 
 
 def mock_llm_client() -> MagicMock:
@@ -143,37 +140,91 @@ class TestInputEndpoint:
         assert response.status_code == 422
 
 
+def _create_mock_quilto_override(
+    response: str = "Your bench press has improved.",
+    sources: list[str] | None = None,
+    confidence: float = 0.85,
+    clarification_questions: list[MagicMock] | None = None,
+    debug: MagicMock | None = None,
+    raise_error: Exception | None = None,
+) -> MagicMock:
+    """Create a mock Quilto instance with configured session.process() behavior."""
+    mock_process_result = MagicMock()
+    mock_process_result.response = response
+    mock_process_result.source_entry_ids = sources or []
+    mock_process_result.confidence = confidence
+    mock_process_result.clarification_questions = clarification_questions
+    mock_process_result.debug = debug
+
+    mock_session = MagicMock()
+    if raise_error:
+        mock_session.process = AsyncMock(side_effect=raise_error)
+    else:
+        mock_session.process = AsyncMock(return_value=mock_process_result)
+
+    mock_quilto = MagicMock()
+    mock_quilto.create_session.return_value = mock_session
+
+    return mock_quilto
+
+
 class TestQueryEndpoint:
     """Tests for POST /query endpoint."""
 
     @pytest.mark.asyncio
     async def test_query_returns_response(self, override_dependencies: None) -> None:
         """Test /query returns a response with all required fields."""
-        # This test mocks the entire pipeline
-        mock_result = {
-            "response": "Your bench press has improved.",
-            "sources": ["2026-01-10_09-00-00"],
-            "confidence": 0.85,
-            "is_partial": False,
-        }
+        mock_quilto = _create_mock_quilto_override(
+            response="Your bench press has improved.",
+            sources=["2026-01-10_09-00-00"],
+            confidence=0.85,
+        )
 
-        with patch(
-            "swealog.api.routes.query.execute_query_pipeline",
-            new_callable=AsyncMock,
-            return_value=mock_result,
-        ):
+        app.dependency_overrides[get_quilto_dependency] = lambda: mock_quilto
+        try:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 response = await client.post(
                     "/query",
                     json={"text": "How has my bench press progressed?"},
                 )
 
-        assert response.status_code == 200
-        data = response.json()
-        assert "response" in data
-        assert "sources" in data
-        assert "confidence" in data
-        assert "partial" in data
+            assert response.status_code == 200
+            data = response.json()
+            assert "response" in data
+            assert "sources" in data
+            assert "confidence" in data
+            assert "partial" in data
+            assert data["response"] == "Your bench press has improved."
+        finally:
+            app.dependency_overrides.pop(get_quilto_dependency, None)
+
+    @pytest.mark.asyncio
+    async def test_query_handles_clarification(self, override_dependencies: None) -> None:
+        """Test /query handles clarification questions from Quilto."""
+        mock_question = MagicMock()
+        mock_question.question = "What time period are you interested in?"
+
+        mock_quilto = _create_mock_quilto_override(
+            response=None,  # type: ignore[arg-type]
+            sources=[],
+            confidence=None,  # type: ignore[arg-type]
+            clarification_questions=[mock_question],
+        )
+
+        app.dependency_overrides[get_quilto_dependency] = lambda: mock_quilto
+        try:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.post(
+                    "/query",
+                    json={"text": "How did I do?"},
+                )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert "Clarification needed" in data["response"]
+            assert data["confidence"] == 0.0
+        finally:
+            app.dependency_overrides.pop(get_quilto_dependency, None)
 
     @pytest.mark.asyncio
     async def test_query_rejects_empty_text(self) -> None:
@@ -249,44 +300,44 @@ class TestErrorHandling:
         # The detail contains the error type name
         assert "RuntimeError" in data.get("detail", "")
 
+    @pytest.mark.asyncio
+    async def test_query_session_error_returns_500(self, override_dependencies: None) -> None:
+        """Test that RuntimeError from Quilto session returns 500."""
+        mock_quilto = _create_mock_quilto_override(raise_error=RuntimeError("Session not connected"))
 
-class TestExecuteQueryPipelineCollectOutputs:
-    """Tests for collect_outputs parameter in execute_query_pipeline (Story 11.2 Task 4.5).
+        app.dependency_overrides[get_quilto_dependency] = lambda: mock_quilto
+        try:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.post(
+                    "/query",
+                    json={"text": "test query"},
+                )
 
-    These tests verify the collect_outputs parameter behavior. Integration tests
-    for auto_cmd are in test_cli_auto.py::TestAutoCommandFeedbackIntegration.
-    """
+            assert response.status_code == 500
+            data = response.json()
+            assert "Session error" in data.get("detail", "")
+        finally:
+            app.dependency_overrides.pop(get_quilto_dependency, None)
+
+
+class TestQueryPartialResponse:
+    """Tests for partial response handling via Quilto."""
 
     @pytest.mark.asyncio
-    async def test_collect_outputs_parameter_signature_exists(self) -> None:
-        """Test that execute_query_pipeline accepts collect_outputs parameter."""
-        import inspect
+    async def test_partial_when_retry_count_exceeds_threshold(self, override_dependencies: None) -> None:
+        """Test partial=True when debug.retry_count >= 2."""
+        mock_debug = MagicMock()
+        mock_debug.retry_count = 2
 
-        from swealog.api.routes.query import execute_query_pipeline
+        mock_quilto = _create_mock_quilto_override(
+            response="Partial response.",
+            sources=[],
+            confidence=0.4,
+            debug=mock_debug,
+        )
 
-        sig = inspect.signature(execute_query_pipeline)
-        params = list(sig.parameters.keys())
-
-        assert "collect_outputs" in params
-        # Verify it has a default value of False
-        collect_param = sig.parameters["collect_outputs"]
-        assert collect_param.default is False
-
-    @pytest.mark.asyncio
-    async def test_query_endpoint_does_not_use_collect_outputs(self, override_dependencies: None) -> None:
-        """Test that /query endpoint doesn't pass collect_outputs (uses default False)."""
-        mock_result = {
-            "response": "Test response",
-            "sources": ["2026-01-10"],
-            "confidence": 0.85,
-            "is_partial": False,
-        }
-
-        with patch(
-            "swealog.api.routes.query.execute_query_pipeline",
-            new_callable=AsyncMock,
-            return_value=mock_result,
-        ) as mock_pipeline:
+        app.dependency_overrides[get_quilto_dependency] = lambda: mock_quilto
+        try:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 response = await client.post(
                     "/query",
@@ -294,214 +345,31 @@ class TestExecuteQueryPipelineCollectOutputs:
                 )
 
             assert response.status_code == 200
-            # Endpoint doesn't explicitly pass collect_outputs, uses default False
-            call_kwargs: dict[str, Any] = dict(mock_pipeline.call_args.kwargs) if mock_pipeline.call_args.kwargs else {}
-            assert "collect_outputs" not in call_kwargs
+            data = response.json()
+            assert data["partial"] is True
+        finally:
+            app.dependency_overrides.pop(get_quilto_dependency, None)
 
     @pytest.mark.asyncio
-    async def test_collect_outputs_docstring_documents_behavior(self) -> None:
-        """Test that the function docstring documents collect_outputs behavior."""
-        from swealog.api.routes.query import execute_query_pipeline
-
-        assert execute_query_pipeline.__doc__ is not None
-        docstring = execute_query_pipeline.__doc__
-        assert "collect_outputs" in docstring
-        assert "intermediate_outputs" in docstring
-
-
-class TestClarificationRouting:
-    """Tests for clarification flow routing (Story 13.4).
-
-    Tests verify that execute_query_pipeline correctly returns early with
-    clarification questions when Planner outputs next_action="clarify".
-    """
-
-    @pytest.fixture
-    def mock_active_context(self) -> "ActiveDomainContext":
-        """Create a proper ActiveDomainContext mock for tests."""
-        from quilto.agents.models import ActiveDomainContext
-
-        return ActiveDomainContext(
-            domains_loaded=["GeneralFitness"],
-            vocabulary={},
-            expertise="",
-            evaluation_rules=[],
+    async def test_not_partial_when_debug_none(self, override_dependencies: None) -> None:
+        """Test partial=False when debug is None."""
+        mock_quilto = _create_mock_quilto_override(
+            response="Full response.",
+            sources=["entry1"],
+            confidence=0.9,
+            debug=None,
         )
 
-    @pytest.mark.asyncio
-    async def test_returns_clarification_when_planner_clarifies(
-        self, override_dependencies: None, mock_active_context: "ActiveDomainContext"
-    ) -> None:
-        """Test pipeline returns needs_clarification=True when Planner says clarify (AC #1)."""
-        from swealog.api.routes.query import execute_query_pipeline
+        app.dependency_overrides[get_quilto_dependency] = lambda: mock_quilto
+        try:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.post(
+                    "/query",
+                    json={"text": "test query"},
+                )
 
-        # Mock router output
-        mock_router_output = MagicMock()
-        mock_router_output.selected_domains = ["GeneralFitness"]
-        mock_router_output.model_dump.return_value = {"input_type": "QUERY"}
-
-        # Mock planner output with clarify action
-        mock_planner_output = MagicMock()
-        mock_planner_output.next_action = "clarify"
-        mock_planner_output.clarify_questions = [
-            "What distance are you targeting?",
-            "What is your current running pace?",
-        ]
-        mock_planner_output.model_dump.return_value = {
-            "next_action": "clarify",
-            "clarify_questions": mock_planner_output.clarify_questions,
-        }
-
-        # Mock storage summary
-        mock_storage = MagicMock()
-        mock_storage.get_storage_summary.return_value.model_dump.return_value = {}
-
-        with (
-            patch("swealog.api.routes.query.RouterAgent") as mock_router_cls,
-            patch("swealog.api.routes.query.PlannerAgent") as mock_planner_cls,
-            patch("swealog.api.routes.query.DomainSelector") as mock_selector_cls,
-        ):
-            mock_router = AsyncMock()
-            mock_router.classify.return_value = mock_router_output
-            mock_router_cls.return_value = mock_router
-
-            mock_planner = AsyncMock()
-            mock_planner.plan.return_value = mock_planner_output
-            mock_planner_cls.return_value = mock_planner
-
-            mock_selector = MagicMock()
-            mock_selector.get_domain_infos.return_value = []
-            mock_selector.build_active_context.return_value = mock_active_context
-            mock_selector_cls.return_value = mock_selector
-
-            result = await execute_query_pipeline(
-                query="How do I do?",
-                llm_client=MagicMock(),
-                storage=mock_storage,
-                domains=[],
-            )
-
-        assert result["needs_clarification"] is True
-        assert result["clarification_questions"] == [
-            "What distance are you targeting?",
-            "What is your current running pace?",
-        ]
-        assert result["response"] == ""
-        assert result["sources"] == []
-        assert result["confidence"] == 0.0
-
-    def test_clarification_condition_with_truthy_questions(self) -> None:
-        """Test that clarification condition triggers with non-empty questions list."""
-        # Direct test of the condition logic
-        next_action = "clarify"
-        clarify_questions: list[str] = ["Question 1?", "Question 2?"]
-
-        # The condition from the implementation - truthy check
-        should_return_clarification = next_action == "clarify" and clarify_questions
-
-        assert bool(should_return_clarification) is True
-
-    def test_clarification_condition_with_empty_questions(self) -> None:
-        """Test that clarification condition does NOT trigger with empty list (edge case)."""
-        next_action = "clarify"
-        clarify_questions: list[str] = []  # Empty list
-
-        # The condition from the implementation - truthy check
-        should_return_clarification = next_action == "clarify" and clarify_questions
-
-        assert bool(should_return_clarification) is False
-
-    def test_clarification_condition_with_none_questions(self) -> None:
-        """Test that clarification condition does NOT trigger with None."""
-        next_action = "clarify"
-        clarify_questions = None
-
-        # The condition from the implementation - truthy check
-        should_return_clarification = next_action == "clarify" and clarify_questions
-
-        assert bool(should_return_clarification) is False
-
-    def test_clarification_condition_with_retrieve_action(self) -> None:
-        """Test that clarification does NOT trigger with retrieve action (AC #4)."""
-        # Use a list to avoid pyright inferring Literal type for the variable
-        possible_actions = ["retrieve", "clarify", "synthesize", "expand_domain"]
-        next_action = possible_actions[0]  # "retrieve"
-        clarify_questions: list[str] = ["Question 1?"]
-
-        # The condition from the implementation
-        should_return_clarification = next_action == "clarify" and clarify_questions
-
-        assert should_return_clarification is False
-
-    def test_result_fields_exist_in_clarification_response(self) -> None:
-        """Test that clarification result dict has correct fields."""
-        # Simulating what the code returns
-        clarify_questions = ["What distance?", "What pace?"]
-        result: dict[str, Any] = {
-            "response": "",
-            "sources": [],
-            "confidence": 0.0,
-            "is_partial": False,
-            "needs_clarification": True,
-            "clarification_questions": clarify_questions,
-        }
-
-        assert result["needs_clarification"] is True
-        assert result["clarification_questions"] == clarify_questions
-        assert result["response"] == ""
-        assert result["sources"] == []
-        assert result["confidence"] == 0.0
-        assert result["is_partial"] is False
-
-    def test_normal_result_includes_clarification_fields_as_false(self) -> None:
-        """Test that normal result dict has clarification fields set to False/None."""
-        # Simulating what the code returns for normal (non-clarification) flow
-        result: dict[str, Any] = {
-            "response": "Your bench press has improved.",
-            "sources": ["entry-1", "entry-2"],
-            "confidence": 0.85,
-            "is_partial": False,
-            "needs_clarification": False,
-            "clarification_questions": None,
-        }
-
-        assert "needs_clarification" in result
-        assert "clarification_questions" in result
-        assert result["needs_clarification"] is False
-        assert result["clarification_questions"] is None
-
-    @pytest.mark.asyncio
-    async def test_pipeline_returns_needs_clarification_false_on_retrieve(self, override_dependencies: None) -> None:
-        """Test pipeline returns needs_clarification=False when Planner says retrieve (AC #4).
-
-        This test verifies the full normal flow completes and returns the expected
-        clarification fields set to False/None. Uses mocked pipeline result.
-        """
-        # Mock the full pipeline result for normal (retrieve) flow
-        mock_result = {
-            "response": "Your bench press has improved.",
-            "sources": ["entry-1", "entry-2"],
-            "confidence": 0.85,
-            "is_partial": False,
-            "needs_clarification": False,
-            "clarification_questions": None,
-        }
-
-        with patch(
-            "swealog.api.routes.query.execute_query_pipeline",
-            new_callable=AsyncMock,
-            return_value=mock_result,
-        ):
-            from swealog.api.routes.query import execute_query_pipeline
-
-            result = await execute_query_pipeline(
-                query="How has my bench press progressed?",
-                llm_client=MagicMock(),
-                storage=MagicMock(),
-                domains=[],
-            )
-
-        # Verify normal flow returns needs_clarification=False
-        assert result["needs_clarification"] is False
-        assert result["clarification_questions"] is None
-        assert result["response"] == "Your bench press has improved."
+            assert response.status_code == 200
+            data = response.json()
+            assert data["partial"] is False
+        finally:
+            app.dependency_overrides.pop(get_quilto_dependency, None)

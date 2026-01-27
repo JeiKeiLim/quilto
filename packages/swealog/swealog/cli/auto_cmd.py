@@ -2,8 +2,8 @@
 
 Routes input to appropriate flow based on Router classification:
 - LOG: Execute log flow
-- QUERY: Execute query flow
-- BOTH: Execute log flow, then query flow with query_portion
+- QUERY: Execute query flow via Quilto
+- BOTH: Execute log flow, then query flow with query_portion via Quilto
 - CORRECTION: Execute correction flow (log with correction mode)
 """
 
@@ -14,18 +14,22 @@ from typing import Annotated, Any, Literal
 
 import typer
 from quilto import (
+    DomainModule,
     DomainSelector,
+    LLMClient,
+    ObserverTriggerConfig,
+    ProcessResult,
+    Quilto,
     RouterAgent,
     RouterInput,
+    StorageRepository,
 )
 
-from swealog.api.routes.query import execute_query_pipeline
-from swealog.cli.debug import DebugLogger, create_debug_callback
+from swealog.cli.debug import DebugLogger
 from swealog.cli.feedback import (
-    FeedbackRecord,
     FeedbackRecorder,
-    IntermediateOutputs,
     SessionMetadata,
+    SimplifiedFeedbackRecord,
     generate_feedback_id,
 )
 from swealog.cli.flows import execute_log_flow
@@ -35,42 +39,72 @@ from swealog.cli.utils import EXIT_ERROR, get_dependencies, run_async
 logger = logging.getLogger(__name__)
 
 
-def _display_query_result(result: dict[str, Any]) -> None:
-    """Display query pipeline result with consistent formatting.
+def _create_quilto(
+    llm_client: LLMClient,
+    storage: StorageRepository,
+    domains: list[DomainModule],
+    debug: bool = False,
+) -> Quilto:
+    """Create Quilto instance for CLI query processing.
 
     Args:
-        result: Query pipeline result dict with response, sources, confidence, is_partial.
+        llm_client: LLM client for agents.
+        storage: Storage repository for entries.
+        domains: Available domain modules.
+        debug: Enable debug mode with traces.
+
+    Returns:
+        Configured Quilto instance with in-memory session storage.
     """
-    if result["is_partial"]:
+    return Quilto(
+        llm_client=llm_client,
+        storage=storage,
+        domains=domains,
+        observer_config=ObserverTriggerConfig(enable_post_query=True),
+        session_db_path=":memory:",
+        debug=debug,
+    )
+
+
+def _display_query_result_from_process_result(result: ProcessResult) -> None:
+    """Display query result from ProcessResult with consistent formatting.
+
+    Args:
+        result: ProcessResult from Quilto session.process().
+    """
+    # Determine is_partial from retry_count
+    is_partial = result.debug is not None and result.debug.retry_count >= 2
+
+    if is_partial:
         print_warning("Partial response (insufficient data or evaluation failed):")
 
-    print_panel(result["response"], title="Response")
+    print_panel(result.response or "", title="Response")
 
-    if result["sources"]:
-        sources_str = ", ".join(result["sources"][:5])
-        if len(result["sources"]) > 5:
-            sources_str += f" (+{len(result['sources']) - 5} more)"
+    if result.source_entry_ids:
+        sources_str = ", ".join(result.source_entry_ids[:5])
+        if len(result.source_entry_ids) > 5:
+            sources_str += f" (+{len(result.source_entry_ids) - 5} more)"
         print_info(f"Sources: {sources_str}")
 
-    print_info(f"Confidence: {result['confidence']:.0%}")
+    confidence = result.confidence or 0.0
+    print_info(f"Confidence: {confidence:.0%}")
 
 
-def _handle_clarification(result: dict[str, Any]) -> bool:
-    """Handle clarification request from pipeline result.
+def _handle_clarification_from_process_result(result: ProcessResult) -> bool:
+    """Handle clarification request from ProcessResult.
 
     Args:
-        result: Query pipeline result dict.
+        result: ProcessResult from Quilto session.process().
 
     Returns:
         True if clarification was needed and displayed, False otherwise.
     """
-    if not result.get("needs_clarification"):
+    if not result.clarification_questions:
         return False
 
     print_warning("Clarification needed:")
-    questions = result.get("clarification_questions", [])
-    for i, question in enumerate(questions, 1):
-        print_info(f"  {i}. {question}")
+    for i, question in enumerate(result.clarification_questions, 1):
+        print_info(f"  {i}. {question.question}")
     print_info("Please re-query with more specific details.")
     return True
 
@@ -101,44 +135,65 @@ def _prompt_for_feedback(debug: bool, non_interactive: bool) -> str | None:
     )
 
 
-def _record_feedback(
+def _record_simplified_feedback(
     query: str,
     input_type: Literal["LOG", "QUERY", "BOTH", "CORRECTION"],
     router_output: dict[str, Any],
-    result: dict[str, Any],
+    result: ProcessResult,
     user_feedback: str,
     config_path: Path | None,
     storage_path: Path | None,
     non_interactive: bool = False,
+    router_elapsed_ms: float = 0.0,
 ) -> Path | None:
-    """Record feedback to disk if intermediate outputs are available.
+    """Record simplified feedback using ProcessResult traces.
 
     Args:
         query: The original query text.
         input_type: The classified input type.
         router_output: Router agent output dict.
-        result: Query pipeline result with intermediate_outputs.
+        result: ProcessResult from Quilto.
         user_feedback: User's feedback string (may be empty).
         config_path: Path to LLM config (optional).
         storage_path: Path to storage directory (optional).
-        non_interactive: Whether running in non-interactive mode (auto-dogfood).
+        non_interactive: Whether running in non-interactive mode.
+        router_elapsed_ms: Router agent elapsed time in milliseconds.
 
     Returns:
-        Path to recorded feedback file, or None if outputs not collected.
+        Path to recorded feedback file, or None if no debug info.
     """
-    if "intermediate_outputs" not in result:
+    if result.debug is None:
         return None
 
-    # Merge router_output into intermediate_outputs
-    intermediate = result["intermediate_outputs"]
-    intermediate["router"] = router_output
+    # Build traces list from ProcessResult.debug.traces
+    traces = [
+        {
+            "agent_name": trace.agent_name,
+            "input_summary": trace.input_summary,
+            "output_summary": trace.output_summary,
+            "elapsed_ms": trace.elapsed_ms,
+            "timestamp": trace.timestamp.isoformat(),
+        }
+        for trace in result.debug.traces
+    ]
+
+    # Include router output as first trace with actual timing
+    input_summary = query[:50] + "..." if len(query) > 50 else query
+    router_trace = {
+        "agent_name": "router",
+        "input_summary": input_summary,
+        "output_summary": f"input_type={router_output.get('input_type', 'unknown')}",
+        "elapsed_ms": router_elapsed_ms,
+        "timestamp": datetime.now().isoformat(),
+    }
+    all_traces = [router_trace] + traces
 
     feedback_id = generate_feedback_id(query)
-    feedback_record = FeedbackRecord(
+    feedback_record = SimplifiedFeedbackRecord(
         id=feedback_id,
         query=query,
-        intermediate_outputs=IntermediateOutputs(**intermediate),
-        final_response=result["response"],
+        traces=all_traces,
+        final_response=result.response or "",
         user_feedback=user_feedback,
         session=SessionMetadata(
             timestamp=datetime.now(),
@@ -151,7 +206,7 @@ def _record_feedback(
     )
 
     recorder = FeedbackRecorder()
-    file_path = recorder.record(feedback_record)
+    file_path = recorder.record_simplified(feedback_record)
     logger.info("Recorded feedback to %s", file_path)
     return file_path
 
@@ -170,8 +225,8 @@ async def auto(
 
     The Router agent classifies input and routes to:
     - LOG: Log the entry (same as `swealog log`)
-    - QUERY: Execute query (same as `swealog ask`)
-    - BOTH: Log first, then query with the query portion
+    - QUERY: Execute query via Quilto (same as `swealog ask`)
+    - BOTH: Log first, then query with the query portion via Quilto
     - CORRECTION: Correct a previous entry
 
     Examples:
@@ -198,7 +253,7 @@ async def auto(
 
         # Route based on classification
         if input_type == "LOG":
-            # Execute log flow
+            # Execute log flow (Swealog-specific, NOT via Quilto)
             entry_id = await execute_log_flow(
                 text=text,
                 llm_client=llm_client,
@@ -212,27 +267,21 @@ async def auto(
             print_success(f"Logged entry: {entry_id}")
 
         elif input_type == "QUERY":
-            # Execute query flow
-            debug_callback = create_debug_callback(debug)
-            result = await execute_query_pipeline(
-                query=text,
-                llm_client=llm_client,
-                storage=storage,
-                domains=domains,
-                debug_callback=debug_callback,
-                collect_outputs=debug,  # Collect outputs when debug enabled
-            )
+            # Execute query flow via Quilto
+            quilto = _create_quilto(llm_client, storage, domains, debug)
+            session = quilto.create_session()
+            result = await session.process(text, mode="query")
 
-            # Handle clarification request (AC #2, #3)
-            if _handle_clarification(result):
+            # Handle clarification request
+            if _handle_clarification_from_process_result(result):
                 return
 
-            _display_query_result(result)
+            _display_query_result_from_process_result(result)
 
             # Prompt for feedback and record if debug enabled
             user_feedback = _prompt_for_feedback(debug, non_interactive)
             if user_feedback is not None:
-                _record_feedback(
+                _record_simplified_feedback(
                     query=text,
                     input_type="QUERY",
                     router_output=router_output.model_dump(),
@@ -241,10 +290,11 @@ async def auto(
                     config_path=config,
                     storage_path=storage_path,
                     non_interactive=non_interactive,
+                    router_elapsed_ms=timing["elapsed"] * 1000,  # Convert seconds to ms
                 )
 
         elif input_type == "BOTH":
-            # Execute log flow first
+            # Execute log flow first (Swealog-specific)
             entry_id = await execute_log_flow(
                 text=text,
                 llm_client=llm_client,
@@ -257,29 +307,22 @@ async def auto(
             )
             print_success(f"Logged entry: {entry_id}")
 
-            # Then execute query flow with query_portion AND log_portion as context
+            # Then execute query flow via Quilto with query_portion
             query_text = router_output.query_portion or text
-            debug_callback = create_debug_callback(debug)
-            result = await execute_query_pipeline(
-                query=query_text,
-                llm_client=llm_client,
-                storage=storage,
-                domains=domains,
-                debug_callback=debug_callback,
-                collect_outputs=debug,  # Collect outputs when debug enabled
-                conversation_context=router_output.log_portion,  # Pass log_portion as context
-            )
+            quilto = _create_quilto(llm_client, storage, domains, debug)
+            session = quilto.create_session()
+            result = await session.process(query_text, mode="query")
 
-            # Handle clarification request (AC #2, #3)
-            if _handle_clarification(result):
+            # Handle clarification request
+            if _handle_clarification_from_process_result(result):
                 return
 
-            _display_query_result(result)
+            _display_query_result_from_process_result(result)
 
             # Prompt for feedback and record if debug enabled
             user_feedback = _prompt_for_feedback(debug, non_interactive)
             if user_feedback is not None:
-                _record_feedback(
+                _record_simplified_feedback(
                     query=query_text,  # Use query_portion, not original text
                     input_type="BOTH",
                     router_output=router_output.model_dump(),
@@ -288,10 +331,11 @@ async def auto(
                     config_path=config,
                     storage_path=storage_path,
                     non_interactive=non_interactive,
+                    router_elapsed_ms=timing["elapsed"] * 1000,  # Convert seconds to ms
                 )
 
         elif input_type == "CORRECTION":
-            # Execute correction flow
+            # Execute correction flow (Swealog-specific, NOT via Quilto)
             entry_id = await execute_log_flow(
                 text=text,
                 llm_client=llm_client,

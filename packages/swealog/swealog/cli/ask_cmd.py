@@ -5,9 +5,8 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from quilto import ObserverTriggerConfig, Quilto
 
-from swealog.api.routes.query import execute_query_pipeline
-from swealog.cli.debug import create_debug_callback
 from swealog.cli.output import print_error, print_info, print_panel, print_warning
 from swealog.cli.utils import EXIT_ERROR, get_dependencies, run_async
 
@@ -29,31 +28,54 @@ async def ask(
     """
     try:
         llm_client, storage, domains = get_dependencies(config, storage_path)
-        debug_callback = create_debug_callback(debug)
 
-        # Reuse API pipeline logic
-        result = await execute_query_pipeline(
-            query=query,
+        # Build Quilto instance
+        quilto = Quilto(
             llm_client=llm_client,
             storage=storage,
             domains=domains,
-            debug_callback=debug_callback,
+            observer_config=ObserverTriggerConfig(enable_post_query=True),
+            session_db_path=":memory:",  # Stateless per-request
+            debug=debug,
         )
 
+        # Create session and process query
+        session = quilto.create_session()
+        result = await session.process(query, mode="query")
+
+        # Handle clarification questions
+        if result.clarification_questions:
+            print_warning("Clarification needed:")
+            for i, question in enumerate(result.clarification_questions, 1):
+                print_info(f"  {i}. {question.question}")
+            print_info("Please re-query with more specific details.")
+            return
+
+        # Display debug traces if enabled
+        if debug and result.debug:
+            for trace in result.debug.traces:
+                summary = trace.output_summary
+                display = summary[:50] + "..." if len(summary) > 50 else summary
+                print_info(f"[{trace.agent_name}] {trace.elapsed_ms:.0f}ms - {display}")
+
+        # Determine is_partial from retry_count
+        is_partial = result.debug is not None and result.debug.retry_count >= 2
+
         # Warn if partial
-        if result["is_partial"]:
+        if is_partial:
             print_warning("Partial response (insufficient data or evaluation failed):")
 
-        print_panel(result["response"], title="Response")
+        print_panel(result.response or "", title="Response")
 
         # Sources
-        if result["sources"]:
-            sources_str = ", ".join(result["sources"][:5])
-            if len(result["sources"]) > 5:
-                sources_str += f" (+{len(result['sources']) - 5} more)"
+        if result.source_entry_ids:
+            sources_str = ", ".join(result.source_entry_ids[:5])
+            if len(result.source_entry_ids) > 5:
+                sources_str += f" (+{len(result.source_entry_ids) - 5} more)"
             print_info(f"Sources: {sources_str}")
 
-        print_info(f"Confidence: {result['confidence']:.0%}")
+        confidence = result.confidence or 0.0
+        print_info(f"Confidence: {confidence:.0%}")
 
     except Exception as e:
         logger.exception("Ask command failed: %s", e)
