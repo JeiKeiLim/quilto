@@ -33,16 +33,20 @@ class IntermediateOutputs(BaseModel):
 
     All fields store model_dump() output from respective agent outputs.
     These are dicts, not typed models, for flexibility and JSON serialization.
+    All fields default to empty dict - not all agents run in every flow.
     """
 
     model_config = ConfigDict(strict=True)
 
-    router: dict[str, Any]  # RouterOutput.model_dump()
-    planner: dict[str, Any]  # PlannerOutput.model_dump()
-    retriever: dict[str, Any]  # RetrieverOutput.model_dump()
-    analyzer: dict[str, Any]  # AnalyzerOutput.model_dump()
-    synthesizer: dict[str, Any]  # SynthesizerOutput.model_dump()
-    evaluator: dict[str, Any]  # Last EvaluatorOutput.model_dump() (may be after retry)
+    router: dict[str, Any] = Field(default_factory=dict)  # RouterOutput.model_dump()
+    planner: dict[str, Any] = Field(default_factory=dict)  # PlannerOutput.model_dump()
+    retriever: dict[str, Any] = Field(default_factory=dict)  # RetrieverOutput.model_dump()
+    analyzer: dict[str, Any] = Field(default_factory=dict)  # AnalyzerOutput.model_dump()
+    synthesizer: dict[str, Any] = Field(default_factory=dict)  # SynthesizerOutput.model_dump()
+    evaluator: dict[str, Any] = Field(default_factory=dict)  # EvaluatorOutput.model_dump()
+    parser: dict[str, Any] = Field(default_factory=dict)  # ParserOutput.model_dump()
+    observer: dict[str, Any] = Field(default_factory=dict)  # ObserverOutput.model_dump()
+    correction: dict[str, Any] = Field(default_factory=dict)  # CorrectionResult.model_dump()
 
 
 class SessionMetadata(BaseModel):
@@ -125,6 +129,83 @@ def get_unique_feedback_path(base_dir: Path, feedback_id: str) -> Path:
     # Append timestamp for uniqueness
     timestamp = datetime.now().strftime("%H%M%S")
     return base_dir / f"{feedback_id}_{timestamp}.json"
+
+
+class FeedbackProgressHandler:
+    """ProgressHandler that captures agent outputs for feedback recording.
+
+    Implements the Quilto ProgressHandler Protocol via duck typing.
+    Stores full agent outputs for later retrieval via get_intermediate_outputs().
+
+    Note: Not thread-safe. Intended for single-session use within CLI command.
+    """
+
+    def __init__(self) -> None:
+        """Initialize the feedback progress handler."""
+        self._outputs: dict[str, dict[str, Any]] = {}
+
+    async def on_agent_start(self, agent: str, input_summary: str) -> None:
+        """Track agent start (no-op for feedback recording).
+
+        Args:
+            agent: Name of the agent starting.
+            input_summary: Brief summary of input being processed.
+        """
+        pass
+
+    async def on_agent_complete(self, agent: str, elapsed: float, output: dict[str, Any]) -> None:
+        """Capture agent output.
+
+        Args:
+            agent: Name of the agent that completed.
+            elapsed: Execution time in seconds.
+            output: Agent output as dictionary.
+        """
+        self._outputs[agent] = output
+
+    async def on_retry(self, attempt: int, reason: str) -> None:
+        """Track retries (no-op for feedback recording).
+
+        Args:
+            attempt: Current retry attempt number.
+            reason: Why the retry is happening.
+        """
+        pass
+
+    async def on_stage(self, stage: str) -> None:
+        """Track stage transitions (no-op for feedback recording).
+
+        Args:
+            stage: Name of the stage.
+        """
+        pass
+
+    def get_outputs(self) -> dict[str, dict[str, Any]]:
+        """Get all captured outputs.
+
+        Returns:
+            Copy of the captured outputs dictionary.
+        """
+        return self._outputs.copy()
+
+    def get_intermediate_outputs(self) -> IntermediateOutputs:
+        """Convert captured outputs to IntermediateOutputs model.
+
+        Returns:
+            IntermediateOutputs with captured agent data.
+            Agents that weren't called have empty dict {}.
+        """
+        return IntermediateOutputs(
+            router=self._outputs.get("router", {}),
+            planner=self._outputs.get("planner", {}),
+            retriever=self._outputs.get("retriever", {}),
+            analyzer=self._outputs.get("analyzer", {}),
+            synthesizer=self._outputs.get("synthesizer", {}),
+            evaluator=self._outputs.get("evaluator", {}),
+            parser=self._outputs.get("parser", {}),
+            observer=self._outputs.get("observer", {}),
+            correction=self._outputs.get("correction", {}),
+        )
 
 
 class FeedbackRecorder:

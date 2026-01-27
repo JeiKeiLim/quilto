@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 from swealog.cli.feedback import (
+    FeedbackProgressHandler,
     FeedbackRecord,
     FeedbackRecorder,
     IntermediateOutputs,
@@ -14,6 +15,165 @@ from swealog.cli.feedback import (
     generate_feedback_id,
     get_unique_feedback_path,
 )
+
+
+class TestFeedbackProgressHandler:
+    """Tests for FeedbackProgressHandler class."""
+
+    @pytest.fixture
+    def handler(self) -> FeedbackProgressHandler:
+        """Create a handler for testing."""
+        return FeedbackProgressHandler()
+
+    @pytest.mark.asyncio
+    async def test_on_agent_start_no_op(self, handler: FeedbackProgressHandler) -> None:
+        """Test that on_agent_start is a no-op but doesn't error."""
+        await handler.on_agent_start("router", "test input")
+        # Should not raise, should not store anything
+        assert handler.get_outputs() == {}
+
+    @pytest.mark.asyncio
+    async def test_on_agent_complete_captures_output(self, handler: FeedbackProgressHandler) -> None:
+        """Test that on_agent_complete captures agent output."""
+        output = {"input_type": "QUERY", "confidence": 0.95}
+        await handler.on_agent_complete("router", 0.5, output)
+
+        outputs = handler.get_outputs()
+        assert "router" in outputs
+        assert outputs["router"] == output
+
+    @pytest.mark.asyncio
+    async def test_on_retry_no_op(self, handler: FeedbackProgressHandler) -> None:
+        """Test that on_retry is a no-op but doesn't error."""
+        await handler.on_retry(1, "test reason")
+        assert handler.get_outputs() == {}
+
+    @pytest.mark.asyncio
+    async def test_on_stage_no_op(self, handler: FeedbackProgressHandler) -> None:
+        """Test that on_stage is a no-op but doesn't error."""
+        await handler.on_stage("routing")
+        assert handler.get_outputs() == {}
+
+    @pytest.mark.asyncio
+    async def test_captures_multiple_agents(self, handler: FeedbackProgressHandler) -> None:
+        """Test capturing outputs from multiple agents."""
+        await handler.on_agent_complete("router", 0.1, {"input_type": "QUERY"})
+        await handler.on_agent_complete("planner", 0.2, {"query": "test"})
+        await handler.on_agent_complete("retriever", 0.3, {"entries": []})
+
+        outputs = handler.get_outputs()
+        assert len(outputs) == 3
+        assert "router" in outputs
+        assert "planner" in outputs
+        assert "retriever" in outputs
+
+    @pytest.mark.asyncio
+    async def test_get_outputs_returns_copy(self, handler: FeedbackProgressHandler) -> None:
+        """Test that get_outputs returns a copy, not the internal dict."""
+        await handler.on_agent_complete("router", 0.1, {"input_type": "QUERY"})
+
+        outputs1 = handler.get_outputs()
+        outputs1["new_key"] = {"data": "test"}
+
+        outputs2 = handler.get_outputs()
+        assert "new_key" not in outputs2
+
+    @pytest.mark.asyncio
+    async def test_get_intermediate_outputs_query_flow(self, handler: FeedbackProgressHandler) -> None:
+        """Test get_intermediate_outputs for a QUERY flow."""
+        await handler.on_agent_complete("router", 0.1, {"input_type": "QUERY"})
+        await handler.on_agent_complete("planner", 0.2, {"query": "test"})
+        await handler.on_agent_complete("retriever", 0.3, {"entries": []})
+        await handler.on_agent_complete("analyzer", 0.2, {"verdict": "SUFFICIENT"})
+        await handler.on_agent_complete("synthesizer", 0.5, {"response": "answer"})
+        await handler.on_agent_complete("evaluator", 0.1, {"overall_verdict": "PASS"})
+
+        outputs = handler.get_intermediate_outputs()
+        assert outputs.router == {"input_type": "QUERY"}
+        assert outputs.planner == {"query": "test"}
+        assert outputs.retriever == {"entries": []}
+        assert outputs.analyzer == {"verdict": "SUFFICIENT"}
+        assert outputs.synthesizer == {"response": "answer"}
+        assert outputs.evaluator == {"overall_verdict": "PASS"}
+        # Non-called agents should be empty dicts
+        assert outputs.parser == {}
+        assert outputs.observer == {}
+        assert outputs.correction == {}
+
+    @pytest.mark.asyncio
+    async def test_get_intermediate_outputs_log_flow(self, handler: FeedbackProgressHandler) -> None:
+        """Test get_intermediate_outputs for a LOG flow."""
+        await handler.on_agent_complete("router", 0.1, {"input_type": "LOG"})
+        await handler.on_agent_complete("parser", 0.3, {"domain_data": {}})
+
+        outputs = handler.get_intermediate_outputs()
+        assert outputs.router == {"input_type": "LOG"}
+        assert outputs.parser == {"domain_data": {}}
+        # Query flow agents not called
+        assert outputs.planner == {}
+        assert outputs.retriever == {}
+        assert outputs.analyzer == {}
+        assert outputs.synthesizer == {}
+        assert outputs.evaluator == {}
+
+    @pytest.mark.asyncio
+    async def test_get_intermediate_outputs_empty(self, handler: FeedbackProgressHandler) -> None:
+        """Test get_intermediate_outputs with no captured data."""
+        outputs = handler.get_intermediate_outputs()
+        assert outputs.router == {}
+        assert outputs.planner == {}
+        assert outputs.retriever == {}
+        assert outputs.analyzer == {}
+        assert outputs.synthesizer == {}
+        assert outputs.evaluator == {}
+        assert outputs.parser == {}
+        assert outputs.observer == {}
+        assert outputs.correction == {}
+
+    @pytest.mark.asyncio
+    async def test_integration_with_feedback_recorder(self, handler: FeedbackProgressHandler, tmp_path: Path) -> None:
+        """Test that handler outputs work with FeedbackRecorder.record()."""
+        # Simulate a full QUERY flow
+        await handler.on_agent_complete("router", 0.1, {"input_type": "QUERY"})
+        await handler.on_agent_complete("planner", 0.2, {"query": "test"})
+        await handler.on_agent_complete("retriever", 0.3, {"entries": []})
+        await handler.on_agent_complete("analyzer", 0.2, {"verdict": "SUFFICIENT"})
+        await handler.on_agent_complete("synthesizer", 0.5, {"response": "answer"})
+        await handler.on_agent_complete("evaluator", 0.1, {"overall_verdict": "PASS"})
+
+        # Create FeedbackRecord using handler
+        intermediate_outputs = handler.get_intermediate_outputs()
+        feedback_record = FeedbackRecord(
+            id="2026-01-27_test1234",
+            query="test query",
+            intermediate_outputs=intermediate_outputs,
+            final_response="test response",
+            user_feedback="good",
+            session=SessionMetadata(
+                timestamp=datetime.now(),
+                input_type="QUERY",
+            ),
+        )
+
+        # Record should succeed
+        recorder = FeedbackRecorder(feedback_dir=tmp_path)
+        file_path = recorder.record(feedback_record)
+
+        assert file_path.exists()
+
+        # Verify content
+        content = json.loads(file_path.read_text(encoding="utf-8"))
+        assert content["intermediate_outputs"]["router"] == {"input_type": "QUERY"}
+        assert content["intermediate_outputs"]["evaluator"] == {"overall_verdict": "PASS"}
+        assert content["intermediate_outputs"]["parser"] == {}  # Not called
+
+    @pytest.mark.asyncio
+    async def test_observer_output_captured(self, handler: FeedbackProgressHandler) -> None:
+        """Test that observer agent output is captured (AC: 8)."""
+        await handler.on_agent_complete("observer", 0.3, {"should_update": True, "updates": []})
+
+        outputs = handler.get_intermediate_outputs()
+        assert outputs.observer == {"should_update": True, "updates": []}
 
 
 class TestIntermediateOutputs:
@@ -32,17 +192,18 @@ class TestIntermediateOutputs:
         assert outputs.router["input_type"] == "QUERY"
         assert outputs.evaluator["verdict"] == "PASS"
 
-    def test_missing_field_raises_error(self) -> None:
-        """Test that missing required fields raise validation error."""
-        with pytest.raises(ValidationError) as exc_info:
-            IntermediateOutputs(
-                router={"input_type": "QUERY"},
-                planner={"query": "test"},
-                retriever={"entries": []},
-                analyzer={"verdict": "SUFFICIENT"},
-                # Missing synthesizer and evaluator
-            )  # type: ignore[call-arg]
-        assert "synthesizer" in str(exc_info.value) or "evaluator" in str(exc_info.value)
+    def test_fields_default_to_empty_dict(self) -> None:
+        """Test that all fields default to empty dict."""
+        outputs = IntermediateOutputs()
+        assert outputs.router == {}
+        assert outputs.planner == {}
+        assert outputs.retriever == {}
+        assert outputs.analyzer == {}
+        assert outputs.synthesizer == {}
+        assert outputs.evaluator == {}
+        assert outputs.parser == {}
+        assert outputs.observer == {}
+        assert outputs.correction == {}
 
 
 class TestSessionMetadata:
@@ -93,6 +254,9 @@ class TestFeedbackRecord:
             analyzer={"verdict": "SUFFICIENT"},
             synthesizer={"response": "test"},
             evaluator={"verdict": "PASS"},
+            parser={},
+            observer={},
+            correction={},
         )
 
     @pytest.fixture
@@ -257,6 +421,9 @@ class TestFeedbackRecorder:
                 analyzer={"verdict": "SUFFICIENT"},
                 synthesizer={"response": "test"},
                 evaluator={"verdict": "PASS"},
+                parser={},
+                observer={},
+                correction={},
             ),
             final_response="Your pace was 5:30/km.",
             user_feedback="Great answer!",
@@ -326,6 +493,9 @@ class TestFeedbackRecorder:
                 analyzer={"verdict": "SUFFICIENT"},
                 synthesizer={"response": "평균 페이스는 5:30/km 입니다"},
                 evaluator={"verdict": "PASS"},
+                parser={},
+                observer={},
+                correction={},
             ),
             final_response="평균 페이스는 5:30/km 입니다",
             user_feedback="좋은 답변이에요!",

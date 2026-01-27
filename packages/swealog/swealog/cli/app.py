@@ -11,7 +11,7 @@ import logging
 from datetime import datetime
 from importlib.metadata import version
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 import typer
 from dotenv import load_dotenv
@@ -25,9 +25,10 @@ from quilto import (
 )
 
 from swealog.cli.feedback import (
+    FeedbackProgressHandler,
+    FeedbackRecord,
     FeedbackRecorder,
     SessionMetadata,
-    SimplifiedFeedbackRecord,
     generate_feedback_id,
 )
 from swealog.cli.import_cmd import import_file
@@ -72,6 +73,7 @@ def _create_quilto(
     domains: list[DomainModule],
     debug: bool = False,
     session_db_path: str = ":memory:",
+    progress_handler: FeedbackProgressHandler | None = None,
 ) -> Quilto:
     """Create Quilto instance for CLI processing.
 
@@ -81,6 +83,7 @@ def _create_quilto(
         domains: Available domain modules.
         debug: Enable debug mode with traces.
         session_db_path: Path to session database or ':memory:'.
+        progress_handler: Optional handler for capturing agent outputs.
 
     Returns:
         Configured Quilto instance.
@@ -91,6 +94,7 @@ def _create_quilto(
         domains=domains,
         observer_config=ObserverTriggerConfig(enable_post_query=True),
         session_db_path=session_db_path,
+        progress_handler=progress_handler,
         debug=debug,
     )
 
@@ -189,49 +193,39 @@ def _prompt_for_feedback(debug: bool, non_interactive: bool) -> str | None:
     )
 
 
-def _record_simplified_feedback(
+def _record_feedback_with_handler(
     query: str,
     input_type: Literal["LOG", "QUERY", "BOTH", "CORRECTION"],
     result: ProcessResult,
+    progress_handler: FeedbackProgressHandler,
     user_feedback: str,
     config_path: Path | None,
     storage_path: Path | None,
     non_interactive: bool = False,
-) -> Path | None:
-    """Record feedback using ProcessResult traces.
+) -> Path:
+    """Record feedback using FeedbackProgressHandler outputs.
+
+    Uses full agent outputs captured via ProgressHandler callbacks instead
+    of abbreviated traces from ProcessResult.
 
     Args:
         query: The original query text.
         input_type: The classified input type.
         result: ProcessResult from Quilto.
+        progress_handler: Handler with captured agent outputs.
         user_feedback: User's feedback string (may be empty).
         config_path: Path to LLM config (optional).
         storage_path: Path to storage directory (optional).
         non_interactive: Whether running in non-interactive mode.
 
     Returns:
-        Path to recorded feedback file, or None if no debug info.
+        Path to recorded feedback file.
     """
-    if result.debug is None:
-        return None
-
-    # Build traces list from ProcessResult.debug.traces
-    traces: list[dict[str, Any]] = [
-        {
-            "agent_name": trace.agent_name,
-            "input_summary": trace.input_summary,
-            "output_summary": trace.output_summary,
-            "elapsed_ms": trace.elapsed_ms,
-            "timestamp": trace.timestamp.isoformat(),
-        }
-        for trace in result.debug.traces
-    ]
-
     feedback_id = generate_feedback_id(query)
-    feedback_record = SimplifiedFeedbackRecord(
+    feedback_record = FeedbackRecord(
         id=feedback_id,
         query=query,
-        traces=traces,
+        intermediate_outputs=progress_handler.get_intermediate_outputs(),
         final_response=result.response or "",
         user_feedback=user_feedback,
         session=SessionMetadata(
@@ -245,8 +239,8 @@ def _record_simplified_feedback(
     )
 
     recorder = FeedbackRecorder()
-    file_path = recorder.record_simplified(feedback_record)
-    logger.info("Recorded feedback to %s", file_path)
+    file_path = recorder.record(feedback_record)
+    logger.info("Recorded feedback with full outputs to %s", file_path)
     return file_path
 
 
@@ -318,9 +312,12 @@ async def run_command(
         # Initialize dependencies
         llm_client, storage, domains = get_dependencies(config, storage_path)
 
+        # Create progress handler for debug mode to capture full agent outputs
+        progress_handler = FeedbackProgressHandler() if debug else None
+
         # Determine session persistence
         session_db_path = "quilto_sessions.db" if session_id else ":memory:"
-        quilto = _create_quilto(llm_client, storage, domains, debug, session_db_path)
+        quilto = _create_quilto(llm_client, storage, domains, debug, session_db_path, progress_handler)
 
         # Get or create session
         if session_id:
@@ -357,10 +354,15 @@ async def run_command(
                     "CORRECTION": "CORRECTION",
                 }
                 feedback_input_type = input_type_map.get(input_type_raw, "QUERY")
-                _record_simplified_feedback(
+
+                # Record feedback with full agent outputs captured by handler
+                # progress_handler is always truthy when debug=True
+                assert progress_handler is not None  # Type narrowing
+                _record_feedback_with_handler(
                     query=text,
                     input_type=feedback_input_type,
                     result=result,
+                    progress_handler=progress_handler,
                     user_feedback=user_feedback,
                     config_path=config,
                     storage_path=storage_path,

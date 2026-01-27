@@ -423,56 +423,6 @@ class TestPromptForFeedback:
             )
 
 
-class TestRecordSimplifiedFeedback:
-    """Tests for _record_simplified_feedback() helper function."""
-
-    def test_returns_none_when_no_debug_info(self, tmp_path: Any) -> None:
-        """_record_simplified_feedback returns None when result.debug is None."""
-        from swealog.cli.app import _record_simplified_feedback  # pyright: ignore[reportPrivateUsage]
-
-        mock_result = _create_mock_process_result(
-            response="Test response",
-            with_debug=False,
-        )
-
-        path = _record_simplified_feedback(
-            query="test query",
-            input_type="QUERY",
-            result=mock_result,
-            user_feedback="Good",
-            config_path=None,
-            storage_path=None,
-        )
-
-        assert path is None
-
-    def test_records_feedback_with_debug_info(self, tmp_path: Any) -> None:
-        """_record_simplified_feedback creates file when debug info present."""
-        from swealog.cli.app import _record_simplified_feedback  # pyright: ignore[reportPrivateUsage]
-
-        mock_result = _create_mock_process_result(
-            response="Test response",
-            with_debug=True,
-        )
-
-        with patch("swealog.cli.app.FeedbackRecorder") as mock_recorder_cls:
-            mock_recorder = MagicMock()
-            mock_recorder.record_simplified.return_value = tmp_path / "feedback.json"
-            mock_recorder_cls.return_value = mock_recorder
-
-            path = _record_simplified_feedback(
-                query="test query",
-                input_type="QUERY",
-                result=mock_result,
-                user_feedback="Great!",
-                config_path=None,
-                storage_path=None,
-            )
-
-            assert path is not None
-            mock_recorder.record_simplified.assert_called_once()
-
-
 class TestUnifiedCommandFeedbackIntegration:
     """Integration tests for feedback recording in unified command."""
 
@@ -506,8 +456,8 @@ class TestUnifiedCommandFeedbackIntegration:
             result = runner.invoke(app, ["run", "--debug", "how's my progress?"])
 
             assert result.exit_code == 0
-            # Verify feedback was recorded
-            mock_recorder.record_simplified.assert_called_once()
+            # Verify feedback was recorded (uses record() with handler)
+            mock_recorder.record.assert_called_once()
 
     def test_query_flow_no_feedback_prompt_without_debug(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
@@ -538,7 +488,7 @@ class TestUnifiedCommandFeedbackIntegration:
             assert result.exit_code == 0
             # No prompt, no recording
             mock_prompt.assert_not_called()
-            mock_recorder_cls.return_value.record_simplified.assert_not_called()
+            mock_recorder_cls.return_value.record.assert_not_called()
 
     def test_log_flow_prompts_feedback_when_debug(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
@@ -568,7 +518,8 @@ class TestUnifiedCommandFeedbackIntegration:
             result = runner.invoke(app, ["run", "--debug", "bench 200x5"])
 
             assert result.exit_code == 0
-            mock_recorder.record_simplified.assert_called_once()
+            # Uses record() with handler (not record_simplified)
+            mock_recorder.record.assert_called_once()
 
 
 class TestUnifiedCommandNonInteractive:
@@ -604,8 +555,8 @@ class TestUnifiedCommandNonInteractive:
             assert result.exit_code == 0
             # No interactive prompt
             mock_prompt.assert_not_called()
-            # But feedback still recorded (with empty string)
-            mock_recorder.record_simplified.assert_called_once()
+            # But feedback still recorded with handler (uses record())
+            mock_recorder.record.assert_called_once()
 
 
 class TestUnifiedCommandVersion:
