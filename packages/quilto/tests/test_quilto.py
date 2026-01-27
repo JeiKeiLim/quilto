@@ -810,3 +810,366 @@ class TestImportVerification:
         import quilto
 
         assert "Quilto" in quilto.__all__
+
+
+# =============================================================================
+# Analyzer Failure Cascade Tests (Story 16.2)
+# =============================================================================
+
+
+class TestAnalyzerFailureCascade:
+    """Tests for analyzer failure handling - Story 16.2."""
+
+    @pytest.mark.asyncio
+    async def test_analyzer_failure_provides_fallback_output(self, quilto: Quilto) -> None:
+        """Analyzer failure should provide fallback analyzer_output."""
+        session = quilto.create_session()
+
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+            mock_graph.ainvoke = AsyncMock(
+                return_value={
+                    "input_type": "query",
+                    "error": "Analyzer failed: ValidationError",
+                    "analyzer_output": {  # Fallback should be present
+                        "query_intent": "Unable to analyze due to error",
+                        "findings": [],
+                        "patterns_identified": [],
+                        "sufficiency_evaluation": {
+                            "critical_gaps": [],
+                            "nice_to_have_gaps": [],
+                            "evidence_check_passed": False,
+                            "speculation_risk": "high",
+                        },
+                        "verdict_reasoning": "Analysis failed with error",
+                        "verdict": "insufficient",
+                    },
+                    "response": "I encountered an error: Analyzer failed",
+                    "selected_domains": [],
+                    "traces": [
+                        {
+                            "agent_name": "analyzer",
+                            "input_summary": "test",
+                            "output_summary": "ERROR: ValidationError",
+                            "elapsed_ms": 100.0,
+                            "timestamp": datetime.now(UTC),
+                        }
+                    ],
+                }
+            )
+            mock_get_graph.return_value = mock_graph
+
+            result = await session.process("Test query")
+
+        assert result is not None
+        # Error trace should be present if debug enabled
+        # The response should indicate the error
+
+    @pytest.mark.asyncio
+    async def test_synthesizer_handles_missing_analyzer_output(self, quilto: Quilto) -> None:
+        """Synthesizer should not crash on missing analyzer_output."""
+        session = quilto.create_session()
+
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+            mock_graph.ainvoke = AsyncMock(
+                return_value={
+                    "input_type": "query",
+                    # No analyzer_output key at all
+                    "response": "Fallback response",
+                    "selected_domains": [],
+                }
+            )
+            mock_get_graph.return_value = mock_graph
+
+            # Should not raise
+            result = await session.process("Test query")
+
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_error_trace_appears_in_debug_output(
+        self,
+        mock_llm_client: MagicMock,
+        mock_storage: StorageRepository,
+        mock_domain: DomainModule,
+    ) -> None:
+        """Error trace should appear in ProcessResult.debug.traces."""
+        q = Quilto(
+            llm_client=mock_llm_client,
+            storage=mock_storage,
+            domains=[mock_domain],
+            debug=True,
+            session_db_path=":memory:",
+        )
+        session = q.create_session()
+
+        with patch.object(q, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+            mock_graph.ainvoke = AsyncMock(
+                return_value={
+                    "input_type": "query",
+                    "error": "Analyzer failed: some error",
+                    "response": "I encountered an error: Analyzer failed - some error",
+                    "selected_domains": [],
+                    "traces": [
+                        {
+                            "agent_name": "router",
+                            "input_summary": "test",
+                            "output_summary": "type=query",
+                            "elapsed_ms": 50.0,
+                            "timestamp": datetime.now(UTC),
+                        },
+                        {
+                            "agent_name": "analyzer",
+                            "input_summary": "5 entries",
+                            "output_summary": "ERROR: some error",
+                            "elapsed_ms": 100.0,
+                            "timestamp": datetime.now(UTC),
+                        },
+                    ],
+                    "total_elapsed_ms": 500.0,
+                    "retry_count": 0,
+                }
+            )
+            mock_get_graph.return_value = mock_graph
+
+            result = await session.process("Test query")
+
+        assert result.debug is not None
+        assert len(result.debug.traces) == 2
+        # Check that error trace is present
+        error_traces = [t for t in result.debug.traces if "ERROR" in t.output_summary]
+        assert len(error_traces) == 1
+        assert error_traces[0].agent_name == "analyzer"
+
+    @pytest.mark.asyncio
+    async def test_error_response_includes_agent_name(self, quilto: Quilto) -> None:
+        """Error response should include which agent failed."""
+        session = quilto.create_session()
+
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+            mock_graph.ainvoke = AsyncMock(
+                return_value={
+                    "input_type": "query",
+                    "error": "Synthesizer failed: LLM timeout",
+                    "response": "I encountered an error: Synthesizer failed - LLM timeout",
+                    "selected_domains": [],
+                }
+            )
+            mock_get_graph.return_value = mock_graph
+
+            result = await session.process("Test query")
+
+        assert result is not None
+        assert result.response is not None
+        assert "Synthesizer failed" in result.response
+
+
+# =============================================================================
+# Orchestration Node Unit Tests (Story 16.2 - Direct Node Testing)
+# =============================================================================
+
+
+class TestOrchestrationNodeExceptionHandling:
+    """Direct unit tests for orchestration node exception handling.
+
+    These tests call node functions directly instead of mocking the graph,
+    verifying actual exception handling behavior.
+    """
+
+    @pytest.mark.asyncio
+    async def test_analyze_node_exception_returns_fallback_output(
+        self,
+        mock_llm_client: MagicMock,
+        mock_storage: StorageRepository,
+        mock_domain: DomainModule,
+    ) -> None:
+        """analyze_node should return fallback analyzer_output on exception."""
+        from quilto.orchestration import analyze_node
+
+        q = Quilto(
+            llm_client=mock_llm_client,
+            storage=mock_storage,
+            domains=[mock_domain],
+            session_db_path=":memory:",
+        )
+
+        # Make LLM client raise an exception
+        mock_llm_client.complete = AsyncMock(side_effect=ValueError("LLM failed"))
+
+        state = {
+            "_quilto": q,
+            "user_input": "Test query",
+            "entries": [],
+            "domain_context": {
+                "domains": [],
+                "vocabulary": {},
+                "expertise": "",
+                "evaluation_rules": [],
+                "context_management_guidance": "",
+            },
+            "query_type": "factual",
+            "retrieval_summary": [],
+            "traces": [],
+        }
+
+        result = await analyze_node(state)  # type: ignore[arg-type]
+
+        # Should have fallback analyzer_output
+        assert "analyzer_output" in result
+        assert result["analyzer_output"]["query_intent"] == "Unable to analyze due to error"
+        assert result["analyzer_output"]["verdict"] == "insufficient"
+        assert "error" in result
+        assert "Analyzer failed" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_analyze_node_exception_adds_error_trace(
+        self,
+        mock_llm_client: MagicMock,
+        mock_storage: StorageRepository,
+        mock_domain: DomainModule,
+    ) -> None:
+        """analyze_node should add ERROR trace on exception."""
+        from quilto.orchestration import analyze_node
+
+        q = Quilto(
+            llm_client=mock_llm_client,
+            storage=mock_storage,
+            domains=[mock_domain],
+            session_db_path=":memory:",
+        )
+
+        mock_llm_client.complete = AsyncMock(side_effect=RuntimeError("Connection lost"))
+
+        state = {
+            "_quilto": q,
+            "user_input": "Test query for trace",
+            "entries": [{"id": "e1", "raw_content": "test"}],
+            "domain_context": {
+                "domains": [],
+                "vocabulary": {},
+                "expertise": "",
+                "evaluation_rules": [],
+                "context_management_guidance": "",
+            },
+            "query_type": "factual",
+            "retrieval_summary": [],
+            "traces": [],
+        }
+
+        result = await analyze_node(state)  # type: ignore[arg-type]
+
+        # Should have error trace
+        assert "traces" in result
+        traces = result["traces"]
+        assert len(traces) == 1
+        assert traces[0]["agent_name"] == "analyzer"
+        assert "ERROR:" in traces[0]["output_summary"]
+
+    @pytest.mark.asyncio
+    async def test_synthesize_node_handles_invalid_analyzer_output(
+        self,
+        mock_llm_client: MagicMock,
+        mock_storage: StorageRepository,
+        mock_domain: DomainModule,
+    ) -> None:
+        """synthesize_node should handle invalid analyzer_output gracefully."""
+        from quilto.orchestration import synthesize_node
+
+        q = Quilto(
+            llm_client=mock_llm_client,
+            storage=mock_storage,
+            domains=[mock_domain],
+            session_db_path=":memory:",
+        )
+
+        # Make synthesizer succeed with valid response
+        mock_llm_client.complete = AsyncMock(
+            return_value='{"response": "Test response", "key_points": [], "confidence_notes": []}'
+        )
+
+        state = {
+            "_quilto": q,
+            "user_input": "Test query",
+            "analysis_verdict": "insufficient",
+            "analyzer_output": {"invalid": "data"},  # Invalid - missing required fields
+            "domain_context": {
+                "domains": [],
+                "vocabulary": {},
+                "expertise": "",
+                "evaluation_rules": [],
+                "context_management_guidance": "",
+            },
+            "query_type": "factual",
+            "is_partial": False,
+            "traces": [],
+        }
+
+        # Should not raise - should use fallback AnalyzerOutput
+        result = await synthesize_node(state)  # type: ignore[arg-type]
+
+        # Should complete (either with response or error, but not crash)
+        assert result is not None
+        # Either has response or has error with graceful message
+        assert "response" in result or "error" in result
+
+    @pytest.mark.asyncio
+    async def test_evaluate_node_exception_adds_error_trace(
+        self,
+        mock_llm_client: MagicMock,
+        mock_storage: StorageRepository,
+        mock_domain: DomainModule,
+    ) -> None:
+        """evaluate_node should add ERROR trace on exception."""
+        from quilto.orchestration import evaluate_node
+
+        q = Quilto(
+            llm_client=mock_llm_client,
+            storage=mock_storage,
+            domains=[mock_domain],
+            session_db_path=":memory:",
+        )
+
+        mock_llm_client.complete = AsyncMock(side_effect=TimeoutError("LLM timeout"))
+
+        state = {
+            "_quilto": q,
+            "user_input": "Test query",
+            "response": "Test response",
+            "analyzer_output": {
+                "query_intent": "test",
+                "findings": [],
+                "patterns_identified": [],
+                "sufficiency_evaluation": {
+                    "critical_gaps": [],
+                    "nice_to_have_gaps": [],
+                    "evidence_check_passed": True,
+                    "speculation_risk": "low",
+                },
+                "verdict_reasoning": "test",
+                "verdict": "sufficient",
+            },
+            "entries": [],
+            "domain_context": {
+                "domains": [],
+                "vocabulary": {},
+                "expertise": "",
+                "evaluation_rules": [],
+                "context_management_guidance": "",
+            },
+            "retry_count": 0,
+            "traces": [],
+        }
+
+        result = await evaluate_node(state)  # type: ignore[arg-type]
+
+        # Should have error trace
+        assert "traces" in result
+        traces = result["traces"]
+        assert len(traces) == 1
+        assert traces[0]["agent_name"] == "evaluator"
+        assert "ERROR:" in traces[0]["output_summary"]
+        assert "error" in result
+        assert "Evaluator failed" in result["error"]

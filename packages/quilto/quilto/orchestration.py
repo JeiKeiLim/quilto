@@ -9,6 +9,7 @@ Quilto agents through the processing flows:
 """
 
 import inspect
+import logging
 import time
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal, TypedDict
@@ -45,6 +46,8 @@ from quilto.storage import GlobalContextManager
 
 if TYPE_CHECKING:
     from quilto.quilto import Quilto
+
+logger = logging.getLogger(__name__)
 
 
 # Confidence score constants
@@ -483,7 +486,7 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
         Updated state with analyzer output.
     """
     quilto: Quilto = state["_quilto"]
-    user_input = state["user_input"]
+    user_input: str = state["user_input"]
 
     await _call_progress_handler(quilto, "on_stage", "analyzing")
 
@@ -525,10 +528,28 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
         }
     except Exception as e:
         elapsed = (time.perf_counter() - start) * 1000
+        logger.exception("analyze_node failed for query: %s", user_input[:50])
         await _call_progress_handler(quilto, "on_agent_complete", "analyzer", elapsed / 1000, {})
+
+        fallback_output = {
+            "query_intent": "Unable to analyze due to error",
+            "findings": [],
+            "patterns_identified": [],
+            "sufficiency_evaluation": {
+                "critical_gaps": [],
+                "nice_to_have_gaps": [],
+                "evidence_check_passed": False,
+                "speculation_risk": "high",
+            },
+            "verdict_reasoning": f"Analysis failed with error: {e!s}",
+            "verdict": "insufficient",
+        }
+
         return {
             "error": f"Analyzer failed: {e!s}",
             "analysis_verdict": "insufficient",
+            "analyzer_output": fallback_output,
+            "traces": _add_trace(state, "analyzer", f"{len(entries)} entries", f"ERROR: {e!s}", elapsed),
         }
 
 
@@ -542,7 +563,7 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
         Updated state with synthesizer output.
     """
     quilto: Quilto = state["_quilto"]
-    user_input = state["user_input"]
+    user_input: str = state["user_input"]
 
     await _call_progress_handler(quilto, "on_stage", "synthesizing")
 
@@ -551,14 +572,31 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
     await _call_progress_handler(quilto, "on_agent_start", "synthesizer", f"verdict={verdict}")
 
     try:
-        from quilto.agents.models import ActiveDomainContext
+        from quilto.agents.models import ActiveDomainContext, SufficiencyEvaluation
 
         domain_context_dict = state.get("domain_context", {})
         domain_context = ActiveDomainContext.model_validate(domain_context_dict)
 
-        # Reconstruct AnalyzerOutput
+        # Reconstruct AnalyzerOutput with defensive validation
         analyzer_output_dict = state.get("analyzer_output", {})
-        analyzer_output = AnalyzerOutput.model_validate(analyzer_output_dict)
+        try:
+            analyzer_output = AnalyzerOutput.model_validate(analyzer_output_dict)
+        except Exception as validation_err:
+            logger.warning("Invalid analyzer_output, using minimal fallback: %s", validation_err)
+            # Create minimal valid AnalyzerOutput for synthesizer
+            analyzer_output = AnalyzerOutput(
+                query_intent="Analysis unavailable",
+                findings=[],
+                patterns_identified=[],
+                sufficiency_evaluation=SufficiencyEvaluation(
+                    critical_gaps=[],
+                    nice_to_have_gaps=[],
+                    evidence_check_passed=False,
+                    speculation_risk="high",
+                ),
+                verdict_reasoning="Analyzer output invalid or missing",
+                verdict=Verdict.INSUFFICIENT,
+            )
 
         query_type = state.get("query_type", "factual")
         is_partial = state.get("is_partial", False)
@@ -588,10 +626,14 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
         }
     except Exception as e:
         elapsed = (time.perf_counter() - start) * 1000
+        logger.exception("synthesize_node failed for query: %s", user_input[:50])
         await _call_progress_handler(quilto, "on_agent_complete", "synthesizer", elapsed / 1000, {})
+        # Sanitize error message (first line only)
+        error_msg = str(e).split("\n")[0]
         return {
             "error": f"Synthesizer failed: {e!s}",
-            "response": "I encountered an error generating a response.",
+            "response": f"I encountered an error: Synthesizer failed - {error_msg}",
+            "traces": _add_trace(state, "synthesizer", f"verdict={verdict}", f"ERROR: {e!s}", elapsed),
         }
 
 
@@ -605,7 +647,7 @@ async def evaluate_node(state: QuiltoState) -> dict[str, Any]:
         Updated state with evaluator output.
     """
     quilto: Quilto = state["_quilto"]
-    user_input = state["user_input"]
+    user_input: str = state["user_input"]
 
     await _call_progress_handler(quilto, "on_stage", "evaluating")
 
@@ -663,11 +705,13 @@ async def evaluate_node(state: QuiltoState) -> dict[str, Any]:
         }
     except Exception as e:
         elapsed = (time.perf_counter() - start) * 1000
+        logger.exception("evaluate_node failed for query: %s", user_input[:50])
         await _call_progress_handler(quilto, "on_agent_complete", "evaluator", elapsed / 1000, {})
         return {
             "error": f"Evaluator failed: {e!s}",
             "eval_verdict": "insufficient",
             "confidence": 0.5,
+            "traces": _add_trace(state, "evaluator", f"attempt={retry_count + 1}", f"ERROR: {e!s}", elapsed),
         }
 
 
@@ -886,11 +930,9 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
         }
     except Exception as e:
         # Observer failures are non-fatal but should be logged for debugging
-        import logging
-
         elapsed = (time.perf_counter() - start) * 1000
         await _call_progress_handler(quilto, "on_agent_complete", "observer", elapsed / 1000, {})
-        logging.getLogger(__name__).warning("observe_node failed: %s", e)
+        logger.warning("observe_node failed: %s", e)
         return {}
 
 
