@@ -11,8 +11,9 @@ workflowType: 'architecture'
 project_name: 'swealog'
 user_name: 'Jongkuk Lim'
 date: '2026-01-02'
-status: 'in-progress'
-next_action: 'Complete Agent System Design (see agent-system-design.md)'
+last_updated: '2026-01-27'
+status: 'complete'
+next_action: 'Create implementation epic for Quilto public API'
 ---
 
 # Architecture Decision Document
@@ -200,6 +201,78 @@ The agent system design revealed significant complexity requiring a framework:
 
 See: `_bmad-output/planning-artifacts/agent-system-design.md` (Sections 14-15)
 
+### Quilto Public API (Orchestration)
+
+**Status: DECIDED**
+
+Quilto provides a single entry point for applications. Internal orchestration uses LangGraph; apps interact via clean public API.
+
+See: `_bmad-output/planning-artifacts/quilto-api-design-session.md` (full design session)
+
+**Entry Point:**
+```python
+from quilto import Quilto, LLMClient, StorageRepository
+
+llm_client = LLMClient(config_path="./llm.yaml")
+storage = StorageRepository(base_path="./logs")
+
+q = Quilto(
+    llm_client=llm_client,
+    storage=storage,
+    domains=[FitnessDomain()],
+    progress_handler=MyUIHandler(),  # Optional
+    debug=False,                      # Optional
+)
+```
+
+**Session-based Conversation:**
+```python
+session = q.create_session()
+result = await session.process("How was my workout?")  # Auto-detects LOG/QUERY
+result = await session.process("The bench press one")  # Clarification answer
+result = await session.process("Why was Wednesday harder?")  # Follow-up
+```
+
+**Key Design Decisions:**
+
+| Decision | Choice |
+|----------|--------|
+| Entry point | `Quilto` class |
+| Main method | `session.process()` with auto-detect (LOG/QUERY/CORRECTION) |
+| Configuration | Flat constructor; accepts `LLMClient`, `StorageRepository` instances |
+| Progress callbacks | `ProgressHandler` protocol (async methods) |
+| Customization | Closed orchestration - apps configure via DomainModules + config flags |
+| Return type | `ProcessResult` (Pydantic BaseModel) |
+| Sessions | SQLite-backed via `SessionStore` abstraction |
+| Conversation history | Full history with 20-turn limit (first + last N-1) |
+| Clarification | LLM interprets answers (handles "1", "one", "하나", etc.) |
+
+**Session Storage Architecture:**
+```
+SessionManager
+└── SessionStore (Protocol)
+    ├── SQLiteSessionStore (default)
+    ├── PostgresSessionStore (future)
+    └── InMemorySessionStore (testing)
+```
+
+**Package Structure:**
+```
+quilto/
+├── agents/           # Individual agents
+├── llm/              # LLM client abstraction
+├── state/            # Observer triggers
+├── storage/          # Storage abstraction
+├── session/          # NEW: Session management
+│   ├── manager.py    # SessionManager
+│   ├── session.py    # Session class
+│   ├── models.py     # SessionData, ConversationTurn
+│   └── stores/       # SessionStore implementations
+├── quilto.py         # NEW: Quilto class (public entry point)
+├── models.py         # NEW: ProcessResult, ClarificationQuestion
+└── handlers.py       # NEW: ProgressHandler protocol
+```
+
 ### LLM Client Abstraction
 
 **Status: DECIDED - Tiered Configuration**
@@ -216,13 +289,15 @@ See: `_bmad-output/planning-artifacts/agent-system-design.md` (Section 15)
 
 ## Next Steps
 
-1. **Phase 4: Integration Design**
-   - How agents interact with storage layer
-   - How CLI/API triggers agent flows
-   - Error handling and recovery
+1. **Create Implementation Epic** - Stories for Quilto public API
+   - `quilto/models.py` - ProcessResult, ClarificationQuestion
+   - `quilto/handlers.py` - ProgressHandler protocol
+   - `quilto/session/` - Session, SessionManager, SQLiteSessionStore
+   - `quilto/quilto.py` - Quilto class with LangGraph orchestration
 
-2. **Implementation**
-   - Set up project skeleton with LangGraph + LiteLLM
-   - Build core loop first (PLAN → RETRIEVE → ANALYZE → SYNTHESIZE → EVALUATE)
-   - Add remaining agents incrementally
+2. **Migrate Swealog** - Replace manual agent wiring with `Quilto` usage
+   - Remove ~400 lines from `swealog/api/routes/query.py`
+   - Use `q = Quilto(...); session.process(...)` pattern
+
+3. **Verify Observer** - Confirm `logs/logs/context/` gets populated after migration
 

@@ -191,16 +191,32 @@ development_status:
   epic-13-retrospective: done
 
   # Epic 14: Dogfooding Iteration 4
-  # Reconciled from auto-analysis + human review (2026-01-26)
-  # Source: tests/eval/feedback/archive/iter-003/analysis.md + human-review-iter-003.md
-  # Human Review Findings: Auto=81% positive, Human=50% correct, 25% false positives
-  # NEW Pattern 17 (CRITICAL): Planner skips retrieval for personalization queries
+  # SKIPPED (2026-01-27): Epic 15 restructures orchestration entirely.
+  # Fixing issues in old architecture (query.py manual wiring) would be wasted effort.
+  # Do fresh dogfooding iteration after Epic 15 completes on new Quilto API.
+  # Original issues preserved below for reference when creating post-Epic-15 dogfooding.
+  #
+  # Original source: tests/eval/feedback/archive/iter-003/analysis.md + human-review-iter-003.md
+  # Pattern 17 (CRITICAL): Planner skips retrieval for personalization queries
   # Pattern 7 (Temporal Blindness) partially persists
-  epic-14: backlog
-  14-1-enforce-planner-retrieval-for-personalization: backlog  # CRITICAL - must try retrieval before clarify/synthesize
-  14-2-pass-goal-context-to-synthesizer: backlog  # High priority - goal from log_portion should flow to response
-  14-3-match-response-language-to-query: backlog  # Medium priority - synthesizer matches query language
-  14-4-fix-evaluator-completeness-check: backlog  # Low priority - don't flag missing entries for empty dates
-  14-5-clarify-ambiguous-fitness-terms: backlog  # Optional - handle semantic ambiguity in terms like "leg day"
-  14-6-analyze-feedback-dataset-iter-4: backlog  # Analysis story for next iteration
-  epic-14-retrospective: optional
+  epic-14: skipped
+  14-1-enforce-planner-retrieval-for-personalization: skipped
+  14-2-pass-goal-context-to-synthesizer: skipped
+  14-3-match-response-language-to-query: skipped
+  14-4-fix-evaluator-completeness-check: skipped
+  14-5-clarify-ambiguous-fitness-terms: skipped
+  14-6-analyze-feedback-dataset-iter-4: skipped
+  epic-14-retrospective: skipped
+
+  # Epic 15: Quilto Public API
+  # Source: _bmad-output/planning-artifacts/quilto-api-design-session.md
+  # CRITICAL: Provides single entry point for Quilto framework, enables Observer auto-invocation
+  # Internal orchestration uses LangGraph; apps interact via clean Quilto class
+  epic-15: backlog
+  15-1-create-quilto-models: backlog  # ProcessResult, ClarificationQuestion, ProgressHandler
+  15-2-implement-session-management: backlog  # Session, SessionManager, SQLiteSessionStore
+  15-3-implement-quilto-class: backlog  # CRITICAL - Quilto class with LangGraph orchestration
+  15-4-migrate-swealog-to-quilto-api: backlog  # Replace ~400 lines manual wiring with Quilto API
+  15-5-verify-observer-integration: backlog  # Verify logs/logs/context/ gets populated
+  15-6-analyze-feedback-dataset-post-migration: backlog  # Fresh dogfooding on new architecture, generates Epic 16
+  epic-15-retrospective: optional
