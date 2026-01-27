@@ -13,6 +13,7 @@ from quilto.agents import (
 from quilto.domain import DomainModule
 from quilto.domain_selector import DomainSelector
 from quilto.flow import CorrectionResult, process_correction
+from quilto.handlers import ProgressHandler
 from quilto.llm import (
     AgentConfig,
     LLMClient,
@@ -22,6 +23,12 @@ from quilto.llm import (
     TierModels,
     load_llm_config,
     load_llm_config_from_dict,
+)
+from quilto.models import (
+    AgentTrace,
+    ClarificationQuestion,
+    ProcessDebug,
+    ProcessResult,
 )
 from quilto.state import (
     ObserverTriggerConfig,
@@ -43,6 +50,8 @@ __version__ = "0.1.0"
 
 __all__ = [
     "AgentConfig",
+    "AgentTrace",
+    "ClarificationQuestion",
     "CorrectionResult",
     "DateRange",
     "DomainInfo",
@@ -57,6 +66,9 @@ __all__ = [
     "ParserAgent",
     "ParserInput",
     "ParserOutput",
+    "ProcessDebug",
+    "ProcessResult",
+    "ProgressHandler",
     "ProviderConfig",
     "RouterAgent",
     "RouterInput",

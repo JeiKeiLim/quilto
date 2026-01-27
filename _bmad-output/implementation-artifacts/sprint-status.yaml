@@ -212,8 +212,8 @@ development_status:
   # Source: _bmad-output/planning-artifacts/quilto-api-design-session.md
   # CRITICAL: Provides single entry point for Quilto framework, enables Observer auto-invocation
   # Internal orchestration uses LangGraph; apps interact via clean Quilto class
-  epic-15: backlog
-  15-1-create-quilto-models: backlog  # ProcessResult, ClarificationQuestion, ProgressHandler
+  epic-15: in-progress
+  15-1-create-quilto-models: done  # ProcessResult, ClarificationQuestion, ProgressHandler
   15-2-implement-session-management: backlog  # Session, SessionManager, SQLiteSessionStore
   15-3-implement-quilto-class: backlog  # CRITICAL - Quilto class with LangGraph orchestration
   15-4-migrate-swealog-to-quilto-api: backlog  # Replace ~400 lines manual wiring with Quilto API
