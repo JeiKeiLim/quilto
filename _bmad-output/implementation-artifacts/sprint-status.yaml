@@ -250,7 +250,7 @@ development_status:
   epic-17: in-progress
   # --- Phase 1: Critical (Block Query Flow) ---
   17-1-query-flow-investigation: done  # CRITICAL - Investigation complete, root causes documented
-  17-2-remove-storage-path-doubling: backlog  # CRITICAL - StorageRepository adds /logs/ internally
+  17-2-remove-storage-path-doubling: done  # CRITICAL - StorageRepository adds /logs/ internally (code-reviewed 2026-01-28)
   17-3-remove-strict-true-from-models: backlog  # CRITICAL - LangGraph serializes enums to strings
   # --- Phase 2: High (Stability) ---
   17-4-fix-eval-feedback-type-vulnerability: backlog  # HIGH - eval_feedback[0] on string returns char

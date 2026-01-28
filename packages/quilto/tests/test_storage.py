@@ -44,16 +44,16 @@ class TestStorageRepositoryInit:
         """Test that initialization creates required directory structure."""
         repo = StorageRepository(tmp_path)
 
-        assert (tmp_path / "logs" / "raw").exists()
-        assert (tmp_path / "logs" / "parsed").exists()
-        assert (tmp_path / "logs" / "context").exists()
+        assert (tmp_path / "raw").exists()
+        assert (tmp_path / "parsed").exists()
+        assert (tmp_path / "context").exists()
         assert repo.base_path == tmp_path
 
     def test_init_with_existing_directories(self, tmp_path: Path) -> None:
         """Test initialization doesn't fail when directories already exist."""
-        (tmp_path / "logs" / "raw").mkdir(parents=True)
-        (tmp_path / "logs" / "parsed").mkdir(parents=True)
-        (tmp_path / "logs" / "context").mkdir(parents=True)
+        (tmp_path / "raw").mkdir(parents=True)
+        (tmp_path / "parsed").mkdir(parents=True)
+        (tmp_path / "context").mkdir(parents=True)
 
         repo = StorageRepository(tmp_path)
         assert repo.base_path == tmp_path
@@ -141,7 +141,7 @@ class TestGetEntriesByDateRange:
         repo = StorageRepository(tmp_path)
 
         # Create raw file
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         raw_file = raw_dir / "2026-01-01.md"
         raw_file.write_text("## 10:30\nFirst entry\n\n## 14:00\nSecond entry\n")
@@ -158,7 +158,7 @@ class TestGetEntriesByDateRange:
         repo = StorageRepository(tmp_path)
 
         # Create raw files for two days
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
 
         (raw_dir / "2026-01-01.md").write_text("## 10:30\nDay 1 entry\n")
@@ -175,12 +175,12 @@ class TestGetEntriesByDateRange:
         repo = StorageRepository(tmp_path)
 
         # Create raw file
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         (raw_dir / "2026-01-01.md").write_text("## 10:30\nBench press 185\n")
 
         # Create parsed file
-        parsed_dir = tmp_path / "logs" / "parsed" / "2026" / "01"
+        parsed_dir = tmp_path / "parsed" / "2026" / "01"
         parsed_dir.mkdir(parents=True)
         parsed_data = {"2026-01-01_10-30-00": {"exercise": "bench press", "weight": 185}}
         (parsed_dir / "2026-01-01.json").write_text(json.dumps(parsed_data))
@@ -199,8 +199,8 @@ class TestGetEntriesByPattern:
         repo = StorageRepository(tmp_path)
 
         # Create files in two months
-        jan_dir = tmp_path / "logs" / "raw" / "2026" / "01"
-        feb_dir = tmp_path / "logs" / "raw" / "2026" / "02"
+        jan_dir = tmp_path / "raw" / "2026" / "01"
+        feb_dir = tmp_path / "raw" / "2026" / "02"
         jan_dir.mkdir(parents=True)
         feb_dir.mkdir(parents=True)
 
@@ -217,8 +217,8 @@ class TestGetEntriesByPattern:
         repo = StorageRepository(tmp_path)
 
         # Create files in different years
-        dir_2025 = tmp_path / "logs" / "raw" / "2025" / "12"
-        dir_2026 = tmp_path / "logs" / "raw" / "2026" / "01"
+        dir_2025 = tmp_path / "raw" / "2025" / "12"
+        dir_2026 = tmp_path / "raw" / "2026" / "01"
         dir_2025.mkdir(parents=True)
         dir_2026.mkdir(parents=True)
 
@@ -243,7 +243,7 @@ class TestSearchEntries:
         """Test searching with a single keyword."""
         repo = StorageRepository(tmp_path)
 
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         (raw_dir / "2026-01-01.md").write_text("## 10:00\nBench press 185\n\n## 11:00\nSquat 200\n")
 
@@ -256,7 +256,7 @@ class TestSearchEntries:
         """Test AND logic with match_all=True."""
         repo = StorageRepository(tmp_path)
 
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         (raw_dir / "2026-01-01.md").write_text("## 10:00\nBench press 185\n\n## 11:00\nBench and squat workout\n")
 
@@ -270,7 +270,7 @@ class TestSearchEntries:
         """Test OR logic with match_all=False."""
         repo = StorageRepository(tmp_path)
 
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         (raw_dir / "2026-01-01.md").write_text("## 10:00\nBench press 185\n\n## 11:00\nSquat 200\n")
 
@@ -282,7 +282,7 @@ class TestSearchEntries:
         """Test that search is case-insensitive."""
         repo = StorageRepository(tmp_path)
 
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         (raw_dir / "2026-01-01.md").write_text("## 10:00\nBENCH PRESS workout\n")
 
@@ -294,7 +294,7 @@ class TestSearchEntries:
         """Test search with date_range parameter."""
         repo = StorageRepository(tmp_path)
 
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         (raw_dir / "2026-01-01.md").write_text("## 10:00\nBench press\n")
         (raw_dir / "2026-01-15.md").write_text("## 10:00\nBench press again\n")
@@ -309,7 +309,7 @@ class TestSearchEntries:
         """Test search with no matches."""
         repo = StorageRepository(tmp_path)
 
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         (raw_dir / "2026-01-01.md").write_text("## 10:00\nBench press 185\n")
 
@@ -336,14 +336,14 @@ class TestSaveEntry:
         repo.save_entry(entry)
 
         # Check raw file
-        raw_path = tmp_path / "logs" / "raw" / "2026" / "01" / "2026-01-01.md"
+        raw_path = tmp_path / "raw" / "2026" / "01" / "2026-01-01.md"
         assert raw_path.exists()
         content = raw_path.read_text()
         assert "## 10:30" in content
         assert "Bench press 185 lbs" in content
 
         # Check parsed file
-        parsed_path = tmp_path / "logs" / "parsed" / "2026" / "01" / "2026-01-01.json"
+        parsed_path = tmp_path / "parsed" / "2026" / "01" / "2026-01-01.json"
         assert parsed_path.exists()
         parsed_data = json.loads(parsed_path.read_text())
         assert "2026-01-01_10-30-00" in parsed_data
@@ -370,7 +370,7 @@ class TestSaveEntry:
         )
         repo.save_entry(entry2)
 
-        raw_path = tmp_path / "logs" / "raw" / "2026" / "01" / "2026-01-01.md"
+        raw_path = tmp_path / "raw" / "2026" / "01" / "2026-01-01.md"
         content = raw_path.read_text()
 
         assert "## 10:30" in content
@@ -390,7 +390,7 @@ class TestSaveEntry:
         )
         repo.save_entry(entry)
 
-        parsed_path = tmp_path / "logs" / "parsed" / "2026" / "01" / "2026-01-01.json"
+        parsed_path = tmp_path / "parsed" / "2026" / "01" / "2026-01-01.json"
         assert not parsed_path.exists()
 
 
@@ -426,12 +426,12 @@ class TestCorrections:
         repo.save_entry(correction_entry, correction=correction)
 
         # Check raw file has correction marker
-        raw_path = tmp_path / "logs" / "raw" / "2026" / "01" / "2026-01-01.md"
+        raw_path = tmp_path / "raw" / "2026" / "01" / "2026-01-01.md"
         content = raw_path.read_text()
         assert "[correction]" in content
 
         # Check parsed data was updated
-        parsed_path = tmp_path / "logs" / "parsed" / "2026" / "01" / "2026-01-01.json"
+        parsed_path = tmp_path / "parsed" / "2026" / "01" / "2026-01-01.json"
         parsed = json.loads(parsed_path.read_text())
         assert parsed["2026-01-01_10-30-00"]["weight"] == 185
 
@@ -440,7 +440,7 @@ class TestCorrections:
         repo = StorageRepository(tmp_path)
 
         # Create raw file manually (no save_entry)
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         (raw_dir / "2026-01-01.md").write_text("## 10:30\nOriginal content\n")
 
@@ -458,7 +458,7 @@ class TestCorrections:
         )
         repo.save_entry(correction_entry, correction=correction)
 
-        parsed_path = tmp_path / "logs" / "parsed" / "2026" / "01" / "2026-01-01.json"
+        parsed_path = tmp_path / "parsed" / "2026" / "01" / "2026-01-01.json"
         parsed = json.loads(parsed_path.read_text())
         assert parsed["2026-01-01_10-30-00"]["weight"] == 185
 
@@ -497,7 +497,7 @@ class TestGlobalContext:
         repo = StorageRepository(tmp_path)
         repo.update_global_context("Test content")
 
-        context_path = tmp_path / "logs" / "context" / "global.md"
+        context_path = tmp_path / "context" / "global.md"
         assert context_path.exists()
         assert context_path.read_text() == "Test content"
 
@@ -525,8 +525,8 @@ class TestEdgeCases:
         repo = StorageRepository(tmp_path)
 
         # Create files in two years
-        dec_dir = tmp_path / "logs" / "raw" / "2025" / "12"
-        jan_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        dec_dir = tmp_path / "raw" / "2025" / "12"
+        jan_dir = tmp_path / "raw" / "2026" / "01"
         dec_dir.mkdir(parents=True)
         jan_dir.mkdir(parents=True)
 
@@ -544,8 +544,8 @@ class TestEdgeCases:
         repo = StorageRepository(tmp_path)
 
         # Create files in two months
-        jan_dir = tmp_path / "logs" / "raw" / "2026" / "01"
-        feb_dir = tmp_path / "logs" / "raw" / "2026" / "02"
+        jan_dir = tmp_path / "raw" / "2026" / "01"
+        feb_dir = tmp_path / "raw" / "2026" / "02"
         jan_dir.mkdir(parents=True)
         feb_dir.mkdir(parents=True)
 
@@ -562,7 +562,7 @@ class TestEdgeCases:
         """Test that sections with empty content are skipped."""
         repo = StorageRepository(tmp_path)
 
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         # Second section has only whitespace
         (raw_dir / "2026-01-01.md").write_text("## 10:00\nActual content\n\n## 11:00\n   \n\n## 12:00\nAnother entry\n")
@@ -578,7 +578,7 @@ class TestEdgeCases:
         """Test that pattern retrieval handles correction entries."""
         repo = StorageRepository(tmp_path)
 
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         (raw_dir / "2026-01-01.md").write_text("## 10:00\nOriginal entry\n\n## 10:30 [correction]\nCorrected entry\n")
 
@@ -593,12 +593,12 @@ class TestEdgeCases:
         repo = StorageRepository(tmp_path)
 
         # Create raw file
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         (raw_dir / "2026-01-01.md").write_text("## 10:30\nTest entry\n")
 
         # Create corrupted parsed file
-        parsed_dir = tmp_path / "logs" / "parsed" / "2026" / "01"
+        parsed_dir = tmp_path / "parsed" / "2026" / "01"
         parsed_dir.mkdir(parents=True)
         (parsed_dir / "2026-01-01.json").write_text("not valid json{")
 
@@ -611,7 +611,7 @@ class TestEdgeCases:
         """Test entry IDs are generated correctly."""
         repo = StorageRepository(tmp_path)
 
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         (raw_dir / "2026-01-01.md").write_text("## 08:05\nEarly morning entry\n")
 
@@ -677,7 +677,7 @@ class TestStorageSummary:
         repo = StorageRepository(tmp_path)
 
         # Create raw file with 2 entries
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         (raw_dir / "2026-01-15.md").write_text("## 10:00\nFirst entry\n\n## 14:00\nSecond entry\n")
 
@@ -692,7 +692,7 @@ class TestStorageSummary:
         """Test get_storage_summary() with multiple days of logs."""
         repo = StorageRepository(tmp_path)
 
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         (raw_dir / "2026-01-01.md").write_text("## 10:00\nEntry 1\n")
         (raw_dir / "2026-01-15.md").write_text("## 10:00\nEntry 2\n\n## 14:00\nEntry 3\n")
@@ -710,8 +710,8 @@ class TestStorageSummary:
         repo = StorageRepository(tmp_path)
 
         # Create files in January and February
-        jan_dir = tmp_path / "logs" / "raw" / "2026" / "01"
-        feb_dir = tmp_path / "logs" / "raw" / "2026" / "02"
+        jan_dir = tmp_path / "raw" / "2026" / "01"
+        feb_dir = tmp_path / "raw" / "2026" / "02"
         jan_dir.mkdir(parents=True)
         feb_dir.mkdir(parents=True)
 
@@ -729,8 +729,8 @@ class TestStorageSummary:
         """Test get_storage_summary() with logs spanning multiple years."""
         repo = StorageRepository(tmp_path)
 
-        dec_dir = tmp_path / "logs" / "raw" / "2025" / "12"
-        jan_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        dec_dir = tmp_path / "raw" / "2025" / "12"
+        jan_dir = tmp_path / "raw" / "2026" / "01"
         dec_dir.mkdir(parents=True)
         jan_dir.mkdir(parents=True)
 
@@ -748,7 +748,7 @@ class TestStorageSummary:
         """Test get_storage_summary() ignores files with invalid date filenames."""
         repo = StorageRepository(tmp_path)
 
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True)
         (raw_dir / "2026-01-15.md").write_text("## 10:00\nValid entry\n")
         (raw_dir / "invalid-filename.md").write_text("## 10:00\nInvalid entry\n")
@@ -766,8 +766,8 @@ class TestStorageSummary:
         repo = StorageRepository(tmp_path)
 
         # Create entries only in January and March (gap in February)
-        jan_dir = tmp_path / "logs" / "raw" / "2026" / "01"
-        mar_dir = tmp_path / "logs" / "raw" / "2026" / "03"
+        jan_dir = tmp_path / "raw" / "2026" / "01"
+        mar_dir = tmp_path / "raw" / "2026" / "03"
         jan_dir.mkdir(parents=True)
         mar_dir.mkdir(parents=True)
 

@@ -20,7 +20,7 @@ class StorageRepository:
     file structure with separate raw markdown and parsed JSON files.
 
     Directory Structure:
-        {base_path}/logs/
+        {base_path}/
         ├── raw/{YYYY}/{MM}/{YYYY-MM-DD}.md      # Human + agent readable
         ├── parsed/{YYYY}/{MM}/{YYYY-MM-DD}.json  # App consumption
         └── context/global.md                     # Observer's global context
@@ -45,9 +45,9 @@ class StorageRepository:
 
     def _ensure_directories(self) -> None:
         """Create required directory structure if it doesn't exist."""
-        (self.base_path / "logs" / "raw").mkdir(parents=True, exist_ok=True)
-        (self.base_path / "logs" / "parsed").mkdir(parents=True, exist_ok=True)
-        (self.base_path / "logs" / "context").mkdir(parents=True, exist_ok=True)
+        (self.base_path / "raw").mkdir(parents=True, exist_ok=True)
+        (self.base_path / "parsed").mkdir(parents=True, exist_ok=True)
+        (self.base_path / "context").mkdir(parents=True, exist_ok=True)
 
     def _get_raw_path(self, entry_date: date) -> Path:
         """Get the path for a raw markdown file for a given date.
@@ -59,12 +59,7 @@ class StorageRepository:
             Path to the raw markdown file.
         """
         return (
-            self.base_path
-            / "logs"
-            / "raw"
-            / str(entry_date.year)
-            / f"{entry_date.month:02d}"
-            / f"{entry_date.isoformat()}.md"
+            self.base_path / "raw" / str(entry_date.year) / f"{entry_date.month:02d}" / f"{entry_date.isoformat()}.md"
         )
 
     def _get_parsed_path(self, entry_date: date) -> Path:
@@ -78,7 +73,6 @@ class StorageRepository:
         """
         return (
             self.base_path
-            / "logs"
             / "parsed"
             / str(entry_date.year)
             / f"{entry_date.month:02d}"
@@ -207,7 +201,7 @@ class StorageRepository:
         Returns:
             List of Entry objects from matching files.
         """
-        raw_base = self.base_path / "logs" / "raw"
+        raw_base = self.base_path / "raw"
         entries: list[Entry] = []
 
         for file_path in raw_base.glob(pattern):
@@ -368,7 +362,7 @@ class StorageRepository:
         Returns:
             Content of logs/context/global.md, or empty string if not found.
         """
-        context_path = self.base_path / "logs" / "context" / "global.md"
+        context_path = self.base_path / "context" / "global.md"
         if context_path.exists():
             return context_path.read_text(encoding="utf-8")
         return ""
@@ -379,7 +373,7 @@ class StorageRepository:
         Args:
             content: New content to write to logs/context/global.md.
         """
-        context_path = self.base_path / "logs" / "context" / "global.md"
+        context_path = self.base_path / "context" / "global.md"
         context_path.parent.mkdir(parents=True, exist_ok=True)
         context_path.write_text(content, encoding="utf-8")
 
@@ -395,7 +389,7 @@ class StorageRepository:
             StorageSummary with date range and entry counts.
             Returns empty summary if no logs exist.
         """
-        raw_path = self.base_path / "logs" / "raw"
+        raw_path = self.base_path / "raw"
         if not raw_path.exists():
             return StorageSummary()
 

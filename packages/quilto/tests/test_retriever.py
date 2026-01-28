@@ -798,7 +798,7 @@ class TestRetrieverIntegration:
         """Create storage with sample entries."""
         storage = StorageRepository(tmp_path)
 
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True, exist_ok=True)
 
         # Entry for Jan 1
@@ -1018,7 +1018,7 @@ class TestRetrieverLanguageMismatch:
         """Create storage with Korean entry."""
         storage = StorageRepository(tmp_path)
 
-        raw_dir = tmp_path / "logs" / "raw" / "2026" / "01"
+        raw_dir = tmp_path / "raw" / "2026" / "01"
         raw_dir.mkdir(parents=True, exist_ok=True)
 
         # Entry with Korean content

@@ -201,10 +201,10 @@ tiers:
 
         _llm_client, storage, _domains = get_dependencies(config_path, storage_path)
 
-        # StorageRepository creates logs/ subdirectories
-        assert (storage.base_path / "logs" / "raw").exists()
-        assert (storage.base_path / "logs" / "parsed").exists()
-        assert (storage.base_path / "logs" / "context").exists()
+        # StorageRepository creates subdirectories directly under base_path
+        assert (storage.base_path / "raw").exists()
+        assert (storage.base_path / "parsed").exists()
+        assert (storage.base_path / "context").exists()
 
     def test_get_dependencies_returns_all_five_domains(self, tmp_path: Path) -> None:
         """Test get_dependencies returns all 5 fitness domains."""

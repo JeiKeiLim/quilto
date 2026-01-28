@@ -622,7 +622,7 @@ class TestStorageRepositoryCorrectionIntegration:
         storage.save_entry(correction_entry, correction=correction)
 
         # Verify raw file
-        raw_path = tmp_path / "logs" / "raw" / "2026" / "01" / "2026-01-14.md"
+        raw_path = tmp_path / "raw" / "2026" / "01" / "2026-01-14.md"
         content = raw_path.read_text()
 
         assert "## 10:30" in content
@@ -664,7 +664,7 @@ class TestStorageRepositoryCorrectionIntegration:
         storage.save_entry(correction_entry, correction=correction)
 
         # Verify parsed JSON has upsert semantics
-        parsed_path = tmp_path / "logs" / "parsed" / "2026" / "01" / "2026-01-14.json"
+        parsed_path = tmp_path / "parsed" / "2026" / "01" / "2026-01-14.json"
         parsed_data = json.loads(parsed_path.read_text())
 
         # Original fields preserved, weight updated

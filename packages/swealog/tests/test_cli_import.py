@@ -390,9 +390,7 @@ class TestBatchImporter:
             storage.save_entry.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_import_entry_timestamp_parsing_with_batch_suffix(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_import_entry_timestamp_parsing_with_batch_suffix(self, tmp_path: Path) -> None:
         """Test that entry_id with batch counter suffix is parsed correctly.
 
         The batch importer generates entry_ids like "2024-01-15_10-30-00-0001"

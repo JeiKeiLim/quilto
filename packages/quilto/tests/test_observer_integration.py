@@ -40,7 +40,7 @@ class TestObserverContextFileCreation:
         context_manager.apply_updates(updates)
 
         # Verify file exists
-        context_path = tmp_path / "logs" / "context" / "global.md"
+        context_path = tmp_path / "context" / "global.md"
         assert context_path.exists(), f"Context file not created at {context_path}"
 
         # Verify content
@@ -82,7 +82,7 @@ class TestObserverContextFileCreation:
         context_manager.apply_updates(second_updates)
 
         # Verify file has both
-        context_path = tmp_path / "logs" / "context" / "global.md"
+        context_path = tmp_path / "context" / "global.md"
         content = context_path.read_text()
 
         assert "unit_preference" in content, "First update missing"
@@ -122,7 +122,7 @@ class TestObserverContextFileCreation:
         context_manager.apply_updates(second_updates)
 
         # Verify file has updated value
-        context_path = tmp_path / "logs" / "context" / "global.md"
+        context_path = tmp_path / "context" / "global.md"
         content = context_path.read_text()
 
         # Should have kilograms, not pounds (superseded)
@@ -144,7 +144,7 @@ class TestObserverContextFileCreation:
 
         # File may or may not be created - either is acceptable
         # The key is that no exception is raised
-        context_path = tmp_path / "logs" / "context" / "global.md"
+        context_path = tmp_path / "context" / "global.md"
         if context_path.exists():
             # If file exists, it should have valid structure
             content = context_path.read_text()
@@ -187,7 +187,7 @@ class TestContextFileFormat:
         ]
         context_manager.apply_updates(updates)
 
-        context_path = tmp_path / "logs" / "context" / "global.md"
+        context_path = tmp_path / "context" / "global.md"
         content = context_path.read_text()
 
         # Should have YAML frontmatter
@@ -213,7 +213,7 @@ class TestContextFileFormat:
         ]
         context_manager.apply_updates(updates)
 
-        context_path = tmp_path / "logs" / "context" / "global.md"
+        context_path = tmp_path / "context" / "global.md"
         content = context_path.read_text()
 
         # Should have all sections (even if empty)
