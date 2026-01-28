@@ -254,6 +254,22 @@ def _add_trace(
     return traces
 
 
+def _get_quilto(state: QuiltoState, node_name: str) -> "Quilto | None":
+    """Get Quilto instance from state with error logging.
+
+    Args:
+        state: Current orchestration state.
+        node_name: Name of the calling node for error messages.
+
+    Returns:
+        Quilto instance or None if missing.
+    """
+    quilto = state.get("_quilto")
+    if quilto is None:
+        logger.error("%s: Missing _quilto in state - graph not initialized", node_name)
+    return quilto
+
+
 # =============================================================================
 # Node Functions
 # =============================================================================
@@ -268,8 +284,11 @@ async def route_node(state: QuiltoState) -> dict[str, Any]:
     Returns:
         Updated state with router output.
     """
-    quilto: Quilto = state["_quilto"]  # type: ignore[typeddict-item]
-    user_input: str = state["user_input"]  # type: ignore[typeddict-item]
+    quilto = _get_quilto(state, "route_node")
+    if quilto is None:
+        return {"error": "Internal error: orchestration not initialized"}
+
+    user_input: str = state.get("user_input", "")
     mode = state.get("mode", "auto")
 
     await _call_progress_handler(quilto, "on_stage", "routing")
@@ -342,8 +361,11 @@ async def plan_node(state: QuiltoState) -> dict[str, Any]:
     Returns:
         Updated state with planner output.
     """
-    quilto: Quilto = state["_quilto"]  # type: ignore[typeddict-item]
-    user_input: str = state["user_input"]  # type: ignore[typeddict-item]
+    quilto = _get_quilto(state, "plan_node")
+    if quilto is None:
+        return {"error": "Internal error: orchestration not initialized"}
+
+    user_input: str = state.get("user_input", "")
     conversation_context = state.get("conversation_context")
 
     await _call_progress_handler(quilto, "on_stage", "planning")
@@ -433,7 +455,9 @@ async def retrieve_node(state: QuiltoState) -> dict[str, Any]:
     Returns:
         Updated state with retriever output.
     """
-    quilto: Quilto = state["_quilto"]  # type: ignore[typeddict-item]
+    quilto = _get_quilto(state, "retrieve_node")
+    if quilto is None:
+        return {"error": "Internal error: orchestration not initialized"}
 
     await _call_progress_handler(quilto, "on_stage", "retrieving")
 
@@ -487,8 +511,11 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
     Returns:
         Updated state with analyzer output.
     """
-    quilto: Quilto = state["_quilto"]
-    user_input: str = state["user_input"]
+    quilto = _get_quilto(state, "analyze_node")
+    if quilto is None:
+        return {"error": "Internal error: orchestration not initialized"}
+
+    user_input: str = state.get("user_input", "")
 
     await _call_progress_handler(quilto, "on_stage", "analyzing")
 
@@ -564,8 +591,11 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
     Returns:
         Updated state with synthesizer output.
     """
-    quilto: Quilto = state["_quilto"]
-    user_input: str = state["user_input"]
+    quilto = _get_quilto(state, "synthesize_node")
+    if quilto is None:
+        return {"error": "Internal error: orchestration not initialized"}
+
+    user_input: str = state.get("user_input", "")
 
     await _call_progress_handler(quilto, "on_stage", "synthesizing")
 
@@ -648,8 +678,11 @@ async def evaluate_node(state: QuiltoState) -> dict[str, Any]:
     Returns:
         Updated state with evaluator output.
     """
-    quilto: Quilto = state["_quilto"]
-    user_input: str = state["user_input"]
+    quilto = _get_quilto(state, "evaluate_node")
+    if quilto is None:
+        return {"error": "Internal error: orchestration not initialized"}
+
+    user_input: str = state.get("user_input", "")
 
     await _call_progress_handler(quilto, "on_stage", "evaluating")
 
@@ -748,8 +781,11 @@ async def parse_node(state: QuiltoState) -> dict[str, Any]:
     Returns:
         Updated state with parser output.
     """
-    quilto: Quilto = state["_quilto"]
-    user_input = state["user_input"]
+    quilto = _get_quilto(state, "parse_node")
+    if quilto is None:
+        return {"error": "Internal error: orchestration not initialized"}
+
+    user_input: str = state.get("user_input", "")
 
     await _call_progress_handler(quilto, "on_stage", "parsing")
 
@@ -806,7 +842,9 @@ async def correction_node(state: QuiltoState) -> dict[str, Any]:
     Returns:
         Updated state with correction result.
     """
-    quilto: Quilto = state["_quilto"]
+    quilto = _get_quilto(state, "correction_node")
+    if quilto is None:
+        return {"error": "Internal error: orchestration not initialized"}
 
     await _call_progress_handler(quilto, "on_stage", "correcting")
 
@@ -870,7 +908,9 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
     Returns:
         Updated state after Observer.
     """
-    quilto: Quilto = state["_quilto"]
+    quilto = _get_quilto(state, "observe_node")
+    if quilto is None:
+        return {"error": "Internal error: orchestration not initialized"}
 
     # Check if Observer is enabled
     if not quilto.observer_config.enable_post_query:
@@ -901,7 +941,7 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
         guidance = get_combined_context_guidance(domain_context)
 
         # Build ObserverInput
-        user_input = state["user_input"]
+        user_input: str = state.get("user_input", "")
         response = state.get("response", "")
         analyzer_output_dict = state.get("analyzer_output", {})
 
@@ -970,7 +1010,10 @@ async def retry_node(state: QuiltoState) -> dict[str, Any]:
     Returns:
         Updated state with incremented retry count.
     """
-    quilto: Quilto = state["_quilto"]
+    quilto = _get_quilto(state, "retry_node")
+    if quilto is None:
+        return {"error": "Internal error: orchestration not initialized"}
+
     retry_count = state.get("retry_count", 0)
 
     # Get feedback reason

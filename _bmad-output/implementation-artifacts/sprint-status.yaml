@@ -255,7 +255,7 @@ development_status:
   # --- Phase 2: High (Stability) ---
   17-4-fix-eval-feedback-type-vulnerability: done  # HIGH - eval_feedback[0] on string returns char (code-reviewed 2026-01-28)
   17-5-add-observer-error-propagation: done  # HIGH - Silent Observer failures hide context issues
-  17-6-protect-state-dict-access: backlog  # HIGH - Direct state["key"] can KeyError
+  17-6-protect-state-dict-access: done  # HIGH - Direct state["key"] can KeyError (code-reviewed 2026-01-28)
   # --- Phase 3: Medium (Robustness) ---
   17-7-define-state-key-constants: backlog  # MEDIUM - Hardcoded string keys error-prone
   17-8-add-domain-context-validation-fallback: backlog  # MEDIUM - Corrupted context crashes flow
