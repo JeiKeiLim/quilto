@@ -24,6 +24,7 @@ from quilto.agents import (
     EvaluatorAgent,
     EvaluatorInput,
     EvaluatorOutput,
+    Finding,
     InputType,
     ObserverAgent,
     ParserAgent,
@@ -113,6 +114,9 @@ class StateKeys:
     # Observer output
     OBSERVER_OUTPUT: Final[str] = "observer_output"
     OBSERVER_ERROR: Final[str] = "observer_error"
+
+    # Analyzer error
+    ANALYZER_ERROR: Final[str] = "analyzer_error"
 
     # Control
     RETRY_COUNT: Final[str] = "retry_count"
@@ -225,6 +229,9 @@ class QuiltoState(TypedDict, total=False):
     # Observer output
     observer_output: dict[str, Any]
     observer_error: str  # Error message if Observer failed
+
+    # Analyzer error
+    analyzer_error: str  # Error message if Analyzer failed
 
     # Control
     retry_count: int
@@ -656,6 +663,14 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
             quilto, "on_agent_complete", "analyzer", elapsed / 1000, analyzer_output.model_dump(mode="json")
         )
 
+        # Warn if entries exist but analyzer returned empty findings
+        if entries and not analyzer_output.findings:
+            logger.warning(
+                "analyze_node: %d entries provided but analyzer returned empty findings for query: %s",
+                len(entries),
+                user_input[:50],
+            )
+
         return {
             StateKeys.ANALYSIS_VERDICT: analyzer_output.verdict.value,
             StateKeys.ANALYSIS_FINDINGS: [f.model_dump() for f in analyzer_output.findings],
@@ -667,7 +682,8 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
     except Exception as e:
         elapsed = (time.perf_counter() - start) * 1000
         logger.exception("analyze_node failed for query: %s", user_input[:50])
-        await _call_progress_handler(quilto, "on_agent_complete", "analyzer", elapsed / 1000, {})
+        error_info = {"error": str(e), "error_type": type(e).__name__}
+        await _call_progress_handler(quilto, "on_agent_complete", "analyzer", elapsed / 1000, error_info)
 
         fallback_output = {
             "query_intent": "Unable to analyze due to error",
@@ -685,7 +701,9 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
 
         return {
             StateKeys.ERROR: f"Analyzer failed: {e!s}",
+            StateKeys.ANALYZER_ERROR: str(e),
             StateKeys.ANALYSIS_VERDICT: "insufficient",
+            StateKeys.ANALYSIS_FINDINGS: [],
             StateKeys.ANALYZER_OUTPUT: fallback_output,
             StateKeys.TRACES: _add_trace(state, "analyzer", f"{len(entries)} entries", f"ERROR: {e!s}", elapsed),
         }
@@ -737,6 +755,36 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
                 ),
                 verdict_reasoning="Analyzer output invalid or missing",
                 verdict=Verdict.INSUFFICIENT,
+            )
+
+        # Fallback: If analyzer has empty findings but entries exist, create synthetic findings
+        entries = state.get(StateKeys.ENTRIES, [])
+        if not analyzer_output.findings and entries:
+            logger.warning(
+                "synthesize_node: Creating fallback findings from %d entries (analyzer returned empty)",
+                len(entries),
+            )
+            fallback_findings = [
+                Finding(
+                    claim=f"Entry from {e.get('date', 'unknown')}: {str(e.get('raw_content', ''))[:100]}",
+                    evidence=[str(e.get("id", ""))],
+                    confidence="low",
+                    indirect_estimate=False,
+                )
+                for e in entries[:10]  # Limit to avoid token overflow
+            ]
+            analyzer_output = AnalyzerOutput(
+                query_intent=analyzer_output.query_intent or "Analysis unavailable - using raw entries",
+                findings=fallback_findings,
+                patterns_identified=[],
+                sufficiency_evaluation=SufficiencyEvaluation(
+                    critical_gaps=[],
+                    nice_to_have_gaps=[],
+                    evidence_check_passed=False,
+                    speculation_risk="high",
+                ),
+                verdict_reasoning="FALLBACK: Analyzer failed or returned empty. Synthesizing from raw entries.",
+                verdict=Verdict.PARTIAL,
             )
 
         query_type_str = state.get(StateKeys.QUERY_TYPE, "factual")
