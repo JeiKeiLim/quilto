@@ -1,0 +1,298 @@
+{
+  "id": "2026-01-28_1067b102",
+  "query": "이번 주 운동 요약해줘",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "QUERY",
+      "confidence": 0.99,
+      "selected_domains": [
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The user asks for a summary of this week's workouts. This request pertains to overall fitness activity tracking, which is covered by the GeneralFitness domain. No specific activity type (strength, running, swimming, nutrition) is mentioned, so the broader GeneralFitness domain is the most appropriate.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a question/request (contains no declarative statement) and ends with a request for information, indicating a QUERY. No correction language or goal statement is present."
+    },
+    "planner": {
+      "original_query": "이번 주 운동 요약해줘",
+      "query_type": "simple",
+      "sub_queries": [
+        {
+          "id": 1,
+          "question": "Summarize all workout activities logged for the current week (Monday 2026-01-24 through Sunday 2026-01-30).",
+          "retrieval_strategy": "date_range",
+          "retrieval_params": {
+            "start_date": "2026-01-24",
+            "end_date": "2026-01-30"
+          }
+        }
+      ],
+      "dependencies": [],
+      "execution_strategy": "coupled",
+      "execution_order": [
+        1
+      ],
+      "retrieval_instructions": [
+        {
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2026-01-24",
+            "end_date": "2026-01-30"
+          },
+          "sub_query_id": 1
+        }
+      ],
+      "gaps_status": {},
+      "domain_expansion_request": null,
+      "expansion_reasoning": null,
+      "clarify_questions": null,
+      "next_action": "retrieve",
+      "reasoning": "The user asks for a weekly workout summary. This is a single, coupled request that can be satisfied by retrieving all logs from the current week (Monday to Sunday). The appropriate date range is 2026-01-24 to 2026-01-30; the retrieval system will return whatever entries exist within that window (the data store only contains entries up to 2026-01-26). No domain expansion or clarification is needed, and there are no identified gaps."
+    },
+    "retriever": {
+      "entries": [
+        {
+          "id": "2026-01-25_18-08-00",
+          "date": "2026-01-25",
+          "timestamp": "2026-01-25T18:08:00",
+          "raw_content": "Yesterday I did 3 sets of pull-ups, 어제 기록 확인해줘",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_07-39-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:39:00",
+          "raw_content": "I haven't been to gym and eating bad foods for a while. What do I do today?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_07-51-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:51:00",
+          "raw_content": "I have slept for 5 hours only yesterday and today. Do you think I should go easy even though I haven't gone to gym for a while?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_07-56-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:56:00",
+          "raw_content": "I'd like to run a full marathon.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_16-50-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T16:50:00",
+          "raw_content": "I'd like to run a full marathon. How do I do?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-07-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:07:00",
+          "raw_content": "I want to get stronger legs",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-12-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:12:00",
+          "raw_content": "운동 좀 해야겠다",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-59-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:59:00",
+          "raw_content": "I want to lose 5kg by summer, what should I focus on?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-06-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:06:00",
+          "raw_content": "마라톤 준비하고 싶은데 현재 러닝 실력으로 가능할까?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-26-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:26:00",
+          "raw_content": "I want to hit a 200kg deadlift by summer",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-33-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:33:00",
+          "raw_content": "런닝머신 30분 뛰었어",
+          "parsed_data": null
+        }
+      ],
+      "retrieval_summary": [
+        {
+          "attempt_number": 1,
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2026-01-24",
+            "end_date": "2026-01-30"
+          },
+          "entries_found": 12,
+          "summary": "Retrieved 12 entries from 2026-01-24 to 2026-01-30",
+          "expansion_tier": 0
+        }
+      ],
+      "total_entries_found": 11,
+      "date_range_covered": {
+        "start": "2026-01-25",
+        "end": "2026-01-26"
+      },
+      "warnings": [],
+      "truncated": false,
+      "expansion_exhausted": false,
+      "strategies_used": [
+        "date_range"
+      ]
+    },
+    "analyzer": {
+      "query_intent": "Provide a summary of the user's workouts for the current week.",
+      "findings": [
+        {
+          "claim": "The user performed 3 sets of pull‑ups on 2026‑01‑25.",
+          "evidence": [
+            "[1] Date: 2026-01-25 – \"Yesterday I did 3 sets of pull-ups, 어제 기록 확인해줘\""
+          ],
+          "confidence": "high",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        },
+        {
+          "claim": "The user ran on a treadmill for 30 minutes on 2026‑01‑26.",
+          "evidence": [
+            "[11] Date: 2026-01-26 – \"런닝머신 30분 뛰었어\""
+          ],
+          "confidence": "high",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        },
+        {
+          "claim": "No other workout entries were recorded for the week of 2026‑01‑22 to 2026‑01‑28.",
+          "evidence": [
+            "Reviewed all retrieved entries (1‑11); only entries 1 and 11 describe actual workouts.",
+            "Entries 2‑10 are questions, goals, or non‑workout statements."
+          ],
+          "confidence": "high",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        }
+      ],
+      "patterns_identified": [
+        "Mix of strength (pull‑ups) and cardio (treadmill) activities.",
+        "User expresses future fitness goals (marathon, stronger legs, weight loss, 200 kg deadlift) but these are not logged workouts."
+      ],
+      "sufficiency_evaluation": {
+        "critical_gaps": [],
+        "nice_to_have_gaps": [
+          {
+            "description": "Workout logs for the remaining days of the week (2026‑01‑22, 23, 24, 27, 28) are missing, limiting a complete weekly summary.",
+            "gap_type": "temporal",
+            "severity": "nice_to_have",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          }
+        ],
+        "evidence_check_passed": true,
+        "speculation_risk": "none"
+      },
+      "verdict_reasoning": "The retrieved entries contain concrete data for two workouts (pull‑ups and a 30‑minute treadmill session) that can be accurately summarized. While the user asked for a weekly summary, the logs for the other days of the week are absent, which prevents a fully comprehensive recap. This missing information is a nice‑to‑have gap rather than a critical one, allowing us to provide a partial yet accurate summary.",
+      "verdict": "partial"
+    },
+    "synthesizer": {
+      "response": "이번 주(2026‑01‑22~28) 기록된 운동은 다음과 같습니다. 1월 25일에 풀업 3세트를 수행해 상체 근력 훈련을 했고, 1월 26일에는 런닝머신에서 30분을 달려 유산소 운동을 했습니다. 두 세션 모두 강도와 형태가 다르게 구성돼 근력과 심폐 지구력을 골고루 자극한 주간이었습니다. 다른 요일에 대한 기록이 없으므로, 추가적인 운동이 있었는지는 확인할 수 없습니다.",
+      "key_points": [
+        "1월 25일: 풀업 3세트 (근력 훈련)",
+        "1월 26일: 런닝머신 30분 (유산소 훈련)",
+        "근력과 유산소를 골고루 포함한 주간 구성",
+        "다른 요일에 대한 로그가 없어 추가 활동 여부 미확인"
+      ],
+      "evidence_cited": [
+        "2026-01-25: 풀업 3세트",
+        "2026-01-26: 런닝머신 30분"
+      ],
+      "gaps_disclosed": [
+        "2026-01-22~24, 27~28에 대한 운동 기록이 없으며, 해당 기간에 수행한 운동이 있다면 로그를 추가해 주세요."
+      ],
+      "confidence": "medium"
+    },
+    "evaluator": {
+      "dimensions": [
+        {
+          "dimension": "accuracy",
+          "verdict": "sufficient",
+          "reasoning": "The summary correctly lists the only two recorded workouts (pull‑ups on Jan 25 and treadmill on Jan 26) and accurately notes that no other workout entries exist for the week.",
+          "issues": []
+        },
+        {
+          "dimension": "relevance",
+          "verdict": "sufficient",
+          "reasoning": "The response directly answers the user’s request for a weekly workout summary.",
+          "issues": []
+        },
+        {
+          "dimension": "safety",
+          "verdict": "sufficient",
+          "reasoning": "The answer contains only factual information and no advice that could pose a safety risk.",
+          "issues": []
+        },
+        {
+          "dimension": "completeness",
+          "verdict": "sufficient",
+          "reasoning": "All relevant information for the week is provided, and the lack of additional records is explicitly mentioned.",
+          "issues": []
+        }
+      ],
+      "overall_verdict": "sufficient",
+      "feedback": [],
+      "recommendation": "accept"
+    },
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "weekly_workout_summary_2026-01-22_2026-01-28",
+          "value": "2 sessions logged: 3 sets of pull‑ups on 2026-01-25 (strength) and a 30‑minute treadmill run on 2026-01-26 (cardio).",
+          "confidence": "certain",
+          "source": "post_query: weekly workout summary request"
+        },
+        {
+          "category": "insight",
+          "key": "activity_type_distribution_2026-01-22_2026-01-28",
+          "value": "Balanced distribution for the week: 1 strength session and 1 cardio session (50% strength, 50% cardio).",
+          "confidence": "likely",
+          "source": "post_query: weekly workout summary request"
+        }
+      ],
+      "insights_captured": [
+        "The user logged two workouts this week (Jan 25 pull‑ups, Jan 26 treadmill).",
+        "The week's activity mix was evenly split between strength and cardio."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "이번 주(2026‑01‑22~28) 기록된 운동은 다음과 같습니다. 1월 25일에 풀업 3세트를 수행해 상체 근력 훈련을 했고, 1월 26일에는 런닝머신에서 30분을 달려 유산소 운동을 했습니다. 두 세션 모두 강도와 형태가 다르게 구성돼 근력과 심폐 지구력을 골고루 자극한 주간이었습니다. 다른 요일에 대한 기록이 없으므로, 추가적인 운동이 있었는지는 확인할 수 없습니다.",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-28 14:31:50.092664",
+    "input_type": "QUERY",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

@@ -1,0 +1,251 @@
+{
+  "id": "2026-01-28_4a40c309",
+  "query": "What did I do yesterday?",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "QUERY",
+      "confidence": 0.99,
+      "selected_domains": [
+        "GeneralFitness",
+        "Strength",
+        "Nutrition",
+        "Running",
+        "Swimming"
+      ],
+      "domain_selection_reasoning": "The user asks a generic question about what they did yesterday. Since no specific activity type is mentioned, the query could pertain to any of the available domains (fitness workouts, strength training, nutrition, running, or swimming). To cover all possibilities, all domains are selected.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a clear question (contains a question word and a question mark) with no declarative statement or correction language, so it is classified as a QUERY with high confidence."
+    },
+    "planner": {
+      "original_query": "What did I do yesterday?",
+      "query_type": "simple",
+      "sub_queries": [
+        {
+          "id": 1,
+          "question": "What activities did the user log on the day that would be considered \"yesterday\" relative to today (2026-01-28)?",
+          "retrieval_strategy": "date_range",
+          "retrieval_params": {
+            "start_date": "2026-01-26",
+            "end_date": "2026-01-26"
+          }
+        }
+      ],
+      "dependencies": [],
+      "execution_strategy": "coupled",
+      "execution_order": [
+        1
+      ],
+      "retrieval_instructions": [
+        {
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2026-01-26",
+            "end_date": "2026-01-26"
+          },
+          "sub_query_id": 1
+        }
+      ],
+      "gaps_status": {},
+      "domain_expansion_request": null,
+      "expansion_reasoning": null,
+      "clarify_questions": null,
+      "next_action": "retrieve",
+      "reasoning": "The user asks for a simple factual summary of what they did \"yesterday\". This is a simple retrieval query. Based on today's date (2026-01-28), \"yesterday\" would be 2026-01-27, but the available data only goes up to 2026-01-26. To respect the storage limits, the retrieval is adjusted to the latest available date (2026-01-26). Only one sub‑query is needed, making the execution strategy coupled. No domain expansion or clarification is required; we proceed to retrieve the data for the adjusted date range."
+    },
+    "retriever": {
+      "entries": [
+        {
+          "id": "2026-01-26_07-39-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:39:00",
+          "raw_content": "I haven't been to gym and eating bad foods for a while. What do I do today?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_07-51-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:51:00",
+          "raw_content": "I have slept for 5 hours only yesterday and today. Do you think I should go easy even though I haven't gone to gym for a while?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_07-56-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:56:00",
+          "raw_content": "I'd like to run a full marathon.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_16-50-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T16:50:00",
+          "raw_content": "I'd like to run a full marathon. How do I do?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-07-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:07:00",
+          "raw_content": "I want to get stronger legs",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-12-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:12:00",
+          "raw_content": "운동 좀 해야겠다",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-59-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:59:00",
+          "raw_content": "I want to lose 5kg by summer, what should I focus on?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-06-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:06:00",
+          "raw_content": "마라톤 준비하고 싶은데 현재 러닝 실력으로 가능할까?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-26-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:26:00",
+          "raw_content": "I want to hit a 200kg deadlift by summer",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-33-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:33:00",
+          "raw_content": "런닝머신 30분 뛰었어",
+          "parsed_data": null
+        }
+      ],
+      "retrieval_summary": [
+        {
+          "attempt_number": 1,
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2026-01-26",
+            "end_date": "2026-01-26"
+          },
+          "entries_found": 11,
+          "summary": "Retrieved 11 entries from 2026-01-26 to 2026-01-26",
+          "expansion_tier": 0
+        }
+      ],
+      "total_entries_found": 10,
+      "date_range_covered": {
+        "start": "2026-01-26",
+        "end": "2026-01-26"
+      },
+      "warnings": [],
+      "truncated": false,
+      "expansion_exhausted": false,
+      "strategies_used": [
+        "date_range"
+      ]
+    },
+    "analyzer": {
+      "query_intent": "The user wants a summary of the activities they logged for the day before today (yesterday, 2026-01-27).",
+      "findings": [],
+      "patterns_identified": [
+        "All retrieved entries are dated 2026-01-26; there are no logs for 2026-01-27.",
+        "Entries cover a variety of fitness‑related questions (gym attendance, sleep, marathon goals, leg strength, weight loss, deadlift target, treadmill run) but none specify an actual activity performed on the requested date."
+      ],
+      "sufficiency_evaluation": {
+        "critical_gaps": [
+          {
+            "description": "No log entry for 2026-01-27 (yesterday), so the specific activities performed that day are unknown.",
+            "gap_type": "temporal",
+            "severity": "critical",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          }
+        ],
+        "nice_to_have_gaps": [],
+        "evidence_check_passed": false,
+        "speculation_risk": "high"
+      },
+      "verdict_reasoning": "The query asks for a concrete list of actions taken yesterday. The only available entries are from two days ago (2026-01-26). Because there is no evidence of any activity on 2026-01-27, we cannot provide an accurate answer without speculating, which would be unreliable. Therefore, the information is insufficient to satisfy the request.",
+      "verdict": "insufficient"
+    },
+    "synthesizer": {
+      "response": "I don’t have a logged activity for yesterday (2026‑01‑27), so I can’t tell exactly what you did. The most recent entries are from 2026‑01‑26, where you mentioned not going to the gym and eating poorly, sleeping only 5 hours, wanting to run a marathon, wanting stronger legs, and doing a 30‑minute treadmill run. Without a specific entry for 2026‑01‑27, I can’t provide a definitive answer.",
+      "key_points": [
+        "No record found for 2026‑01‑27.",
+        "Last logged activity was on 2026‑01‑26 (multiple notes about sleep, diet, goals, and a 30‑minute treadmill run).",
+        "To know what you did yesterday, please log your activities daily."
+      ],
+      "evidence_cited": [
+        "2026-01-26: I haven't been to gym and eating bad foods for a while.",
+        "2026-01-26: I have slept for 5 hours only yesterday and today.",
+        "2026-01-26: I'd like to run a full marathon.",
+        "2026-01-26: I want to get stronger legs.",
+        "2026-01-26: 운동 좀 해야겠다.",
+        "2026-01-26: 런닝머신 30분 뛰었어."
+      ],
+      "gaps_disclosed": [
+        "Missing log entry for 2026‑01‑27, so the answer is based on available data up to 2026‑01‑26."
+      ],
+      "confidence": "medium"
+    },
+    "evaluator": {
+      "dimensions": [
+        {
+          "dimension": "accuracy",
+          "verdict": "sufficient",
+          "reasoning": "The response correctly states that there is no logged activity for 2026‑01‑27 and accurately summarizes the available entries from 2026‑01‑26.",
+          "issues": []
+        },
+        {
+          "dimension": "relevance",
+          "verdict": "sufficient",
+          "reasoning": "The answer directly addresses the user’s question about yesterday’s activity by explaining the lack of data and providing the most recent known information.",
+          "issues": []
+        },
+        {
+          "dimension": "safety",
+          "verdict": "sufficient",
+          "reasoning": "The response contains no health‑related advice, recommendations, or potentially harmful content.",
+          "issues": []
+        },
+        {
+          "dimension": "completeness",
+          "verdict": "sufficient",
+          "reasoning": "Given the available information, the response fully answers the query by stating that yesterday’s activity cannot be determined and summarizing the latest known data.",
+          "issues": []
+        }
+      ],
+      "overall_verdict": "sufficient",
+      "feedback": [],
+      "recommendation": "accept"
+    },
+    "parser": {},
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {}
+  },
+  "final_response": "I don’t have a logged activity for yesterday (2026‑01‑27), so I can’t tell exactly what you did. The most recent entries are from 2026‑01‑26, where you mentioned not going to the gym and eating poorly, sleeping only 5 hours, wanting to run a marathon, wanting stronger legs, and doing a 30‑minute treadmill run. Without a specific entry for 2026‑01‑27, I can’t provide a definitive answer.",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-28 14:29:27.941735",
+    "input_type": "QUERY",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}
