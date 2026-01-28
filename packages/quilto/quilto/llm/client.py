@@ -312,8 +312,9 @@ class LLMClient:
             if extracted != response:
                 try:
                     return response_model.model_validate_json(extracted)
-                except Exception:
-                    pass  # Fall through to original error
+                except Exception as e:
+                    logger.debug("Fallback JSON parse failed for agent '%s': %s", agent, e)
+                    # Fall through to original error
 
             logger.error(
                 "Failed to parse structured response for agent '%s'. Expected schema: %s. Raw response: %s",

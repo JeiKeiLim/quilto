@@ -262,7 +262,7 @@ development_status:
   # --- Phase 4: Low (Tech Debt) ---
   17-9-audit-type-ignore-comments: done  # LOW - Reduced from 21 to 3 type:ignore (litellm stubs + Literal narrowing)
   # --- Observability (added from IR review) ---
-  17-10-add-logging-to-broad-exception-handlers: backlog  # LOW - Make silent exceptions visible
+  17-10-add-logging-to-broad-exception-handlers: done  # LOW - Make silent exceptions visible
   # --- Validation ---
   17-11-verify-fixes-with-dogfooding: backlog  # HIGH - Confirm query flow works, generate Epic 18
   epic-17-retrospective: backlog
