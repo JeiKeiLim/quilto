@@ -135,7 +135,7 @@ class RouterOutput(BaseModel):
         reasoning: Brief explanation of the classification decision.
     """
 
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict()
 
     input_type: InputType
     confidence: float = Field(ge=0.0, le=1.0)
@@ -583,7 +583,7 @@ class AnalyzerInput(BaseModel):
         ... )
     """
 
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict()
 
     query: str = Field(min_length=1)
     query_type: QueryType
@@ -624,7 +624,7 @@ class AnalyzerOutput(BaseModel):
         LLM output order - the prompt enforces this.
     """
 
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict()
 
     query_intent: str = Field(min_length=1)
     findings: list[Finding]
@@ -661,7 +661,7 @@ class SynthesizerInput(BaseModel):
         ... )
     """
 
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict()
 
     query: str = Field(min_length=1)
     query_type: QueryType
