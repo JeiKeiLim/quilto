@@ -264,5 +264,5 @@ development_status:
   # --- Observability (added from IR review) ---
   17-10-add-logging-to-broad-exception-handlers: done  # LOW - Make silent exceptions visible
   # --- Validation ---
-  17-11-verify-fixes-with-dogfooding: backlog  # HIGH - Confirm query flow works, generate Epic 18
+  17-11-verify-fixes-with-dogfooding: done  # HIGH - Confirmed query flow works, generated Epic 18 stories
   epic-17-retrospective: backlog
