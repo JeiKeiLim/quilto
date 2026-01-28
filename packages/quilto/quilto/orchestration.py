@@ -110,6 +110,7 @@ class QuiltoState(TypedDict, total=False):
 
     # Observer output
     observer_output: dict[str, Any]
+    observer_error: str  # Error message if Observer failed
 
     # Control
     retry_count: int
@@ -885,7 +886,7 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
 
         domain_context_dict = state.get("domain_context", {})
         if not domain_context_dict:
-            return {}
+            return {"observer_error": "No domain_context available"}
 
         domain_context = ActiveDomainContext.model_validate(domain_context_dict)
 
@@ -932,9 +933,10 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
     except Exception as e:
         # Observer failures are non-fatal but should be logged for debugging
         elapsed = (time.perf_counter() - start) * 1000
-        await _call_progress_handler(quilto, "on_agent_complete", "observer", elapsed / 1000, {})
+        error_info = {"error": str(e), "error_type": type(e).__name__}
+        await _call_progress_handler(quilto, "on_agent_complete", "observer", elapsed / 1000, error_info)
         logger.warning("observe_node failed: %s", e)
-        return {}
+        return {"observer_error": str(e)}
 
 
 async def check_both_node(state: QuiltoState) -> dict[str, Any]:
