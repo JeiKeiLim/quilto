@@ -270,12 +270,12 @@ development_status:
   # Epic 18: Observability & Data Pipeline Fix
   # Source: Story 17.11 Dogfooding - 3 bugs discovered
   # Goal: Fix critical Analyzer failure + restore debug visibility + continue dogfooding
-  epic-18: in-progress
+  epic-18: done
   # --- Phase 1: Critical ---
   18-1-fix-analyzer-silent-failure: done  # CRITICAL - Synthesizer says "no data" when 23 entries found
   # --- Phase 2: High (Observability) ---
-  18-2-restore-debug-intermediate-output: done  # HIGH - --debug flag not printing agent outputs
+  18-2-restore-debug-intermediate-output: done  # HIGH - --debug flag now prints full JSON (commit 50e6a8f)
   18-3-fix-clarification-questions-type: done  # HIGH - AttributeError from string vs dict mismatch (code-reviewed 2026-01-28)
   # --- Phase 3: Validation ---
-  18-4-dogfooding-iteration-6: review  # Completed - 100% success rate (12/12 queries), all Epic 18 fixes verified
-  epic-18-retrospective: backlog
+  18-4-dogfooding-iteration-6: done  # Completed - 100% success rate (13/13 queries), all 3 Epic 18 fixes verified
+  epic-18-retrospective: optional
