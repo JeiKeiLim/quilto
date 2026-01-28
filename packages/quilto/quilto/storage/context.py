@@ -13,6 +13,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from quilto.agents.models import ContextUpdate
 from quilto.storage.repository import StorageRepository
 
+# Type aliases for ContextEntry fields
+ConfidenceLevel = Literal["certain", "likely", "tentative"]
+CategoryType = Literal["preference", "pattern", "fact", "insight"]
+
 
 class ContextEntry(BaseModel):
     """A single entry in the global context.
@@ -44,9 +48,9 @@ class ContextEntry(BaseModel):
 
     key: str = Field(min_length=1)
     value: str = Field(min_length=1)
-    confidence: Literal["certain", "likely", "tentative"]
+    confidence: ConfidenceLevel
     source: str = Field(min_length=1)
-    category: Literal["preference", "pattern", "fact", "insight"]
+    category: CategoryType
     added_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
 
     @field_validator("added_date", mode="after")
@@ -298,7 +302,7 @@ class GlobalContextManager:
         entries: list[ContextEntry] = []
 
         # Map section names to categories and confidence levels
-        section_map = {
+        section_map: dict[str, tuple[CategoryType, ConfidenceLevel]] = {
             "Preferences": ("preference", "certain"),
             "Patterns": ("pattern", "likely"),
             "Facts": ("fact", "certain"),
@@ -308,6 +312,8 @@ class GlobalContextManager:
         if section_name not in section_map:
             return entries
 
+        category: CategoryType
+        confidence: ConfidenceLevel
         category, confidence = section_map[section_name]
 
         # Find section start
@@ -328,6 +334,9 @@ class GlobalContextManager:
         full_pattern = re.compile(r"^\[(\d{4}-\d{2}-\d{2})\|([^|]+)\|([^\]]+)\]\s*(.+)$")
         date_only_pattern = re.compile(r"^\[(\d{4}-\d{2}-\d{2})\]\s*(.+)$")
 
+        # Valid confidence levels for validation
+        valid_confidence: set[ConfidenceLevel] = {"certain", "likely", "tentative"}
+
         for line in section_content.split("\n"):
             line = line.strip()
             if line.startswith("- ") and ":" in line:
@@ -335,9 +344,18 @@ class GlobalContextManager:
 
                 # Try new format first: [date|confidence|source]
                 full_match = full_pattern.match(item)
+                parsed_confidence: ConfidenceLevel
                 if full_match:
                     added_date = full_match.group(1)
-                    parsed_confidence = full_match.group(2)
+                    raw_confidence = full_match.group(2)
+                    # Validate parsed confidence, fallback to section default
+                    # Assignment ignore needed: runtime `in` check validates the Literal,
+                    # but pyright cannot narrow str to ConfidenceLevel through set membership
+                    parsed_confidence = (
+                        raw_confidence  # type: ignore[assignment]
+                        if raw_confidence in valid_confidence
+                        else confidence
+                    )
                     source = full_match.group(3)
                     item = full_match.group(4)
                 else:
@@ -363,9 +381,9 @@ class GlobalContextManager:
                         ContextEntry(
                             key=key,
                             value=value,
-                            confidence=parsed_confidence,  # type: ignore[arg-type]
+                            confidence=parsed_confidence,
                             source=source,
-                            category=category,  # type: ignore[arg-type]
+                            category=category,
                             added_date=added_date,
                         )
                     )

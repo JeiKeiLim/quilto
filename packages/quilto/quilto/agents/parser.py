@@ -6,7 +6,7 @@ multi-domain parsing, vocabulary normalization, and correction mode.
 """
 
 import json
-from typing import Any, cast
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -242,4 +242,4 @@ Respond with a JSON object containing:
             messages=messages,
             response_model=ParserOutput,
         )
-        return cast(ParserOutput, result)
+        return result

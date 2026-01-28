@@ -20,6 +20,7 @@ from quilto.agents import (
     AnalyzerAgent,
     AnalyzerInput,
     AnalyzerOutput,
+    EvaluationFeedback,
     EvaluatorAgent,
     EvaluatorInput,
     EvaluatorOutput,
@@ -29,6 +30,7 @@ from quilto.agents import (
     ParserInput,
     PlannerAgent,
     PlannerInput,
+    QueryType,
     RetrieverAgent,
     RetrieverInput,
     RouterAgent,
@@ -487,30 +489,34 @@ async def plan_node(state: QuiltoState) -> dict[str, Any]:
 
     try:
         # Get storage summary (required by Planner)
-        storage_summary: dict[str, Any] = quilto._get_storage_summary()  # type: ignore[reportPrivateUsage]  # noqa: SLF001
+        storage_summary: dict[str, Any] = quilto.get_storage_summary()
 
         # Reconstruct domain context with defensive validation
         domain_context, _was_fallback = _get_domain_context_with_fallback(state, "plan_node")
 
         # Get evaluation feedback from previous retry if any
-        eval_feedback = state.get(StateKeys.EVAL_FEEDBACK)
+        evaluation_feedback: EvaluationFeedback | None = None
         if state.get(StateKeys.RETRY_COUNT, 0) > 0:
-            evaluation_feedback = eval_feedback[0] if isinstance(eval_feedback, list) and eval_feedback else None
-        else:
-            evaluation_feedback = None
+            eval_feedback = state.get(StateKeys.EVAL_FEEDBACK)
+            if isinstance(eval_feedback, list) and eval_feedback:
+                first_feedback = eval_feedback[0]
+                if isinstance(first_feedback, EvaluationFeedback):
+                    evaluation_feedback = first_feedback
 
         # Get retrieval history from previous retry if any
         retrieval_history: list[dict[str, Any]] = []
-        if state.get(StateKeys.RETRY_COUNT, 0) > 0 and state.get(StateKeys.RETRIEVAL_SUMMARY):
-            retrieval_history = state.get(StateKeys.RETRIEVAL_SUMMARY) or []
+        if state.get(StateKeys.RETRY_COUNT, 0) > 0:
+            raw_history = state.get(StateKeys.RETRIEVAL_SUMMARY)
+            if isinstance(raw_history, list):
+                retrieval_history = raw_history
 
         planner = PlannerAgent(quilto.llm_client)
         planner_input = PlannerInput(
             query=user_input,
             domain_context=domain_context,
-            storage_summary=storage_summary,  # type: ignore[arg-type]
+            storage_summary=storage_summary,
             conversation_context=conversation_context,
-            evaluation_feedback=evaluation_feedback,  # type: ignore[arg-type]
+            evaluation_feedback=evaluation_feedback,
             retrieval_history=retrieval_history,
         )
         planner_output = await planner.plan(planner_input)
@@ -520,22 +526,14 @@ async def plan_node(state: QuiltoState) -> dict[str, Any]:
             quilto, "on_agent_complete", "planner", elapsed / 1000, planner_output.model_dump(mode="json")
         )
 
-        # Get query type value
-        query_type_val = planner_output.query_type
-        query_type_str = query_type_val.value if hasattr(query_type_val, "value") else str(query_type_val)
+        # Get query type value - QueryType is an enum, extract string value
+        query_type_str = planner_output.query_type.value
 
-        # Get clarify questions if present
-        clarify_q: list[dict[str, Any]] | None = None
-        if planner_output.clarify_questions:
-            clarify_q = [q.model_dump() for q in planner_output.clarify_questions]  # type: ignore[union-attr]
+        # Get clarify questions if present (list[str] | None)
+        clarify_q = planner_output.clarify_questions
 
-        # Get retrieval instructions
-        retrieval_instr: list[dict[str, Any]] = []
-        for i in planner_output.retrieval_instructions:
-            if hasattr(i, "model_dump"):
-                retrieval_instr.append(i.model_dump())  # type: ignore[union-attr]
-            else:
-                retrieval_instr.append(i)  # type: ignore[arg-type]
+        # Retrieval instructions are already list[dict[str, Any]]
+        retrieval_instr = planner_output.retrieval_instructions
 
         return {
             StateKeys.QUERY_TYPE: query_type_str,
@@ -638,15 +636,17 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
         # Reconstruct domain context with defensive validation
         domain_context, _was_fallback = _get_domain_context_with_fallback(state, "analyze_node")
 
-        query_type = state.get(StateKeys.QUERY_TYPE, "factual")
-        retrieval_summary = state.get(StateKeys.RETRIEVAL_SUMMARY, [])
+        query_type_str = state.get(StateKeys.QUERY_TYPE, "factual")
+        query_type = QueryType(query_type_str) if isinstance(query_type_str, str) else query_type_str
+        retrieval_summary_raw = state.get(StateKeys.RETRIEVAL_SUMMARY, [])
+        retrieval_summary = retrieval_summary_raw if isinstance(retrieval_summary_raw, list) else []
 
         analyzer = AnalyzerAgent(quilto.llm_client)
         analyzer_input = AnalyzerInput(
             query=user_input,
-            query_type=query_type,  # type: ignore[arg-type]
+            query_type=query_type,
             entries=entries,
-            retrieval_summary=retrieval_summary,  # type: ignore[arg-type]
+            retrieval_summary=retrieval_summary,
             domain_context=domain_context,
         )
         analyzer_output = await analyzer.analyze(analyzer_input)
@@ -739,13 +739,14 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
                 verdict=Verdict.INSUFFICIENT,
             )
 
-        query_type = state.get(StateKeys.QUERY_TYPE, "factual")
+        query_type_str = state.get(StateKeys.QUERY_TYPE, "factual")
+        query_type = QueryType(query_type_str) if isinstance(query_type_str, str) else query_type_str
         is_partial = state.get(StateKeys.IS_PARTIAL, False)
 
         synthesizer = SynthesizerAgent(quilto.llm_client)
         synthesizer_input = SynthesizerInput(
             query=user_input,
-            query_type=query_type,  # type: ignore[arg-type]
+            query_type=query_type,
             analysis=analyzer_output,
             vocabulary=domain_context.vocabulary,
             response_style="concise",

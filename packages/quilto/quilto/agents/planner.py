@@ -373,7 +373,7 @@ Respond with a JSON object matching this schema:
             messages=messages,
             response_model=PlannerOutput,
         )
-        return result  # type: ignore[return-value]
+        return result
 
     def should_expand_domain(self, gaps: list[Gap]) -> bool:
         """Check if any gaps indicate need for domain expansion.

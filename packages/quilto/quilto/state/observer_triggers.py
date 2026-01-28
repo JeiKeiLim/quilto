@@ -14,7 +14,7 @@ Trigger types:
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Any, Literal, Protocol
+from typing import Any, Literal, Protocol, cast
 
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator, model_validator
 
@@ -522,9 +522,11 @@ async def observe_node(state: SessionState) -> dict[str, Any]:
     """
     # Check if Observer components are configured in state
     # These would typically be injected via a registry or state initialization
-    observer = state.get("_observer")  # type: ignore[typeddict-item]
-    context_manager = state.get("_context_manager")  # type: ignore[typeddict-item]
-    config = state.get("_observer_trigger_config")  # type: ignore[typeddict-item]
+    # Cast to Any to access internal keys not in TypedDict definition
+    state_any = cast(dict[str, Any], state)
+    observer = state_any.get("_observer")
+    context_manager = state_any.get("_context_manager")
+    config = state_any.get("_observer_trigger_config")
     active_domain_context_dict = state.get("active_domain_context")
 
     # If Observer not configured, skip gracefully

@@ -108,8 +108,8 @@ def classify_error(exception: Exception) -> ErrorType:
         return ErrorType.PERMANENT
 
     # Check for HTTP status codes in generic errors
-    if hasattr(exception, "status_code"):
-        status = exception.status_code  # type: ignore[union-attr]
+    status = getattr(exception, "status_code", None)
+    if isinstance(status, int):
         if status == 429:  # Rate limit
             return ErrorType.TRANSIENT
         if status in (401, 403, 400, 404):

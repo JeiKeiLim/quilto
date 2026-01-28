@@ -871,7 +871,8 @@ class ClarificationQuestion(BaseModel):
             if not filtered and original_len > 0:
                 return None
             return filtered
-        return v  # type: ignore[return-value]
+        # Non-list, non-None values: wrap in list for Pydantic to validate
+        return [str(v)]
 
 
 class ClarifierInput(BaseModel):

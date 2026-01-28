@@ -10,7 +10,7 @@ import json
 import logging
 import random
 import re
-from typing import Any
+from typing import Any, TypeVar
 
 import litellm
 from pydantic import BaseModel, ValidationError
@@ -22,6 +22,8 @@ from quilto.llm.config import (
     ProviderName,
 )
 from quilto.llm.errors import ErrorType, PartialResult, classify_error
+
+T = TypeVar("T", bound=BaseModel)
 
 logger = logging.getLogger(__name__)
 
@@ -256,17 +258,18 @@ class LLMClient:
         if resolution.api_key:
             completion_kwargs["api_key"] = resolution.api_key
 
+        # litellm lacks complete type stubs - ignore is necessary for external library
         response = await litellm.acompletion(**completion_kwargs)  # type: ignore[reportUnknownMemberType]
-        return response.choices[0].message.content or ""  # type: ignore[reportUnknownMemberType,reportAttributeAccessIssue]
+        return response.choices[0].message.content or ""  # type: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
 
     async def complete_structured(
         self,
         agent: str,
         messages: list[dict[str, Any]],
-        response_model: type[BaseModel],
+        response_model: type[T],
         force_cloud: bool = False,
         **kwargs: Any,
-    ) -> BaseModel:
+    ) -> T:
         """Complete with Pydantic validation.
 
         Makes a completion request with JSON response format and
@@ -350,7 +353,11 @@ class LLMClient:
         """
         result = await self.complete_with_cascade(agent, messages, allow_degradation=False, **kwargs)
         # Since allow_degradation=False, result is always str (raises on failure)
-        return result  # type: ignore[return-value]
+        # Note: pyright cannot narrow the union here - str is guaranteed at runtime
+        if isinstance(result, str):
+            return result
+        # This branch is unreachable when allow_degradation=False, but satisfies type checker
+        return result.content or ""
 
     async def _retry_with_backoff(
         self,
@@ -494,10 +501,10 @@ class LLMClient:
         self,
         agent: str,
         messages: list[dict[str, Any]],
-        response_model: type[BaseModel],
+        response_model: type[T],
         allow_degradation: bool = True,
         **kwargs: Any,
-    ) -> BaseModel | PartialResult:
+    ) -> T | PartialResult:
         """Complete structured response with full error cascade.
 
         Attempts structured completion with retry and fallback support.
@@ -607,10 +614,10 @@ class LLMClient:
         self,
         agent: str,
         messages: list[dict[str, Any]],
-        response_model: type[BaseModel],
+        response_model: type[T],
         force_cloud: bool = False,
         **kwargs: Any,
-    ) -> tuple[BaseModel | None, Exception | None, int]:
+    ) -> tuple[T | None, Exception | None, int]:
         """Retry structured completion with exponential backoff.
 
         Similar to _retry_with_backoff but for structured responses.

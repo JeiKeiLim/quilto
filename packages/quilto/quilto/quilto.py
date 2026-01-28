@@ -125,6 +125,14 @@ class Quilto:
         """
         return self.storage.get_storage_summary().model_dump()
 
+    def get_storage_summary(self) -> dict[str, Any]:
+        """Get storage summary for agent planning.
+
+        Returns:
+            Summary of storage contents for date range decisions.
+        """
+        return self._get_storage_summary()
+
     def create_session(self) -> Session:
         """Create a new conversation session.
 

@@ -157,4 +157,4 @@ Respond with a JSON object matching this schema:
             messages=messages,
             response_model=RouterOutput,
         )
-        return result  # type: ignore[return-value]
+        return result
