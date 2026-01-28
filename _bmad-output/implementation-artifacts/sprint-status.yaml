@@ -241,3 +241,26 @@ development_status:
   # --- Optional ---
   16-7-review-batch-import-command: done  # LOW - Decision: Keep separate. Found/fixed timestamp parsing bug + test leakage.
   epic-16-retrospective: done
+
+  # Epic 17: Query Flow Fix & Framework Stability
+  # Source: Epic 16 Retrospective smoke test revealed query flow completely broken
+  # Investigation: _bmad-output/implementation-artifacts/epic-17/17-1-query-flow-investigation.md
+  # Root causes: (1) Storage path doubling, (2) Enum validation with strict=True
+  # Additional: 4 high-priority, 2 medium-priority, 1 low-priority stability issues
+  epic-17: in-progress
+  # --- Phase 1: Critical (Block Query Flow) ---
+  17-1-query-flow-investigation: done  # CRITICAL - Investigation complete, root causes documented
+  17-2-remove-storage-path-doubling: backlog  # CRITICAL - StorageRepository adds /logs/ internally
+  17-3-remove-strict-true-from-models: backlog  # CRITICAL - LangGraph serializes enums to strings
+  # --- Phase 2: High (Stability) ---
+  17-4-fix-eval-feedback-type-vulnerability: backlog  # HIGH - eval_feedback[0] on string returns char
+  17-5-add-observer-error-propagation: backlog  # HIGH - Silent Observer failures hide context issues
+  17-6-protect-state-dict-access: backlog  # HIGH - Direct state["key"] can KeyError
+  # --- Phase 3: Medium (Robustness) ---
+  17-7-define-state-key-constants: backlog  # MEDIUM - Hardcoded string keys error-prone
+  17-8-add-domain-context-validation-fallback: backlog  # MEDIUM - Corrupted context crashes flow
+  # --- Phase 4: Low (Tech Debt) ---
+  17-9-audit-type-ignore-comments: backlog  # LOW - 140+ type:ignore hiding real issues
+  # --- Validation ---
+  17-10-verify-fixes-with-dogfooding: backlog  # HIGH - Confirm query flow works, generate Epic 18
+  epic-17-retrospective: backlog

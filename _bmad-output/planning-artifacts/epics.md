@@ -2622,11 +2622,351 @@ def main(
 
 ---
 
+## Epic 17: Query Flow Fix & Framework Stability
+
+*Fix critical bugs blocking query flow + improve framework reliability*
+
+**Origin:** Epic 16 Retrospective (2026-01-28)
+**Source:** Story 17.1 investigation + deep dive findings
+
+**Problem Statement:**
+- Query flow completely broken: "How was my workout this week?" returns error
+- Two critical bugs identified:
+  1. Storage path doubling: `--storage ./logs` looks in `./logs/logs/raw/`
+  2. Enum validation: LangGraph serializes enums to strings, `strict=True` rejects them
+- Four high-priority stability issues:
+  - `eval_feedback[0]` type vulnerability
+  - Silent Observer failures
+  - Unprotected state dict access
+  - Overly broad exception handling
+- Technical debt: 140+ `# type: ignore` comments
+
+**Solution:**
+- Phase 1: Fix critical bugs blocking query flow
+- Phase 2: Fix high-priority stability issues
+- Phase 3: Address medium-priority robustness issues
+- Phase 4: Clean up technical debt
+
+**Quilto Only:** All fixes are in the Quilto framework
+**Swealog:** No changes needed (proper Quilto consumer)
+
+---
+
+### Story 17.1: Query Flow Investigation
+
+**Priority:** CRITICAL | **Effort:** Done | **Status:** Complete
+
+**As a** Quilto framework developer,
+**I want** to understand why query flow is completely broken,
+**So that** we can fix the root causes, not just symptoms.
+
+**Acceptance Criteria:**
+
+1. **Given** the reproduction command
+   **When** executed with debug logging
+   **Then** full error chain is traced
+
+2. **Given** ValidationError cascade
+   **When** investigating orchestration.py
+   **Then** root cause is identified (not just symptoms)
+
+3. **Given** 0 entries retrieved
+   **When** investigating storage path
+   **Then** path doubling issue is confirmed
+
+**Deliverables:**
+- Investigation document: `_bmad-output/implementation-artifacts/epic-17/17-1-query-flow-investigation.md`
+- Root causes documented
+- Fix options analyzed
+- Broader issues catalogued
+
+---
+
+### Story 17.2: Remove Storage Path Doubling
+
+**Priority:** CRITICAL | **Effort:** Small (1 hour)
+
+**As a** Quilto framework developer,
+**I want** `--storage ./logs` to store in `./logs/`,
+**So that** users get expected behavior.
+
+**Acceptance Criteria:**
+
+1. **Given** `StorageRepository(base_path=Path("logs"))`
+   **When** `_get_raw_path()` is called
+   **Then** returns `logs/raw/...` (not `logs/logs/raw/...`)
+
+2. **Given** `StorageRepository(base_path=Path("."))`
+   **When** `_get_parsed_path()` is called
+   **Then** returns `parsed/...` (not `logs/parsed/...`)
+
+3. **Given** existing data in `./logs/raw/`
+   **When** Retriever searches with `--storage ./logs`
+   **Then** entries are found
+
+**Files to Modify:**
+- `packages/quilto/quilto/storage/repository.py`
+  - Line 48-50: `_ensure_directories()` - remove `/logs/`
+  - Line 61-68: `_get_raw_path()` - remove `/logs/`
+  - Line 79-86: `_get_parsed_path()` - remove `/logs/`
+  - Line 371, 382: `get_global_context()`, `update_global_context()` - remove `/logs/`
+  - Line 398: `get_storage_summary()` - remove `/logs/`
+
+**Breaking Change:** Yes - existing code passing parent directory must now pass `logs/` directly
+
+---
+
+### Story 17.3: Remove strict=True from State-Crossing Models
+
+**Priority:** CRITICAL | **Effort:** Small (30 min)
+
+**As a** Quilto framework developer,
+**I want** Pydantic models to accept string coercion for enums,
+**So that** LangGraph state serialization doesn't break validation.
+
+**Acceptance Criteria:**
+
+1. **Given** `AnalyzerInput(query_type="insight")`
+   **When** created with string instead of `QueryType.INSIGHT`
+   **Then** Pydantic auto-coerces to enum (no ValidationError)
+
+2. **Given** `AnalyzerOutput` from state dict
+   **When** `model_validate(state["analyzer_output"])` is called
+   **Then** `verdict: "insufficient"` coerces to `Verdict.INSUFFICIENT`
+
+3. **Given** `RouterOutput` from state dict
+   **When** re-validated
+   **Then** `input_type: "query"` coerces to `InputType.QUERY`
+
+**Files to Modify:**
+- `packages/quilto/quilto/agents/models.py`
+  - `RouterOutput` - remove `model_config = ConfigDict(strict=True)`
+  - `AnalyzerInput` - remove `model_config = ConfigDict(strict=True)`
+  - `AnalyzerOutput` - remove `model_config = ConfigDict(strict=True)`
+  - `SynthesizerInput` - remove `model_config = ConfigDict(strict=True)`
+
+**Rationale:** Enums are `str` subclasses (`class QueryType(str, Enum)`), so coercion is type-safe.
+
+---
+
+### Story 17.4: Fix eval_feedback Type Vulnerability
+
+**Priority:** HIGH | **Effort:** Small (30 min)
+
+**As a** Quilto framework developer,
+**I want** `eval_feedback` access to be type-safe,
+**So that** string vs list confusion doesn't cause subtle bugs.
+
+**Acceptance Criteria:**
+
+1. **Given** `eval_feedback` is a list
+   **When** `eval_feedback[0]` is accessed
+   **Then** returns first element correctly
+
+2. **Given** `eval_feedback` is accidentally a string
+   **When** accessed
+   **Then** code handles gracefully (not returns first character)
+
+3. **Given** `eval_feedback` is None or empty
+   **When** accessed
+   **Then** default value is used
+
+**Files to Modify:**
+- `packages/quilto/quilto/orchestration.py`
+  - Line 365-367: Add type check before indexing
+  - Line 974-975: Add type check before indexing
+
+**Implementation:**
+```python
+# Before:
+evaluation_feedback = eval_feedback[0] if eval_feedback else None
+
+# After:
+if isinstance(eval_feedback, list) and eval_feedback:
+    evaluation_feedback = eval_feedback[0]
+else:
+    evaluation_feedback = None
+```
+
+---
+
+### Story 17.5: Add Observer Error Propagation
+
+**Priority:** HIGH | **Effort:** Small (1 hour)
+
+**As a** Quilto framework developer,
+**I want** Observer failures to be visible to applications,
+**So that** context learning issues are detectable.
+
+**Acceptance Criteria:**
+
+1. **Given** Observer throws exception
+   **When** `observe_node` catches it
+   **Then** error is logged AND returned in state
+
+2. **Given** Observer returns empty context
+   **When** state is checked
+   **Then** `observer_error` field indicates the issue
+
+3. **Given** ProgressHandler is registered
+   **When** Observer fails
+   **Then** `on_agent_complete` is called with error info
+
+**Files to Modify:**
+- `packages/quilto/quilto/orchestration.py`
+  - Lines 931-936: Return error state instead of empty dict
+
+---
+
+### Story 17.6: Protect State Dict Access
+
+**Priority:** HIGH | **Effort:** Medium (1-2 hours)
+
+**As a** Quilto framework developer,
+**I want** all state dict access to use `.get()` with defaults,
+**So that** missing keys cause graceful degradation, not crashes.
+
+**Acceptance Criteria:**
+
+1. **Given** `state["user_input"]` access
+   **When** key is missing
+   **Then** default value is used (not KeyError)
+
+2. **Given** `state["_quilto"]` access
+   **When** key is missing
+   **Then** error is logged and handled gracefully
+
+3. **Given** all direct `state["key"]` patterns
+   **When** audited
+   **Then** converted to `state.get("key", default)`
+
+**Files to Modify:**
+- `packages/quilto/quilto/orchestration.py`
+  - Line 750: `state["user_input"]` → `state.get("user_input", "")`
+  - Line 807: `state["_quilto"]` → with default
+  - Line 871: `state["_quilto"]` → with default
+  - Line 902: `state["user_input"]` → with default
+
+---
+
+### Story 17.7: Define State Key Constants
+
+**Priority:** MEDIUM | **Effort:** Medium (2 hours)
+
+**As a** Quilto framework developer,
+**I want** state keys defined as constants,
+**So that** typos are caught at compile time.
+
+**Acceptance Criteria:**
+
+1. **Given** a new `StateKeys` class or module
+   **When** imported
+   **Then** all keys are available as constants
+
+2. **Given** all hardcoded state keys
+   **When** replaced with constants
+   **Then** no string literals for state keys in orchestration.py
+
+3. **Given** a typo in key name
+   **When** code is checked by pyright
+   **Then** error is detected
+
+**Files to Create/Modify:**
+- `packages/quilto/quilto/orchestration.py`
+  - Add `class StateKeys` or create separate module
+  - Replace all string literals
+
+---
+
+### Story 17.8: Add Domain Context Validation Fallback
+
+**Priority:** MEDIUM | **Effort:** Small (1 hour)
+
+**As a** Quilto framework developer,
+**I want** domain context validation to fail gracefully,
+**So that** corrupted state doesn't crash the entire flow.
+
+**Acceptance Criteria:**
+
+1. **Given** corrupted `domain_context` dict in state
+   **When** `ActiveDomainContext.model_validate()` fails
+   **Then** default context is used with warning
+
+2. **Given** validation failure
+   **When** flow continues
+   **Then** error is logged for debugging
+
+**Files to Modify:**
+- `packages/quilto/quilto/orchestration.py`
+  - Lines 361, 501, 661, 761, 889: Wrap in try/except with fallback
+
+---
+
+### Story 17.9: Audit Type Ignore Comments
+
+**Priority:** LOW | **Effort:** Medium (2-3 hours)
+
+**As a** Quilto framework developer,
+**I want** to reduce `# type: ignore` comments,
+**So that** real type issues aren't hidden.
+
+**Acceptance Criteria:**
+
+1. **Given** orchestration.py type ignores
+   **When** reviewed
+   **Then** each is either fixed or documented with rationale
+
+2. **Given** unnecessary type ignores
+   **When** removed
+   **Then** pyright passes without them
+
+3. **Given** necessary type ignores
+   **When** kept
+   **Then** specific error code is used (e.g., `# type: ignore[arg-type]`)
+
+**Files to Audit:**
+- `packages/quilto/quilto/orchestration.py` - 15+ type ignores
+- `packages/quilto/quilto/llm/client.py` - Several type ignores
+
+---
+
+### Story 17.10: Verify Fixes with Dogfooding
+
+**Priority:** HIGH | **Effort:** Medium (2 hours)
+**Depends On:** 17.2, 17.3 (Critical fixes)
+
+**As a** Swealog user,
+**I want** the query flow to work correctly,
+**So that** I can actually use the application.
+
+**Acceptance Criteria:**
+
+1. **Given** the reproduction command
+   ```bash
+   uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "How was my workout this week?"
+   ```
+   **When** executed
+   **Then** returns actual response (not "I encountered an error")
+
+2. **Given** 12 entries in `./logs/raw/`
+   **When** query is processed
+   **Then** Retriever finds entries (not 0)
+
+3. **Given** ValidationError was the symptom
+   **When** query completes
+   **Then** no ValidationError in logs
+
+4. **Given** fresh dogfooding session
+   **When** multiple queries tested
+   **Then** feedback recorded for Epic 18 analysis
+
+---
+
 ## Future Epics
 
-### Epic 17+: Dogfooding Iteration 5+
+### Epic 18+: Dogfooding Iteration 5+
 
-*Stories generated from Epic 16 completion and fresh dogfooding on clean Swealog architecture*
+*Stories generated from Epic 17 completion and fresh dogfooding on working query flow*
 
-**Status:** Backlog (depends on Epic 16 completion)
+**Status:** Backlog (depends on Epic 17 completion)
 
