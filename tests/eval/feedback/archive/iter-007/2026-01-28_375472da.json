@@ -1,0 +1,271 @@
+{
+  "id": "2026-01-28_375472da",
+  "query": "show me my cardio sessions from last week",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "QUERY",
+      "confidence": 0.99,
+      "selected_domains": [
+        "Running",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The user is requesting a summary of cardio sessions, which are typically tracked under Running (road, treadmill, interval runs) and also fall under the broader category of GeneralFitness that captures overall cardio activities. Including both ensures coverage of any cardio workouts they may have logged.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The statement is a direct request for information and contains no declarative logging or correction language, so it is classified as a QUERY."
+    },
+    "planner": {
+      "original_query": "show me my cardio sessions from last week",
+      "query_type": "simple",
+      "sub_queries": [
+        {
+          "id": 1,
+          "question": "Show me my cardio sessions from last week",
+          "retrieval_strategy": "date_range",
+          "retrieval_params": {
+            "start_date": "2026-01-21",
+            "end_date": "2026-01-26"
+          }
+        }
+      ],
+      "dependencies": [],
+      "execution_strategy": "coupled",
+      "execution_order": [
+        1
+      ],
+      "retrieval_instructions": [
+        {
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2026-01-21",
+            "end_date": "2026-01-26"
+          },
+          "sub_query_id": 1
+        }
+      ],
+      "gaps_status": {},
+      "domain_expansion_request": null,
+      "expansion_reasoning": null,
+      "clarify_questions": null,
+      "next_action": "retrieve",
+      "reasoning": "The user asks for a straightforward list of cardio sessions from the previous week. This is a simple retrieval query. We calculate the 7‑day window preceding today (2026-01-28), which is 2026-01-21 to 2026-01-27, but cap the end date at the latest available log date (2026-01-26). No domain expansion or clarification is needed, so the next step is to retrieve the data for that date range."
+    },
+    "retriever": {
+      "entries": [
+        {
+          "id": "2026-01-25_18-08-00",
+          "date": "2026-01-25",
+          "timestamp": "2026-01-25T18:08:00",
+          "raw_content": "Yesterday I did 3 sets of pull-ups, 어제 기록 확인해줘",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_07-39-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:39:00",
+          "raw_content": "I haven't been to gym and eating bad foods for a while. What do I do today?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_07-51-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:51:00",
+          "raw_content": "I have slept for 5 hours only yesterday and today. Do you think I should go easy even though I haven't gone to gym for a while?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_07-56-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:56:00",
+          "raw_content": "I'd like to run a full marathon.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_16-50-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T16:50:00",
+          "raw_content": "I'd like to run a full marathon. How do I do?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-07-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:07:00",
+          "raw_content": "I want to get stronger legs",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-12-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:12:00",
+          "raw_content": "운동 좀 해야겠다",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-59-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:59:00",
+          "raw_content": "I want to lose 5kg by summer, what should I focus on?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-06-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:06:00",
+          "raw_content": "마라톤 준비하고 싶은데 현재 러닝 실력으로 가능할까?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-26-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:26:00",
+          "raw_content": "I want to hit a 200kg deadlift by summer",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-33-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:33:00",
+          "raw_content": "런닝머신 30분 뛰었어",
+          "parsed_data": null
+        }
+      ],
+      "retrieval_summary": [
+        {
+          "attempt_number": 1,
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2026-01-21",
+            "end_date": "2026-01-26"
+          },
+          "entries_found": 12,
+          "summary": "Retrieved 12 entries from 2026-01-21 to 2026-01-26",
+          "expansion_tier": 0
+        }
+      ],
+      "total_entries_found": 11,
+      "date_range_covered": {
+        "start": "2026-01-25",
+        "end": "2026-01-26"
+      },
+      "warnings": [],
+      "truncated": false,
+      "expansion_exhausted": false,
+      "strategies_used": [
+        "date_range"
+      ]
+    },
+    "analyzer": {
+      "query_intent": "The user wants a summary of all cardio (running/ aerobic) workout sessions they performed during the previous week (the 7 days prior to 2026‑01‑28).",
+      "findings": [
+        {
+          "claim": "On 2026‑01‑26 you performed a cardio session on the treadmill for 30 minutes.",
+          "evidence": [
+            "Entry 11 (2026-01-26): \"런닝머신 30분 뛰었어\""
+          ],
+          "confidence": "high",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        }
+      ],
+      "patterns_identified": [
+        "Only one cardio‑related entry (treadmill run) appears in the logs for the last week.",
+        "Several entries express a desire to run a marathon, but they do not record actual cardio workouts."
+      ],
+      "sufficiency_evaluation": {
+        "critical_gaps": [
+          {
+            "description": "No cardio session records for the other days of the last week (2026‑01‑21 to 2026‑01‑25 and 2026‑01‑27).",
+            "gap_type": "temporal",
+            "severity": "critical",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          }
+        ],
+        "nice_to_have_gaps": [],
+        "evidence_check_passed": true,
+        "speculation_risk": "none"
+      },
+      "verdict_reasoning": "We have a single, clearly documented cardio session (30‑minute treadmill run on 2026‑01‑26) that satisfies part of the request. However, the user asked for *all* cardio sessions from the prior week, and the logs contain no other cardio entries for the remaining days. This temporal gap is critical for providing a complete answer, so we can only partially fulfill the request by reporting the one known session and noting the missing data.",
+      "verdict": "partial"
+    },
+    "synthesizer": {
+      "response": "Based on your logs, the only cardio session recorded for the week of Jan 21‑Jan 27 was on Jan 26, when you ran on the treadmill for 30 minutes. No other cardio workouts were logged for the remaining days of that week, so this is the complete list of cardio sessions we can provide.",
+      "key_points": [
+        "Jan 26: treadmill run, 30 min",
+        "No additional cardio entries found for the rest of the week"
+      ],
+      "evidence_cited": [
+        "2026-01-26: 런닝머신 30분"
+      ],
+      "gaps_disclosed": [
+        "No cardio entries were recorded for Jan 21‑Jan 25 or Jan 27, so we cannot report any sessions on those days."
+      ],
+      "confidence": "medium"
+    },
+    "evaluator": {
+      "dimensions": [
+        {
+          "dimension": "accuracy",
+          "verdict": "sufficient",
+          "reasoning": "The response correctly identifies the only cardio session (treadmill run on Jan 26 for 30 minutes) based on the provided logs and does not claim any additional sessions.",
+          "issues": []
+        },
+        {
+          "dimension": "relevance",
+          "verdict": "sufficient",
+          "reasoning": "The answer directly addresses the user's request to show cardio sessions from the previous week.",
+          "issues": []
+        },
+        {
+          "dimension": "safety",
+          "verdict": "sufficient",
+          "reasoning": "The response contains no health, training, or medical advice, so it poses no safety concerns.",
+          "issues": []
+        },
+        {
+          "dimension": "completeness",
+          "verdict": "sufficient",
+          "reasoning": "All cardio sessions that exist in the logs for the specified week are listed; there are no missing entries.",
+          "issues": []
+        }
+      ],
+      "overall_verdict": "sufficient",
+      "feedback": [],
+      "recommendation": "accept"
+    },
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "insight",
+          "key": "cardio_logging_gap_last_week",
+          "value": "No cardio sessions were logged for 2026-01-21, 2026-01-22, 2026-01-23, 2026-01-24, 2026-01-25, or 2026-01-27, indicating a complete cardio‑logging gap for those days of the week.",
+          "confidence": "certain",
+          "source": "post_query: show me my cardio sessions from last week"
+        }
+      ],
+      "insights_captured": [
+        "Identified a temporal gap in cardio logging for the week of Jan 21‑Jan 27, 2026 (no cardio entries except the Jan 26 treadmill run)."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "Based on your logs, the only cardio session recorded for the week of Jan 21‑Jan 27 was on Jan 26, when you ran on the treadmill for 30 minutes. No other cardio workouts were logged for the remaining days of that week, so this is the complete list of cardio sessions we can provide.",
+  "user_feedback": "Excellent agent pipeline performance. Router correctly classified as QUERY and selected appropriate domains (Running, GeneralFitness). Planner calculated correct date range (2026-01-21 to 2026-01-26) for 'last week'. Analyzer correctly identified the single cardio entry ('런닝머신 30분 뛰었어') and properly flagged the temporal gap as 'partial' verdict rather than claiming insufficient data. The Synthesizer provided an accurate, honest response that cited the evidence and transparently disclosed the logging gap for other days.",
+  "feedback_sentiment": "positive",
+  "issues_found": [],
+  "session": {
+    "timestamp": "2026-01-28 15:38:18.687873",
+    "input_type": "QUERY",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

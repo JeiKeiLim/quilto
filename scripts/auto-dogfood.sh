@@ -557,7 +557,7 @@ run_queries() {
         # Run swealog auto with debug mode and non-interactive flag
         # This creates JSON files in tests/eval/feedback/active/
         # --non-interactive skips the feedback prompt (to be filled by auto-review)
-        if ! uv run swealog auto "$query" --debug --non-interactive --config "$LLM_CONFIG" 2>/dev/null; then
+        if ! uv run swealog run "$query" --debug --non-interactive --config "$LLM_CONFIG" --storage ./logs 2>/dev/null; then
             log_warn "Query failed: $query"
         fi
 

@@ -278,4 +278,16 @@ development_status:
   18-3-fix-clarification-questions-type: done  # HIGH - AttributeError from string vs dict mismatch (code-reviewed 2026-01-28)
   # --- Phase 3: Validation ---
   18-4-dogfooding-iteration-6: done  # Completed - 100% success rate (13/13 queries), all 3 Epic 18 fixes verified
-  epic-18-retrospective: optional
+  epic-18-retrospective: done
+
+  # Epic 19: Dogfooding Fixes & Design Issues
+  # Source: iter-007 auto-dogfooding + Epic 18 retrospective
+  # Goal: Fix broken CORRECTION flow + session DB design contradiction
+  epic-19: pending
+  # --- Phase 1: Bug Fix ---
+  19-1-fix-correction-flow: pending  # HIGH - Parser fails to identify correction target, empty response returned
+  # --- Phase 2: Design Fix ---
+  19-2-fix-session-db-default: pending  # MEDIUM - :memory: default makes session continuity impossible
+  # --- Phase 3: Validation ---
+  19-3-dogfooding-iteration-8: pending  # MEDIUM - Verify CORRECTION flow + session persistence + regression
+  epic-19-retrospective: optional

@@ -3155,11 +3155,134 @@ elif isinstance(q, str):
 
 ---
 
+## Epic 19: Dogfooding Fixes & Design Issues
+
+*Fix broken CORRECTION flow + session DB design contradiction*
+
+**Source:** iter-007 auto-dogfooding + Epic 18 retrospective
+**Status:** Backlog
+
+**Quilto:** Fix Parser correction handling, fix session DB default logic
+**Swealog:** CLI session persistence fix
+
+**FRs covered:** CORRECTION input type, session continuity
+
+---
+
+### Story 19.1: Fix CORRECTION Input Type Flow
+
+**Priority:** HIGH | **Effort:** Medium (2-3 hours)
+
+**As a** Swealog user,
+**I want** to correct previously logged data,
+**So that** my fitness records are accurate.
+
+**Problem:**
+- Router correctly identifies CORRECTION (0.96 confidence)
+- Parser does not process the correction target
+- `correction.success: false`, `error_message: "Parser did not identify correction"`
+- `final_response: ""` - user receives no feedback
+
+**Evidence:** `tests/eval/feedback/archive/iter-007/2026-01-28_54959ede.json`
+
+**Acceptance Criteria:**
+
+1. **Given** Router classifies input as CORRECTION
+   **When** Parser receives the input with correction_target from Router
+   **Then** Parser identifies the target entry and correction delta
+
+2. **Given** Parser identifies a correction
+   **When** correction is processed
+   **Then** the target entry is updated in storage
+
+3. **Given** a correction is processed (success or failure)
+   **When** final_response is generated
+   **Then** user receives feedback about what was corrected (not empty string)
+
+4. **Given** input "I logged 5 sets but it should be 4"
+   **When** processed as CORRECTION
+   **Then** the matching entry's set count is updated from 5 to 4
+
+**Files to Investigate:**
+- Parser agent's correction-specific prompts/instructions
+- How `correction_target` from Router is passed to Parser
+- `packages/quilto/quilto/orchestration.py` - correction flow nodes
+
+---
+
+### Story 19.2: Fix Session DB Path Default Logic
+
+**Priority:** MEDIUM | **Effort:** Small (1 hour)
+
+**As a** Swealog user,
+**I want** my conversation sessions to persist by default,
+**So that** I can continue multi-turn conversations.
+
+**Problem:**
+At `packages/swealog/swealog/cli/app.py:319`:
+```python
+session_db_path = "quilto_sessions.db" if session_id else ":memory:"
+```
+
+Logical contradiction:
+1. No `--session` → `:memory:` → session UUID generated → lost on exit
+2. With `--session <id>` → `quilto_sessions.db` → session was never persisted
+
+**Acceptance Criteria:**
+
+1. **Given** no `--session` flag is provided
+   **When** a new session is created
+   **Then** session is persisted to `quilto_sessions.db` (not `:memory:`)
+
+2. **Given** a session was created in a previous run
+   **When** user provides `--session <id>` in a subsequent run
+   **Then** the session is retrieved with full conversation history
+
+3. **Given** user wants ephemeral mode
+   **When** an explicit flag is provided (e.g., `--no-persist`)
+   **Then** `:memory:` is used
+
+**Files to Modify:**
+- `packages/swealog/swealog/cli/app.py` - session_db_path logic
+
+---
+
+### Story 19.3: Dogfooding Iteration 8
+
+**Priority:** MEDIUM | **Effort:** Medium (2 hours)
+**Depends On:** 19.1, 19.2
+
+**As a** Swealog user and developer,
+**I want** to test the system after Epic 19 fixes,
+**So that** I can verify CORRECTION flow and session persistence work correctly.
+
+**Acceptance Criteria:**
+
+1. **Given** Stories 19.1-19.2 are complete
+   **When** CORRECTION queries are run
+   **Then** previously failing corrections now work
+
+2. **Given** a session is created without `--session` flag
+   **When** user runs again with `--session <id>`
+   **Then** conversation history is preserved
+
+3. **Given** 10+ queries tested (including CORRECTION type)
+   **When** dogfooding completes
+   **Then** feedback recorded for next iteration
+
+**Query Types to Test:**
+- CORRECTION inputs (primary focus)
+- Session continuity (multi-turn)
+- QUERY, LOG (regression check)
+- Mixed language (Korean + English)
+
+---
+
 ## Future Epics
 
-### Epic 19+: Continued Dogfooding Iterations
+### Epic 20+: Continued Dogfooding Iterations
 
-*Stories generated from Epic 18 dogfooding results*
+*Stories generated from Epic 19 dogfooding results*
 
-**Status:** Backlog (depends on Epic 18 completion)
+**Status:** Backlog (depends on Epic 19 completion)
 

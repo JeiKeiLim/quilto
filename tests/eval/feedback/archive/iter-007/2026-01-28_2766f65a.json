@@ -1,0 +1,414 @@
+{
+  "id": "2026-01-28_2766f65a",
+  "query": "어깨 운동 루틴 추천해줘 based on what I've been doing",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "QUERY",
+      "confidence": 0.98,
+      "selected_domains": [
+        "Strength"
+      ],
+      "domain_selection_reasoning": "The user is asking for a recommendation for a shoulder workout routine, which directly pertains to strength training exercises and programming.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a request for advice and contains no declarative statement of past activity, so it is classified as a QUERY. The content focuses on shoulder exercises, which belong to the Strength domain."
+    },
+    "planner": {
+      "original_query": "어깨 운동 루틴 추천해줘 based on what I've been doing",
+      "query_type": "recommendation",
+      "sub_queries": [
+        {
+          "id": 1,
+          "question": "What shoulder‑focused exercises (e.g., overhead press, lateral raise, front raise, face pull, etc.) have I performed in my recent workout logs?",
+          "retrieval_strategy": "date_range",
+          "retrieval_params": {
+            "start_date": "2025-12-31",
+            "end_date": "2026-01-26"
+          }
+        }
+      ],
+      "dependencies": [],
+      "execution_strategy": "coupled",
+      "execution_order": [
+        1
+      ],
+      "retrieval_instructions": [
+        {
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2025-12-31",
+            "end_date": "2026-01-26"
+          },
+          "sub_query_id": 1
+        }
+      ],
+      "gaps_status": {},
+      "domain_expansion_request": null,
+      "expansion_reasoning": null,
+      "clarify_questions": null,
+      "next_action": "retrieve",
+      "reasoning": "The user asks for a shoulder workout routine recommendation based on their recent activity, which is a recommendation‑type query. To generate a personalized plan we first need to know which shoulder exercises they have already been doing and the recent volume/frequency. A single sub‑query retrieves all strength‑training logs that could contain shoulder work over the entire available data window (2025‑12‑31 to 2026‑01‑26). No domain expansion or clarification is required, and the sub‑query can be executed alone (coupled). Hence the next step is to retrieve the relevant logs."
+    },
+    "retriever": {
+      "entries": [
+        {
+          "id": "2025-12-31_09-00-00",
+          "date": "2025-12-31",
+          "timestamp": "2025-12-31T09:00:00",
+          "raw_content": "데빌 프레스 덤벨 10키로씩 총 20키로 들고 2분 동안 10개하고 알아서 휴식 10세트 진행했음.\n심박수 190근처까지 찍고 생각보다 힘들어서 중간에 포기하고 싶었으나 끝까지 해냈음.\n다시 생각해보니 12키로로 했어도 어떻게든 끝까지 했을수도 있었겠다는 생각이 듬.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-02_09-00-00",
+          "date": "2026-01-02",
+          "timestamp": "2026-01-02T09:00:00",
+          "raw_content": "인클라인 덤벨프레스 25키로 한쪽씩 해서 3세트 10개씩 진행함. 마지막 세트에서 힘들긴 했지만 전체으로 큰 무리는 없던걸로 봐서 더 할수도 있을듯? 그러면서 동시에 슈퍼세트로 행잉레그이즈 10개와 풀업 병행함. 풀업 처음에는 맨몸으로 9개 그 뒤는 5키로 매달고 네거티브로 진행함.\n그리고나서 푸쉬프레스 10개씩 EMOM으로 함. 숨이 차지는 않았는데 어깨가 너무 털려서 힘들었음. 4라운드 까지는 5키로씩 양쪽에 달고 총 30키로로 진행. 어깨가 너무 털려서 2.5키로씩 양쪽에 달고 2라운드 진행 그리고 이것도 너무 어깨가 힘들어서 나머지는 빈봉 20키로로 계속 진행함. 숨은 전혀 차지 않았음. 심박수 160대 유지한거같음",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-03_09-00-00",
+          "date": "2026-01-03",
+          "timestamp": "2026-01-03T09:00:00",
+          "raw_content": "러닝머신에서 5키로 뜀. 천천히 시작해서 9kph로 뛰었을때 심박수 172정도 계속 유지함.\n기존에 러닝시 왼쪽 정강이가 먼저 지치는 경향이 있었는데 팔치기에서 어깨에 힘을 푸니 이런 현상이 거의 없었음. 기존에 어깨에 너무 힘을 주고 러닝을 했던걸로 생각이 됨.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-07_09-00-00",
+          "date": "2026-01-07",
+          "timestamp": "2026-01-07T09:00:00",
+          "raw_content": "점심 운동 매우 짧게 함. 웨이트 20분, 러닝 13분, 스트레칭 5분.\n55파운드 한쪽씩 들고 인클라인 벤치프레스 수행. 8개, 7개, 8개 3세트함. 슈퍼세트로 풀업 10개, 5개(이후 3개 네거티브), 7개(이후 1개 네거티브) 수행. 꽤 오랜만에 운동한건데도 어깨 회복이 완전히 되지 않은 느낌을 받음. 인클라인 벤치프레스에서 어깨에 근육통이 느껴짐. 가슴에 집중해서 수행함.\n러닝은 9km 로 유지. 배고파서 그런지 빨리 지쳤음.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-08_09-00-00",
+          "date": "2026-01-08",
+          "timestamp": "2026-01-08T09:00:00",
+          "raw_content": "준비운동으로 케이블 머신에서 후면 삼각근 운동 5키로로 양쪽 동시에 진행. 그리고 행잉 레그레이즈드 크런치 슈퍼세트 약 10분 진행\n그 뒤에 로잉머신 500m 약 2분 페이스로 진행 + 숄더 프레스 머신에서 30키로 와 35키로로 2세트 진행 후 어깨가 회복이 완전하지 않은것 같아서 레그레이즈드 크런치 1세트로 총 3세트 진행\n시간이 얼마 없어서 러닝머신 12분 뜀. 8에서 주로 뛰다 중간쯤에 10초에 0.1씩 올려서 10으로 뜀. 어렵지 않았음 \n점심 운동 총 45분",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-09_09-00-00",
+          "date": "2026-01-09",
+          "timestamp": "2026-01-09T09:00:00",
+          "raw_content": "야외 러닝 10km 뜀. 초반에 6:10 페이스로 7키로 정도 뛰다 힘들어서 600미터 정도 걸음. 그리고 다시 슬로우 러닝 7:30 페이스로 3키로 넘게 뜀. 무리하면 10키로 쭉 뛸수 있었을텐데 무리하지 않기로 함. 처음 7키로까지 뛰고 났을때는 심폐와 근육 모두 지친 느낌 그리고 오른쪽 골반 통증과 왼쪽 발목이 저린 느낌이 들었음. 골반 비대층 때문인지?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-10_09-00-00",
+          "date": "2026-01-10",
+          "timestamp": "2026-01-10T09:00:00",
+          "raw_content": "회복 러닝 40분 뜀. 8kph 속도로 5키로 조금 넘게 뛰었음. 오른쪽 장요근 스트레칭을 확실히 하고 뛰니까 이전에 비해 좋아진 느낌. 여전히 정강이가 살짝 지치는 느낌은 있었는데 이건 어제 장거리 러닝 때문인지는 조금 헷갈림.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-12_09-00-00",
+          "date": "2026-01-12",
+          "timestamp": "2026-01-12T09:00:00",
+          "raw_content": "벤치 프레스 60kg 10개, 7개, 그리고 50kg 10개 함. 가슴에 펌핑이 많이 옴. 슈퍼세트로 풀업 10개, 7개, 7개 진행. 동시에 슈퍼세트로 (트리플 세트인가?) 트위스트 행잉 레그 레이즈드 크런치 10개씩 진행함. 이렇게 20분 진행. 러닝머신 10분 간 8km 속도로 타다 9km 30초 12km 30초로 인터벌 10분 진행. 심박수 최대 185 정도로 올라간걸로 봐서 심장은 괜찮은 듯. 엉덩이랑 다리 근육이 조금 지치는 느낌 받음. 그렇지만 몇 세트 더 할 수 있었을 것 같음. 마지막 세트에서는 12km 속도로 1분간 뜀.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-13_09-00-00",
+          "date": "2026-01-13",
+          "timestamp": "2026-01-13T09:00:00",
+          "raw_content": "러닝머신 9km 속도로 약 4.7키로 뜀. 심박수 160 대로 유지함. 왼쪽 발목 근육 느낌이 지치는 느낌이 조금 났지만 무시하고 뛸만한 느낌. 허벅지 맨 살이 계속 스치면서 열상 조금 입음",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-15_09-00-00",
+          "date": "2026-01-15",
+          "timestamp": "2026-01-15T09:00:00",
+          "raw_content": "시티드 덤벨 숄더 프레스 한쪽당 30lbs 10개, 35lbs 10개, 그리고 9개 진행. 슈퍼세트로 동시에 덤벨 원암 로우 65lbs 10개, 10개, 70lbs 10개 진행함. 원암 로우는 할때 하체가 조금 힘든 느낌을 받음. 그리고 휴식 시간마다 행잉 레그 레이즈드 크런치 10개씩 진행함. 이후에 러닝 8km 속도로 1.5km 뜀.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-19_09-00-00",
+          "date": "2026-01-19",
+          "timestamp": "2026-01-19T09:00:00",
+          "raw_content": "러닝머신에서 5km 뜀. 9km 속도로 4.5 km 뛰고 나머지 500m 는 12km 속도로 뜀. 스트레칭도 많이 해주고 뛰었는데 이상하게 오늘따라 왼쪽 정강이 근육이 많이 지쳤음. 9km 뛸때 심박수 160정도 수준 유지. 12km 속도로 뛸때도 180 초중반 수준이라 심장은 문제 없었던걸로 보임.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-20_14-27-00",
+          "date": "2026-01-20",
+          "timestamp": "2026-01-20T14:27:00",
+          "raw_content": "천국의 계단 15분 탐. 심박수 약 160대로 유지. 오늘은 감기기운이 살짝 있는 것같아서 조금만 함. 스트레칭 5분 정도 추가 진행",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-25_18-08-00",
+          "date": "2026-01-25",
+          "timestamp": "2026-01-25T18:08:00",
+          "raw_content": "Yesterday I did 3 sets of pull-ups, 어제 기록 확인해줘",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_07-39-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:39:00",
+          "raw_content": "I haven't been to gym and eating bad foods for a while. What do I do today?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_07-51-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:51:00",
+          "raw_content": "I have slept for 5 hours only yesterday and today. Do you think I should go easy even though I haven't gone to gym for a while?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_07-56-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:56:00",
+          "raw_content": "I'd like to run a full marathon.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_16-50-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T16:50:00",
+          "raw_content": "I'd like to run a full marathon. How do I do?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-07-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:07:00",
+          "raw_content": "I want to get stronger legs",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-12-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:12:00",
+          "raw_content": "운동 좀 해야겠다",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-59-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:59:00",
+          "raw_content": "I want to lose 5kg by summer, what should I focus on?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-06-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:06:00",
+          "raw_content": "마라톤 준비하고 싶은데 현재 러닝 실력으로 가능할까?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-26-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:26:00",
+          "raw_content": "I want to hit a 200kg deadlift by summer",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-33-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:33:00",
+          "raw_content": "런닝머신 30분 뛰었어",
+          "parsed_data": null
+        }
+      ],
+      "retrieval_summary": [
+        {
+          "attempt_number": 1,
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2025-12-31",
+            "end_date": "2026-01-26"
+          },
+          "entries_found": 24,
+          "summary": "Retrieved 24 entries from 2025-12-31 to 2026-01-26",
+          "expansion_tier": 0
+        }
+      ],
+      "total_entries_found": 23,
+      "date_range_covered": {
+        "start": "2025-12-31",
+        "end": "2026-01-26"
+      },
+      "warnings": [],
+      "truncated": false,
+      "expansion_exhausted": false,
+      "strategies_used": [
+        "date_range"
+      ]
+    },
+    "analyzer": {
+      "query_intent": "The user is asking for a shoulder‑focused workout routine that builds on the exercises, loads, and recovery patterns they have already logged.",
+      "findings": [
+        {
+          "claim": "Recent shoulder training has centered on high‑volume overhead pressing (incline dumbbell press, push‑press, seated dumbbell shoulder press) with moderate loads (≈25‑35 kg total) and has produced noticeable shoulder fatigue and incomplete recovery.",
+          "evidence": [
+            "2026-01-02 (Entry 2): Incline dumbbell press 25 kg ×3 sets ×10 reps; push‑press EMOM up to 30 kg total, shoulder trembling noted.",
+            "2026-01-07 (Entry 4): Incline bench press 55 lb (≈25 kg) 3 sets; shoulder soreness reported.",
+            "2026-01-08 (Entry 5): Shoulder‑press machine 30 kg → 35 kg 2 sets; shoulder felt not fully recovered.",
+            "2026-01-10 (Entry 10): Seated dumbbell shoulder press 30 lb (≈13.6 kg) → 35 lb (≈15.9 kg) ×10 reps, plus 9 reps; shoulder fatigue mentioned."
+          ],
+          "confidence": "high",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        },
+        {
+          "claim": "Shoulder fatigue tends to appear after 3‑4 sets of overhead pressing, especially when the total load exceeds roughly 30 kg (e.g., push‑press EMOM with 30 kg caused trembling).",
+          "evidence": [
+            "2026-01-02 (Entry 2): Push‑press EMOM with 30 kg total caused shoulder trembling; reduced load after 4 rounds.",
+            "2026-01-08 (Entry 5): After two sets at 35 kg the user noted the shoulder was not fully recovered."
+          ],
+          "confidence": "medium",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        },
+        {
+          "claim": "The logs contain no dedicated rear‑deltoid, lateral‑raise, or rotator‑cuff work, indicating a potential imbalance in shoulder training.",
+          "evidence": [
+            "Across all entries (1‑23) there is no mention of exercises such as lateral raises, face pulls, external rotations, or rear‑deltoid rows."
+          ],
+          "confidence": "medium",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        },
+        {
+          "claim": "Shoulder sessions have occurred roughly 3‑4 times per week (01‑02, 01‑07, 01‑08, 01‑10), suggesting the user can sustain 2‑3 dedicated shoulder workouts per week if recovery is managed.",
+          "evidence": [
+            "2026-01-02 (Entry 2) – shoulder work",
+            "2026-01-07 (Entry 4) – shoulder work",
+            "2026-01-08 (Entry 5) – shoulder work",
+            "2026-01-10 (Entry 10) – shoulder work"
+          ],
+          "confidence": "medium",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        }
+      ],
+      "patterns_identified": [
+        "High‑volume overhead pressing dominates shoulder training.",
+        "Shoulder fatigue appears when total pressing load reaches ~30 kg or after >3 sets.",
+        "No accessory work for lateral or posterior deltoids is recorded.",
+        "Training frequency is 3‑4 shoulder sessions per week with mixed supersets."
+      ],
+      "sufficiency_evaluation": {
+        "critical_gaps": [],
+        "nice_to_have_gaps": [
+          {
+            "description": "Exact RPE/RIR values for the shoulder sets to fine‑tune intensity.",
+            "gap_type": "contextual",
+            "severity": "nice_to_have",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          },
+          {
+            "description": "User’s equipment preferences (e.g., availability of cables, bands, dumbbells) beyond what is logged.",
+            "gap_type": "topical",
+            "severity": "nice_to_have",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          }
+        ],
+        "evidence_check_passed": true,
+        "speculation_risk": "low"
+      },
+      "verdict_reasoning": "The retrieved logs provide multiple concrete examples of the user’s recent shoulder work, including loads, sets, and reported fatigue. These data are sufficient to design a balanced shoulder routine that respects the observed fatigue thresholds, adds missing posterior and lateral deltoid work, and structures volume across 2‑3 weekly sessions. While exact RPE values and equipment preferences are not recorded, they are not critical for delivering a useful recommendation; they are merely nice‑to‑have details. Therefore, the evidence is adequate and the risk of speculative advice is low.",
+      "verdict": "sufficient"
+    },
+    "synthesizer": {
+      "response": "최근 1월 2일(인클라인 덤벨프레스 25 kg × 3 × 10)과 1월 8일(머신 숄더프레스 35 kg × 2)에서 총 하중이 30 kg 이상이 되면 어깨가 떨리거나 회복이 안 된다는 피로 신호가 있었어요(1월 2일 push‑press EMOM 30 kg). 따라서 주 2~3회, 한 번에 3세트 이하, 각 세트당 20‑30 kg 이하의 오버헤드 프레스(예: 바벨 오버헤드프레스 20 kg × 3 × 8)로 제한하고, 뒤쪽·측면 어깨를 보강하는 리터럴 레이즈 3 × 12, 페이스 풀 3 × 15, 외부 회전 2 × 15, 리어 델토이드 로우 3 × 12을 추가하세요. 이렇게 하면 과부하를 피하면서 전면·측면·후면 어깨 균형을 잡을 수 있습니다.",
+      "key_points": [
+        "오버헤드 프레스는 30 kg 이하, 3세트 이하로 제한",
+        "주 2~3회 어깨 훈련이 적절",
+        "리터럴 레이즈·페이스 풀·외부 회전·리어 델토이드 로우 등 후면·측면 보강 운동 추가"
+      ],
+      "evidence_cited": [
+        "2026-01-02: 인클라인 덤벨프레스 25 kg × 3 × 10, push‑press EMOM 30 kg → 어깨 떨림",
+        "2026-01-08: 머신 숄더프레스 35 kg × 2 → 회복 미흡"
+      ],
+      "gaps_disclosed": [],
+      "confidence": "high"
+    },
+    "evaluator": {
+      "dimensions": [
+        {
+          "dimension": "accuracy",
+          "verdict": "sufficient",
+          "reasoning": "The response correctly references the logged fatigue when total overhead load exceeds ~30 kg (Jan 2 push‑press EMOM 30 kg, Jan 2 incline press 25 kg, Jan 8 shoulder‑press 35 kg) and aligns with the analysis that fatigue appears after 3‑4 sets or >30 kg load. The suggested frequency (2‑3 times/week) and set/rep scheme match the analysis that the user can sustain 2‑3 shoulder sessions per week with proper recovery. The accessory exercises (lateral raises, face pulls, external rotations, rear‑deltoid rows) address the identified lack of rear‑deltoid/rotator‑cuff work.",
+          "issues": []
+        },
+        {
+          "dimension": "relevance",
+          "verdict": "sufficient",
+          "reasoning": "The user asked for a shoulder workout routine based on their recent training. The answer provides a concrete routine (frequency, load limits, specific exercises) that directly builds on the user's recorded workouts.",
+          "issues": []
+        },
+        {
+          "dimension": "safety",
+          "verdict": "sufficient",
+          "reasoning": "No 1RM or maximal‑effort lifts are prescribed. The weight recommendation (20‑30 kg) is grounded in the user's historical loads, respecting their experience level. The plan limits volume and intensity, reducing overtraining risk, and does not advise training through pain.",
+          "issues": []
+        },
+        {
+          "dimension": "completeness",
+          "verdict": "sufficient",
+          "reasoning": "The response covers workout frequency, load, set/rep scheme for overhead presses, and adds missing lateral, posterior, and rotator‑cuff work, fulfilling the request for a shoulder routine. While a brief warm‑up suggestion could be added, the core components requested are all present.",
+          "issues": []
+        }
+      ],
+      "overall_verdict": "sufficient",
+      "feedback": [],
+      "recommendation": "accept"
+    },
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "insight",
+          "key": "shoulder_fatigue_load_threshold",
+          "value": "Shoulder fatigue tends to appear when total overhead pressing load exceeds roughly 30 kg or after more than 3 sets of pressing work.",
+          "confidence": "likely",
+          "source": "post_query: shoulder routine recommendation"
+        },
+        {
+          "category": "insight",
+          "key": "missing_shoulder_accessory_work",
+          "value": "No logged lateral‑raise, face‑pull, external‑rotation, or rear‑deltoid exercises, indicating a gap in shoulder accessory training.",
+          "confidence": "likely",
+          "source": "post_query: shoulder routine recommendation"
+        },
+        {
+          "category": "insight",
+          "key": "shoulder_training_frequency",
+          "value": "Shoulder‑focused sessions have occurred 3‑4 times per week (e.g., 2026‑01‑02, 01‑07, 01‑08, 01‑10), suggesting the user can sustain 2‑3 dedicated shoulder workouts per week with proper recovery.",
+          "confidence": "likely",
+          "source": "post_query: shoulder routine recommendation"
+        }
+      ],
+      "insights_captured": [
+        "Shoulder fatigue is linked to total overhead load >30 kg or >3 sets.",
+        "User’s logs lack dedicated lateral, posterior, or rotator‑cuff shoulder work.",
+        "User typically trains shoulders 3‑4 times per week and can handle 2‑3 focused sessions weekly."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "최근 1월 2일(인클라인 덤벨프레스 25 kg × 3 × 10)과 1월 8일(머신 숄더프레스 35 kg × 2)에서 총 하중이 30 kg 이상이 되면 어깨가 떨리거나 회복이 안 된다는 피로 신호가 있었어요(1월 2일 push‑press EMOM 30 kg). 따라서 주 2~3회, 한 번에 3세트 이하, 각 세트당 20‑30 kg 이하의 오버헤드 프레스(예: 바벨 오버헤드프레스 20 kg × 3 × 8)로 제한하고, 뒤쪽·측면 어깨를 보강하는 리터럴 레이즈 3 × 12, 페이스 풀 3 × 15, 외부 회전 2 × 15, 리어 델토이드 로우 3 × 12을 추가하세요. 이렇게 하면 과부하를 피하면서 전면·측면·후면 어깨 균형을 잡을 수 있습니다.",
+  "user_feedback": "Excellent response. Router correctly identified this as a QUERY with Strength domain. Planner used date_range strategy covering the full data window. Retriever found 23 entries with relevant shoulder workout data. Analyzer identified 4 strong findings including shoulder fatigue thresholds, training frequency, and the gap in posterior/lateral deltoid work. The response appropriately matched the query language (Korean) despite the mixed Korean+English input, provided specific load recommendations (20-30kg, 3 sets max) grounded in the user's actual logged fatigue patterns, and added accessory exercises to address the identified imbalance. Evaluator passed all dimensions.",
+  "session": {
+    "timestamp": "2026-01-28 15:39:28.634174",
+    "input_type": "QUERY",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": "positive",
+  "issues_found": []
+}
