@@ -72,7 +72,7 @@ def _create_quilto(
     storage: StorageRepository,
     domains: list[DomainModule],
     debug: bool = False,
-    session_db_path: str = ":memory:",
+    session_db_path: str = "quilto_sessions.db",
     progress_handler: FeedbackProgressHandler | None = None,
 ) -> Quilto:
     """Create Quilto instance for CLI processing.
@@ -82,7 +82,7 @@ def _create_quilto(
         storage: Storage repository for entries.
         domains: Available domain modules.
         debug: Enable debug mode with traces.
-        session_db_path: Path to session database or ':memory:'.
+        session_db_path: Path to session database. Defaults to 'quilto_sessions.db'.
         progress_handler: Optional handler for capturing agent outputs.
 
     Returns:
@@ -292,6 +292,10 @@ async def run_command(
         Path | None,
         typer.Option("--storage", help="Path to storage directory"),
     ] = None,
+    no_persist: Annotated[
+        bool,
+        typer.Option("--no-persist", help="Use in-memory session (no persistence)"),
+    ] = False,
     non_interactive: Annotated[
         bool,
         typer.Option("--non-interactive", "-n", help="Skip prompts (for automation)"),
@@ -319,17 +323,23 @@ async def run_command(
         progress_handler = FeedbackProgressHandler(debug=debug) if debug else None
 
         # Determine session persistence
-        session_db_path = "quilto_sessions.db" if session_id else ":memory:"
+        session_db_path = ":memory:" if no_persist else "quilto_sessions.db"
         quilto = _create_quilto(llm_client, storage, domains, debug, session_db_path, progress_handler)
 
+        # Warn if --no-persist overrides --session
+        if no_persist and session_id:
+            print_warning("--no-persist overrides --session (session will not be loaded from disk)")
+
         # Get or create session
-        if session_id:
+        if session_id and not no_persist:
             session = quilto.get_session(session_id)
             if session is None:
+                print_warning(f"Session '{session_id}' not found, creating new session")
                 session = quilto.create_session()
-                print_info(f"Session: {session.session_id}")
+            print_info(f"Session: {session.session_id}")
         else:
             session = quilto.create_session()
+            print_info(f"Session: {session.session_id}")
 
         # Process through Quilto orchestration (single entry point)
         result = await session.process(text, mode="auto")

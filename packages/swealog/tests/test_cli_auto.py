@@ -385,6 +385,196 @@ class TestUnifiedCommandSession:
             call_kwargs = mock_quilto_cls.call_args.kwargs
             assert call_kwargs["session_db_path"] == "quilto_sessions.db"
 
+    def test_default_run_uses_persistent_db(
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+    ) -> None:
+        """Default run (no flags) creates Quilto with session_db_path='quilto_sessions.db'."""
+        mock_result = _create_mock_process_result(
+            input_type="log",
+            parsed_data={"entry_id": "2026-01-29_12-00-00"},
+        )
+
+        mock_session = MagicMock()
+        mock_session.session_id = "auto-session-456"
+        mock_session.process = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+        ):
+            mock_quilto = MagicMock()
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
+
+            result = runner.invoke(app, ["run", "bench 185x5"])
+
+            assert result.exit_code == 0
+            call_kwargs = mock_quilto_cls.call_args.kwargs
+            assert call_kwargs["session_db_path"] == "quilto_sessions.db"
+
+    def test_default_run_prints_session_id(
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+    ) -> None:
+        """Default run (no flags) prints session ID in output."""
+        mock_result = _create_mock_process_result(
+            input_type="log",
+            parsed_data={"entry_id": "2026-01-29_12-00-00"},
+        )
+
+        mock_session = MagicMock()
+        mock_session.session_id = "printed-session-789"
+        mock_session.process = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+        ):
+            mock_quilto = MagicMock()
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
+
+            result = runner.invoke(app, ["run", "bench 185x5"])
+
+            assert result.exit_code == 0
+            assert "Session:" in result.output
+
+    def test_no_persist_uses_memory_db(
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+    ) -> None:
+        """--no-persist flag creates Quilto with session_db_path=':memory:'."""
+        mock_result = _create_mock_process_result(
+            input_type="log",
+            parsed_data={"entry_id": "2026-01-29_12-00-00"},
+        )
+
+        mock_session = MagicMock()
+        mock_session.session_id = "ephemeral-session"
+        mock_session.process = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+        ):
+            mock_quilto = MagicMock()
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
+
+            result = runner.invoke(app, ["run", "--no-persist", "bench 185x5"])
+
+            assert result.exit_code == 0
+            call_kwargs = mock_quilto_cls.call_args.kwargs
+            assert call_kwargs["session_db_path"] == ":memory:"
+
+    def test_session_with_no_persist_uses_memory(
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+    ) -> None:
+        """--session + --no-persist: --no-persist takes precedence (uses ':memory:')."""
+        mock_result = _create_mock_process_result(
+            input_type="log",
+            parsed_data={"entry_id": "2026-01-29_12-00-00"},
+        )
+
+        mock_session = MagicMock()
+        mock_session.session_id = "override-session"
+        mock_session.process = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+        ):
+            mock_quilto = MagicMock()
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
+
+            result = runner.invoke(app, ["run", "--session", "my-session", "--no-persist", "bench 185x5"])
+
+            assert result.exit_code == 0
+            call_kwargs = mock_quilto_cls.call_args.kwargs
+            assert call_kwargs["session_db_path"] == ":memory:"
+            # Verify warning about --no-persist overriding --session
+            assert "--no-persist overrides --session" in result.output
+            # get_session should NOT be called (skipped when no_persist=True)
+            mock_quilto.get_session.assert_not_called()
+
+    def test_existing_session_resume(
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+    ) -> None:
+        """--session with existing session resumes it without creating new."""
+        mock_result = _create_mock_process_result(
+            input_type="query",
+            response="Follow-up answer based on session context.",
+        )
+
+        mock_session = MagicMock()
+        mock_session.session_id = "existing-session-id"
+        mock_session.process = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+        ):
+            mock_quilto = MagicMock()
+            mock_quilto.get_session.return_value = mock_session  # Session exists
+            mock_quilto_cls.return_value = mock_quilto
+
+            result = runner.invoke(app, ["run", "--session", "existing-session-id", "follow-up question"])
+
+            assert result.exit_code == 0
+            # Verify existing session was used (no create_session call)
+            mock_quilto.get_session.assert_called_once_with("existing-session-id")
+            mock_quilto.create_session.assert_not_called()
+            # Session ID is printed
+            assert "Session:" in result.output
+            assert "existing-session-id" in result.output
+            # Process was called on the existing session
+            mock_session.process.assert_called_once_with("follow-up question", mode="auto")
+
+    def test_session_not_found_warns_user(
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+    ) -> None:
+        """--session with non-existent ID warns user and creates new session."""
+        mock_result = _create_mock_process_result(
+            input_type="log",
+            parsed_data={"entry_id": "2026-01-29_12-00-00"},
+        )
+
+        mock_session = MagicMock()
+        mock_session.session_id = "new-uuid-session"
+        mock_session.process = AsyncMock(return_value=mock_result)
+
+        with (
+            patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
+            patch("swealog.cli.app.Quilto") as mock_quilto_cls,
+        ):
+            mock_quilto = MagicMock()
+            mock_quilto.get_session.return_value = None  # Not found
+            mock_quilto.create_session.return_value = mock_session
+            mock_quilto_cls.return_value = mock_quilto
+
+            result = runner.invoke(app, ["run", "--session", "nonexistent-id", "bench 185x5"])
+
+            assert result.exit_code == 0
+            # Warning about session not found
+            assert "not found" in result.output
+            assert "nonexistent-id" in result.output
+            # New session was created
+            mock_quilto.create_session.assert_called_once()
+            # New session ID printed
+            assert "Session:" in result.output
+
+
+class TestApiUsesMemoryDb:
+    """Verify API dependencies.py still uses ':memory:' (AC #5)."""
+
+    def test_api_dependencies_uses_memory_db(self) -> None:
+        """API create_quilto() uses ':memory:' for stateless per-request behavior."""
+        import inspect
+
+        from swealog.api.dependencies import create_quilto
+
+        source = inspect.getsource(create_quilto)
+        assert ":memory:" in source, "API must use ':memory:' for stateless sessions"
+
 
 class TestPromptForFeedback:
     """Tests for _prompt_for_feedback() helper function."""

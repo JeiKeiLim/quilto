@@ -287,7 +287,7 @@ development_status:
   # --- Phase 1: Bug Fix ---
   19-1-fix-correction-flow: done  # HIGH - Parser fails to identify correction target, empty response returned (code-reviewed 2026-01-29)
   # --- Phase 2: Design Fix ---
-  19-2-fix-session-db-default: pending  # MEDIUM - :memory: default makes session continuity impossible
+  19-2-fix-session-db-default: done  # MEDIUM - Fixed: persistent DB default + --no-persist flag (code-reviewed 2026-01-29)
   # --- Phase 3: Validation ---
   19-3-dogfooding-iteration-8: pending  # MEDIUM - Verify CORRECTION flow + session persistence + regression
   epic-19-retrospective: optional
