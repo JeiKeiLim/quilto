@@ -886,6 +886,55 @@ class TestObserveNode:
 
         assert result == {"next_state": "COMPLETE", "observer_output": None}
 
+    @pytest.mark.asyncio
+    async def test_corrupted_domain_context_skips_gracefully(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Corrupted domain context triggers fallback and skips Observer gracefully.
+
+        Story 17.8: Validates inline fallback in observer_triggers.py.
+        """
+        # Create state with Observer components configured but corrupted domain context
+        mock_observer = MagicMock()
+        mock_observer.observe = AsyncMock()
+
+        state = self._create_test_state(
+            _observer=mock_observer,
+            _context_manager=MagicMock(),
+            _observer_trigger_config=ObserverTriggerConfig(),
+            # Corrupted: missing required fields domains_loaded, vocabulary, expertise
+            active_domain_context={"invalid": "data"},
+        )
+
+        result = await observe_node(state)
+
+        # Should return gracefully without calling Observer
+        assert result["next_state"] == "COMPLETE"
+        assert result["observer_output"] is None
+        mock_observer.observe.assert_not_called()
+        # Warning should be logged
+        assert "validation failed" in caplog.text.lower()
+
+    @pytest.mark.asyncio
+    async def test_missing_domain_context_skips_gracefully(self) -> None:
+        """Missing domain context (None) skips Observer gracefully.
+
+        Story 17.8: Validates None check before validation in observer_triggers.py.
+        """
+        mock_observer = MagicMock()
+        mock_observer.observe = AsyncMock()
+
+        state = self._create_test_state(
+            _observer=mock_observer,
+            _context_manager=MagicMock(),
+            _observer_trigger_config=ObserverTriggerConfig(),
+            active_domain_context=None,  # Explicitly None
+        )
+
+        result = await observe_node(state)
+
+        assert result["next_state"] == "COMPLETE"
+        assert result["observer_output"] is None
+        mock_observer.observe.assert_not_called()
+
 
 # =============================================================================
 # Test Exports

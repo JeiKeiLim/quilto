@@ -45,6 +45,7 @@ from quilto.state.observer_triggers import (
 from quilto.storage import GlobalContextManager
 
 if TYPE_CHECKING:
+    from quilto.agents.models import ActiveDomainContext
     from quilto.quilto import Quilto
 
 logger = logging.getLogger(__name__)
@@ -131,6 +132,41 @@ _CONFIDENCE_SUFFICIENT = 0.8
 _CONFIDENCE_PARTIAL = 0.6
 _CONFIDENCE_INSUFFICIENT = 0.4
 _CONFIDENCE_ADJUSTMENT = 0.1
+
+
+def _get_domain_context_with_fallback(state: "QuiltoState", caller: str) -> tuple["ActiveDomainContext", bool]:
+    """Get domain context from state with validation fallback.
+
+    Args:
+        state: Current orchestration state.
+        caller: Name of the calling function for logging.
+
+    Returns:
+        Tuple of (domain_context, was_fallback). If was_fallback is True,
+        the context is a minimal valid fallback due to validation failure.
+    """
+    from pydantic import ValidationError
+
+    from quilto.agents.models import ActiveDomainContext
+
+    domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
+
+    try:
+        return (ActiveDomainContext.model_validate(domain_context_dict), False)
+    except ValidationError as e:
+        logger.warning(
+            "%s: domain_context validation failed, using fallback. Error: %s",
+            caller,
+            e.errors(),
+        )
+        return (
+            ActiveDomainContext(
+                domains_loaded=[],
+                vocabulary={},
+                expertise="General assistant",
+            ),
+            True,
+        )
 
 
 class QuiltoState(TypedDict, total=False):
@@ -453,11 +489,8 @@ async def plan_node(state: QuiltoState) -> dict[str, Any]:
         # Get storage summary (required by Planner)
         storage_summary: dict[str, Any] = quilto._get_storage_summary()  # type: ignore[reportPrivateUsage]  # noqa: SLF001
 
-        # Reconstruct domain context
-        from quilto.agents.models import ActiveDomainContext
-
-        domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
-        domain_context = ActiveDomainContext.model_validate(domain_context_dict)
+        # Reconstruct domain context with defensive validation
+        domain_context, _was_fallback = _get_domain_context_with_fallback(state, "plan_node")
 
         # Get evaluation feedback from previous retry if any
         eval_feedback = state.get(StateKeys.EVAL_FEEDBACK)
@@ -602,10 +635,8 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
     await _call_progress_handler(quilto, "on_agent_start", "analyzer", f"{len(entries)} entries")
 
     try:
-        from quilto.agents.models import ActiveDomainContext
-
-        domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
-        domain_context = ActiveDomainContext.model_validate(domain_context_dict)
+        # Reconstruct domain context with defensive validation
+        domain_context, _was_fallback = _get_domain_context_with_fallback(state, "analyze_node")
 
         query_type = state.get(StateKeys.QUERY_TYPE, "factual")
         retrieval_summary = state.get(StateKeys.RETRIEVAL_SUMMARY, [])
@@ -682,10 +713,10 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
     await _call_progress_handler(quilto, "on_agent_start", "synthesizer", f"verdict={verdict}")
 
     try:
-        from quilto.agents.models import ActiveDomainContext, SufficiencyEvaluation
+        from quilto.agents.models import SufficiencyEvaluation
 
-        domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
-        domain_context = ActiveDomainContext.model_validate(domain_context_dict)
+        # Reconstruct domain context with defensive validation
+        domain_context, _was_fallback = _get_domain_context_with_fallback(state, "synthesize_node")
 
         # Reconstruct AnalyzerOutput with defensive validation
         analyzer_output_dict = state.get(StateKeys.ANALYZER_OUTPUT, {})
@@ -769,10 +800,8 @@ async def evaluate_node(state: QuiltoState) -> dict[str, Any]:
     await _call_progress_handler(quilto, "on_agent_start", "evaluator", f"attempt={retry_count + 1}")
 
     try:
-        from quilto.agents.models import ActiveDomainContext
-
-        domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
-        domain_context = ActiveDomainContext.model_validate(domain_context_dict)
+        # Reconstruct domain context with defensive validation
+        domain_context, _was_fallback = _get_domain_context_with_fallback(state, "evaluate_node")
 
         # Reconstruct AnalyzerOutput
         analyzer_output_dict = state.get(StateKeys.ANALYZER_OUTPUT, {})
@@ -871,10 +900,8 @@ async def parse_node(state: QuiltoState) -> dict[str, Any]:
     await _call_progress_handler(quilto, "on_agent_start", "parser", user_input[:50])
 
     try:
-        from quilto.agents.models import ActiveDomainContext
-
-        domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
-        domain_context = ActiveDomainContext.model_validate(domain_context_dict)
+        # Reconstruct domain context with defensive validation
+        domain_context, _was_fallback = _get_domain_context_with_fallback(state, "parse_node")
 
         # Build domain schemas from domains
         domain_schemas: dict[str, type] = {}
@@ -930,10 +957,10 @@ async def correction_node(state: QuiltoState) -> dict[str, Any]:
     await _call_progress_handler(quilto, "on_agent_start", "correction", "upsert")
 
     try:
-        from quilto.agents.models import ActiveDomainContext, RouterOutput
+        from quilto.agents.models import RouterOutput
 
-        domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
-        domain_context = ActiveDomainContext.model_validate(domain_context_dict)
+        # Reconstruct domain context with defensive validation
+        domain_context, _was_fallback = _get_domain_context_with_fallback(state, "correction_node")
 
         router_output_dict = state.get(StateKeys.ROUTER_OUTPUT, {})
         router_output = RouterOutput.model_validate(router_output_dict)
@@ -1000,13 +1027,12 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
     await _call_progress_handler(quilto, "on_agent_start", "observer", "post_query")
 
     try:
-        from quilto.agents.models import ActiveDomainContext, ObserverInput
+        from quilto.agents.models import ObserverInput
 
-        domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
-        if not domain_context_dict:
-            return {StateKeys.OBSERVER_ERROR: "No domain_context available"}
-
-        domain_context = ActiveDomainContext.model_validate(domain_context_dict)
+        # Reconstruct domain context with defensive validation
+        domain_context, was_fallback = _get_domain_context_with_fallback(state, "observer_node")
+        if was_fallback:
+            return {StateKeys.OBSERVER_ERROR: "No valid domain_context available"}
 
         # Get context manager
         context_manager = GlobalContextManager(quilto.storage)

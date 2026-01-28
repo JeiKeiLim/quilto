@@ -11,11 +11,12 @@ Trigger types:
 - periodic: Scheduled batch updates (optional)
 """
 
+import logging
 import re
 from datetime import datetime, timedelta
 from typing import Any, Literal, Protocol
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, ValidationError, field_validator, model_validator
 
 from quilto.agents import ObserverAgent
 from quilto.agents.models import (
@@ -32,6 +33,8 @@ from quilto.storage import (
     GlobalContextManager,
     StorageRepository,
 )
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # Configuration Model
@@ -528,11 +531,18 @@ async def observe_node(state: SessionState) -> dict[str, Any]:
     if observer is None or context_manager is None or config is None:
         return {"next_state": "COMPLETE", "observer_output": None}
 
-    # Reconstruct ActiveDomainContext from dict
+    # Reconstruct ActiveDomainContext from dict with defensive validation
     if active_domain_context_dict is None:
         return {"next_state": "COMPLETE", "observer_output": None}
 
-    active_domain_context = ActiveDomainContext.model_validate(active_domain_context_dict)
+    try:
+        active_domain_context = ActiveDomainContext.model_validate(active_domain_context_dict)
+    except ValidationError as e:
+        logger.warning(
+            "trigger_observer_if_needed: domain_context validation failed, skipping observer. Error: %s",
+            e.errors(),
+        )
+        return {"next_state": "COMPLETE", "observer_output": None}
 
     # Determine trigger type
     trigger_type = _determine_trigger_type(state)

@@ -258,7 +258,7 @@ development_status:
   17-6-protect-state-dict-access: done  # HIGH - Direct state["key"] can KeyError (code-reviewed 2026-01-28)
   # --- Phase 3: Medium (Robustness) ---
   17-7-define-state-key-constants: done  # MEDIUM - Hardcoded string keys error-prone
-  17-8-add-domain-context-validation-fallback: backlog  # MEDIUM - Corrupted context crashes flow
+  17-8-add-domain-context-validation-fallback: done  # MEDIUM - Corrupted context crashes flow
   # --- Phase 4: Low (Tech Debt) ---
   17-9-audit-type-ignore-comments: backlog  # LOW - 140+ type:ignore hiding real issues
   # --- Observability (added from IR review) ---
