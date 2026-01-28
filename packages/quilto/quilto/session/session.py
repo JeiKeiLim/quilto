@@ -254,18 +254,23 @@ class Session:
         parsed_data = state.get("parsed_data")
         selected_domains = state.get("selected_domains", [])
 
-        # Handle clarification questions
+        # Handle clarification questions - supports both dict and string formats
+        # PlannerOutput.clarify_questions is list[str] | None, but session may have dicts
         clarify_questions_raw = state.get("clarify_questions")
         clarification_questions: list[ClarificationQuestion] | None = None
         if clarify_questions_raw:
-            clarification_questions = [
-                ClarificationQuestion(
-                    question=q.get("question", ""),
-                    options=q.get("options"),
-                )
-                for q in clarify_questions_raw
-                if q.get("question")
-            ]
+            result_questions: list[ClarificationQuestion] = []
+            for q in clarify_questions_raw:  # q: str | dict[str, Any]
+                if isinstance(q, dict) and q.get("question"):
+                    result_questions.append(
+                        ClarificationQuestion(
+                            question=q.get("question", ""),
+                            options=q.get("options"),
+                        )
+                    )
+                elif isinstance(q, str) and q.strip():
+                    result_questions.append(ClarificationQuestion(question=q, options=None))
+            clarification_questions = result_questions if result_questions else None
 
         # Build debug info if enabled
         debug: ProcessDebug | None = None
@@ -294,6 +299,6 @@ class Session:
             parsed_data=parsed_data,
             input_type=input_type,
             selected_domains=selected_domains,
-            clarification_questions=clarification_questions if clarification_questions else None,
+            clarification_questions=clarification_questions,
             debug=debug,
         )

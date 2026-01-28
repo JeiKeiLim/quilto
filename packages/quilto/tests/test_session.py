@@ -8,6 +8,7 @@ Tests cover:
 """
 
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from pydantic import ValidationError
@@ -731,3 +732,137 @@ class TestIntegration:
         assert SessionManager is not None
         assert SessionStore is not None
         assert SQLiteSessionStore is not None
+
+
+# =============================================================================
+# _build_process_result Clarification Questions Tests
+# =============================================================================
+
+
+class TestBuildProcessResultClarification:
+    """Test _build_process_result handles clarify_questions types correctly.
+
+    Story 18.3: Fix clarification questions type mismatch.
+    - PlannerOutput.clarify_questions is list[str] | None
+    - But session.py assumed dict format and called q.get("question")
+    - This test class verifies both formats are handled correctly.
+    """
+
+    @pytest.fixture
+    def session(self) -> Session:
+        """Create session for testing _build_process_result."""
+        store = SQLiteSessionStore(":memory:")
+        config = SessionConfig()
+        now = datetime.now(UTC)
+        data = SessionData(session_id="test", created_at=now, updated_at=now)
+        store.save(data)
+        return Session(data, store, config)
+
+    def _build_state(self, clarify_questions: Any) -> dict[str, Any]:
+        """Build minimal state dict for _build_process_result."""
+        return {
+            "input_type": "query",
+            "response": "Test response",
+            "confidence": 0.9,
+            "source_entry_ids": [],
+            "parsed_data": None,
+            "selected_domains": [],
+            "clarify_questions": clarify_questions,
+        }
+
+    def test_dict_items_with_question_key(self, session: Session) -> None:
+        """Dict items with question key should be converted correctly."""
+        state = self._build_state(
+            [
+                {"question": "What time?", "options": ["Morning", "Evening"]},
+                {"question": "How intense?", "options": None},
+            ]
+        )
+        result = session._build_process_result(state)  # pyright: ignore[reportPrivateUsage]
+
+        assert result.clarification_questions is not None
+        assert len(result.clarification_questions) == 2
+        assert result.clarification_questions[0].question == "What time?"
+        assert result.clarification_questions[0].options == ["Morning", "Evening"]
+        assert result.clarification_questions[1].question == "How intense?"
+        assert result.clarification_questions[1].options is None
+
+    def test_string_items_converted_to_questions(self, session: Session) -> None:
+        """String items should be converted to ClarificationQuestion."""
+        state = self._build_state(
+            [
+                "What time did you exercise?",
+                "How did you feel afterward?",
+            ]
+        )
+        result = session._build_process_result(state)  # pyright: ignore[reportPrivateUsage]
+
+        assert result.clarification_questions is not None
+        assert len(result.clarification_questions) == 2
+        assert result.clarification_questions[0].question == "What time did you exercise?"
+        assert result.clarification_questions[0].options is None
+        assert result.clarification_questions[1].question == "How did you feel afterward?"
+
+    def test_none_returns_none(self, session: Session) -> None:
+        """None clarify_questions should return None."""
+        state = self._build_state(None)
+        result = session._build_process_result(state)  # pyright: ignore[reportPrivateUsage]
+        assert result.clarification_questions is None
+
+    def test_empty_list_returns_none(self, session: Session) -> None:
+        """Empty list should return None (not empty list)."""
+        state = self._build_state([])
+        result = session._build_process_result(state)  # pyright: ignore[reportPrivateUsage]
+        assert result.clarification_questions is None
+
+    def test_mixed_types_all_converted(self, session: Session) -> None:
+        """Mixed dict and string items should all be converted."""
+        state = self._build_state(
+            [
+                {"question": "From dict", "options": ["A", "B"]},
+                "From string",
+            ]
+        )
+        result = session._build_process_result(state)  # pyright: ignore[reportPrivateUsage]
+
+        assert result.clarification_questions is not None
+        assert len(result.clarification_questions) == 2
+        assert result.clarification_questions[0].question == "From dict"
+        assert result.clarification_questions[1].question == "From string"
+
+    def test_empty_string_skipped(self, session: Session) -> None:
+        """Empty or whitespace-only strings should be skipped."""
+        state = self._build_state(["Valid question", "", "   "])
+        result = session._build_process_result(state)  # pyright: ignore[reportPrivateUsage]
+
+        assert result.clarification_questions is not None
+        assert len(result.clarification_questions) == 1
+        assert result.clarification_questions[0].question == "Valid question"
+
+    def test_dict_without_question_key_skipped(self, session: Session) -> None:
+        """Dict without question key should be skipped."""
+        state = self._build_state(
+            [
+                {"question": "Valid"},
+                {"options": ["A", "B"]},
+                {"text": "Not a question"},
+            ]
+        )
+        result = session._build_process_result(state)  # pyright: ignore[reportPrivateUsage]
+
+        assert result.clarification_questions is not None
+        assert len(result.clarification_questions) == 1
+
+    def test_dict_with_empty_options_list(self, session: Session) -> None:
+        """Dict with empty options list should preserve empty list."""
+        state = self._build_state(
+            [
+                {"question": "What time?", "options": []},
+            ]
+        )
+        result = session._build_process_result(state)  # pyright: ignore[reportPrivateUsage]
+
+        assert result.clarification_questions is not None
+        assert len(result.clarification_questions) == 1
+        assert result.clarification_questions[0].question == "What time?"
+        assert result.clarification_questions[0].options == []
