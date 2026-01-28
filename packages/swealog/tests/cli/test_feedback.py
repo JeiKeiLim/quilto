@@ -169,11 +169,157 @@ class TestFeedbackProgressHandler:
 
     @pytest.mark.asyncio
     async def test_observer_output_captured(self, handler: FeedbackProgressHandler) -> None:
-        """Test that observer agent output is captured (AC: 8)."""
+        """Test that observer agent output is captured."""
         await handler.on_agent_complete("observer", 0.3, {"should_update": True, "updates": []})
 
         outputs = handler.get_intermediate_outputs()
         assert outputs.observer == {"should_update": True, "updates": []}
+
+    @pytest.mark.asyncio
+    async def test_debug_mode_prints_output(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Test that debug mode prints agent output to terminal (Story 18.2 AC:1, AC:2)."""
+        debug_handler = FeedbackProgressHandler(debug=True)
+        await debug_handler.on_agent_complete(
+            "router", 0.5, {"input_type": "QUERY", "selected_domains": ["fitness"], "confidence": 0.95}
+        )
+
+        captured = capsys.readouterr()
+        assert "Router" in captured.out
+        assert "type=QUERY" in captured.out
+        assert "domains=" in captured.out
+        assert "fitness" in captured.out
+        assert "conf=95%" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_debug_mode_formats_planner_output(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Test planner output formatting in debug mode (Story 18.2 AC:3)."""
+        debug_handler = FeedbackProgressHandler(debug=True)
+        await debug_handler.on_agent_complete(
+            "planner",
+            0.5,
+            {
+                "query_type": "insight",
+                "retrieval_instructions": [{"strategy": "date_range"}],
+                "next_action": "retrieve",
+            },
+        )
+
+        captured = capsys.readouterr()
+        assert "Planner" in captured.out
+        assert "strategy=date_range" in captured.out
+        assert "query=insight" in captured.out
+        assert "action=retrieve" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_debug_mode_formats_planner_with_none_instructions(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Test planner handles None retrieval_instructions gracefully."""
+        debug_handler = FeedbackProgressHandler(debug=True)
+        await debug_handler.on_agent_complete(
+            "planner",
+            0.5,
+            {
+                "query_type": "insight",
+                "retrieval_instructions": None,  # Explicit None
+                "next_action": "retrieve",
+            },
+        )
+
+        captured = capsys.readouterr()
+        assert "Planner" in captured.out
+        assert "strategy=none" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_debug_mode_formats_retriever_output(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Test retriever output formatting in debug mode (Story 18.2 AC:4)."""
+        debug_handler = FeedbackProgressHandler(debug=True)
+        await debug_handler.on_agent_complete("retriever", 0.1, {"entries": [{}, {}, {}]})
+
+        captured = capsys.readouterr()
+        assert "Retriever" in captured.out
+        assert "found 3 entries" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_debug_mode_formats_analyzer_output(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Test analyzer output formatting in debug mode (Story 18.2 AC:5)."""
+        debug_handler = FeedbackProgressHandler(debug=True)
+        await debug_handler.on_agent_complete(
+            "analyzer",
+            0.5,
+            {
+                "verdict": "SUFFICIENT",
+                "findings": [{"type": "progress"}],
+                "patterns_identified": [{"name": "consistent"}],
+            },
+        )
+
+        captured = capsys.readouterr()
+        assert "Analyzer" in captured.out
+        assert "verdict=SUFFICIENT" in captured.out
+        assert "1 findings" in captured.out
+        assert "1 patterns" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_debug_mode_formats_synthesizer_output(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Test synthesizer output formatting in debug mode (Story 18.2 AC:6)."""
+        debug_handler = FeedbackProgressHandler(debug=True)
+        await debug_handler.on_agent_complete(
+            "synthesizer", 0.5, {"response": "Based on your 23 workout sessions, you've made good progress..."}
+        )
+
+        captured = capsys.readouterr()
+        assert "Synthesizer" in captured.out
+        assert "response=" in captured.out
+        assert "Based on your 23 workout sessions" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_debug_mode_off_no_print(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Test that debug=False (default) does not print output."""
+        handler = FeedbackProgressHandler()  # debug=False by default
+        await handler.on_agent_complete("router", 0.5, {"input_type": "QUERY"})
+
+        captured = capsys.readouterr()
+        assert "Router" not in captured.out
+
+    @pytest.mark.asyncio
+    async def test_debug_mode_formats_evaluator_output(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Test evaluator output formatting in debug mode."""
+        debug_handler = FeedbackProgressHandler(debug=True)
+        await debug_handler.on_agent_complete("evaluator", 0.1, {"overall_verdict": "PASS"})
+
+        captured = capsys.readouterr()
+        assert "Evaluator" in captured.out
+        assert "verdict=PASS" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_debug_mode_formats_parser_output(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Test parser output formatting in debug mode."""
+        debug_handler = FeedbackProgressHandler(debug=True)
+        await debug_handler.on_agent_complete("parser", 0.3, {"domain_data": {"fitness": {}, "strength": {}}})
+
+        captured = capsys.readouterr()
+        assert "Parser" in captured.out
+        assert "parsed 2 domains" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_debug_mode_formats_observer_output(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Test observer output formatting in debug mode."""
+        debug_handler = FeedbackProgressHandler(debug=True)
+        await debug_handler.on_agent_complete("observer", 0.2, {"should_update": True})
+
+        captured = capsys.readouterr()
+        assert "Observer" in captured.out
+        assert "should_update=True" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_debug_mode_formats_unknown_agent(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Test unknown agent output formatting falls back to listing keys."""
+        debug_handler = FeedbackProgressHandler(debug=True)
+        await debug_handler.on_agent_complete("custom_agent", 0.2, {"key1": "val1", "key2": "val2"})
+
+        captured = capsys.readouterr()
+        assert "Custom_agent" in captured.out
+        assert "key1" in captured.out
+        assert "key2" in captured.out
 
 
 class TestIntermediateOutputs:

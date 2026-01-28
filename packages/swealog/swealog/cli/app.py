@@ -313,7 +313,7 @@ async def run_command(
         llm_client, storage, domains = get_dependencies(config, storage_path)
 
         # Create progress handler for debug mode to capture full agent outputs
-        progress_handler = FeedbackProgressHandler() if debug else None
+        progress_handler = FeedbackProgressHandler(debug=debug) if debug else None
 
         # Determine session persistence
         session_db_path = "quilto_sessions.db" if session_id else ":memory:"

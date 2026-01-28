@@ -140,9 +140,14 @@ class FeedbackProgressHandler:
     Note: Not thread-safe. Intended for single-session use within CLI command.
     """
 
-    def __init__(self) -> None:
-        """Initialize the feedback progress handler."""
+    def __init__(self, debug: bool = False) -> None:
+        """Initialize the feedback progress handler.
+
+        Args:
+            debug: If True, print agent outputs to terminal as they complete.
+        """
         self._outputs: dict[str, dict[str, Any]] = {}
+        self._debug = debug
 
     async def on_agent_start(self, agent: str, input_summary: str) -> None:
         """Track agent start (no-op for feedback recording).
@@ -154,7 +159,7 @@ class FeedbackProgressHandler:
         pass
 
     async def on_agent_complete(self, agent: str, elapsed: float, output: dict[str, Any]) -> None:
-        """Capture agent output.
+        """Capture agent output and optionally print debug info.
 
         Args:
             agent: Name of the agent that completed.
@@ -162,6 +167,51 @@ class FeedbackProgressHandler:
             output: Agent output as dictionary.
         """
         self._outputs[agent] = output
+        if self._debug:
+            formatted = self._format_agent_output(agent, output)
+            from swealog.cli.output import print_info
+
+            print_info(f"[{agent.capitalize()}] {formatted}")
+
+    def _format_agent_output(self, agent: str, output: dict[str, Any]) -> str:
+        """Format agent output for debug display.
+
+        Args:
+            agent: Name of the agent.
+            output: Agent output dictionary.
+
+        Returns:
+            Formatted string for terminal display.
+        """
+        if agent == "router":
+            return (
+                f"type={output.get('input_type')}, "
+                f"domains={output.get('selected_domains')}, "
+                f"conf={output.get('confidence', 0):.0%}"
+            )
+        elif agent == "planner":
+            instructions = output.get("retrieval_instructions") or []
+            strategy = instructions[0].get("strategy") if instructions else "none"
+            return f"strategy={strategy}, query={output.get('query_type')}, action={output.get('next_action')}"
+        elif agent == "retriever":
+            entries = output.get("entries", [])
+            return f"found {len(entries)} entries"
+        elif agent == "analyzer":
+            findings = output.get("findings", [])
+            patterns = output.get("patterns_identified", [])
+            return f"verdict={output.get('verdict')}, {len(findings)} findings, {len(patterns)} patterns"
+        elif agent == "synthesizer":
+            response = output.get("response", "")[:200]
+            return f"response={response!r}..."
+        elif agent == "evaluator":
+            return f"verdict={output.get('overall_verdict')}"
+        elif agent == "parser":
+            domain_data = output.get("domain_data", {})
+            return f"parsed {len(domain_data)} domains"
+        elif agent == "observer":
+            return f"should_update={output.get('should_update')}"
+        else:
+            return str(list(output.keys()))
 
     async def on_retry(self, attempt: int, reason: str) -> None:
         """Track retries (no-op for feedback recording).
