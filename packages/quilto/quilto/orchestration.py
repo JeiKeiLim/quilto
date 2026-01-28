@@ -361,10 +361,11 @@ async def plan_node(state: QuiltoState) -> dict[str, Any]:
         domain_context = ActiveDomainContext.model_validate(domain_context_dict)
 
         # Get evaluation feedback from previous retry if any
-        evaluation_feedback = None
         eval_feedback = state.get("eval_feedback")
-        if state.get("retry_count", 0) > 0 and eval_feedback:
-            evaluation_feedback = eval_feedback[0] if eval_feedback else None
+        if state.get("retry_count", 0) > 0:
+            evaluation_feedback = eval_feedback[0] if isinstance(eval_feedback, list) and eval_feedback else None
+        else:
+            evaluation_feedback = None
 
         # Get retrieval history from previous retry if any
         retrieval_history: list[dict[str, Any]] = []
@@ -972,7 +973,7 @@ async def retry_node(state: QuiltoState) -> dict[str, Any]:
 
     # Get feedback reason
     eval_feedback = state.get("eval_feedback")
-    reason = eval_feedback[0] if eval_feedback else "insufficient"
+    reason = eval_feedback[0] if isinstance(eval_feedback, list) and eval_feedback else "insufficient"
 
     await _call_progress_handler(quilto, "on_retry", retry_count + 1, reason)
 

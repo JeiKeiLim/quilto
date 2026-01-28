@@ -253,7 +253,7 @@ development_status:
   17-2-remove-storage-path-doubling: done  # CRITICAL - StorageRepository adds /logs/ internally (code-reviewed 2026-01-28)
   17-3-remove-strict-true-from-models: done  # CRITICAL - LangGraph serializes enums to strings (code-reviewed 2026-01-28)
   # --- Phase 2: High (Stability) ---
-  17-4-fix-eval-feedback-type-vulnerability: backlog  # HIGH - eval_feedback[0] on string returns char
+  17-4-fix-eval-feedback-type-vulnerability: done  # HIGH - eval_feedback[0] on string returns char (code-reviewed 2026-01-28)
   17-5-add-observer-error-propagation: backlog  # HIGH - Silent Observer failures hide context issues
   17-6-protect-state-dict-access: backlog  # HIGH - Direct state["key"] can KeyError
   # --- Phase 3: Medium (Robustness) ---
