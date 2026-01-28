@@ -2930,7 +2930,44 @@ else:
 
 ---
 
-### Story 17.10: Verify Fixes with Dogfooding
+### Story 17.10: Add Logging to Broad Exception Handlers
+
+**Priority:** LOW | **Effort:** Small (30 min)
+
+**As a** Quilto framework developer,
+**I want** broad exception handlers to log what they catch,
+**So that** unexpected errors are visible during development.
+
+**Context:**
+Issue 10 from Story 17.1 investigation identified `except Exception: pass` patterns that silently swallow all errors, making diagnosis difficult. Rather than narrowing exception types now (high effort, risk of missing edge cases), add logging to make errors visible during development.
+
+**Acceptance Criteria:**
+
+1. **Given** `llm/client.py` line 312 (fallback chain)
+   **When** an exception is caught
+   **Then** `logger.warning("...", exc_info=True)` logs the error
+
+2. **Given** `llm/client.py` lines 386-410 (`_retry_with_backoff`)
+   **When** an exception is caught
+   **Then** error is logged with full traceback
+
+3. **Given** `cli/app.py` line 55 (version check)
+   **When** an exception is caught
+   **Then** error is logged (not silently returning "unknown")
+
+4. **Given** any broad exception handler
+   **When** logging is added
+   **Then** existing behavior is preserved (no functional change)
+
+**Files to Modify:**
+- `packages/quilto/quilto/llm/client.py`
+- `packages/swealog/swealog/cli/app.py`
+
+**Future Consideration:** Once log patterns are observed, consider narrowing to specific exception types in a future epic.
+
+---
+
+### Story 17.11: Verify Fixes with Dogfooding
 
 **Priority:** HIGH | **Effort:** Medium (2 hours)
 **Depends On:** 17.2, 17.3 (Critical fixes)

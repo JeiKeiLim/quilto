@@ -261,6 +261,8 @@ development_status:
   17-8-add-domain-context-validation-fallback: backlog  # MEDIUM - Corrupted context crashes flow
   # --- Phase 4: Low (Tech Debt) ---
   17-9-audit-type-ignore-comments: backlog  # LOW - 140+ type:ignore hiding real issues
+  # --- Observability (added from IR review) ---
+  17-10-add-logging-to-broad-exception-handlers: backlog  # LOW - Make silent exceptions visible
   # --- Validation ---
-  17-10-verify-fixes-with-dogfooding: backlog  # HIGH - Confirm query flow works, generate Epic 18
+  17-11-verify-fixes-with-dogfooding: backlog  # HIGH - Confirm query flow works, generate Epic 18
   epic-17-retrospective: backlog
