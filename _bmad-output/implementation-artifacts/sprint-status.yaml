@@ -247,7 +247,7 @@ development_status:
   # Investigation: _bmad-output/implementation-artifacts/epic-17/17-1-query-flow-investigation.md
   # Root causes: (1) Storage path doubling, (2) Enum validation with strict=True
   # Additional: 4 high-priority, 2 medium-priority, 1 low-priority stability issues
-  epic-17: in-progress
+  epic-17: done
   # --- Phase 1: Critical (Block Query Flow) ---
   17-1-query-flow-investigation: done  # CRITICAL - Investigation complete, root causes documented
   17-2-remove-storage-path-doubling: done  # CRITICAL - StorageRepository adds /logs/ internally (code-reviewed 2026-01-28)
@@ -265,4 +265,17 @@ development_status:
   17-10-add-logging-to-broad-exception-handlers: done  # LOW - Make silent exceptions visible
   # --- Validation ---
   17-11-verify-fixes-with-dogfooding: done  # HIGH - Confirmed query flow works, generated Epic 18 stories
-  epic-17-retrospective: backlog
+  epic-17-retrospective: done
+
+  # Epic 18: Observability & Data Pipeline Fix
+  # Source: Story 17.11 Dogfooding - 3 bugs discovered
+  # Goal: Fix critical Analyzer failure + restore debug visibility + continue dogfooding
+  epic-18: backlog
+  # --- Phase 1: Critical ---
+  18-1-fix-analyzer-silent-failure: backlog  # CRITICAL - Synthesizer says "no data" when 23 entries found
+  # --- Phase 2: High (Observability) ---
+  18-2-restore-debug-intermediate-output: backlog  # HIGH - --debug flag not printing agent outputs
+  18-3-fix-clarification-questions-type: backlog  # HIGH - AttributeError from string vs dict mismatch
+  # --- Phase 3: Validation ---
+  18-4-dogfooding-iteration-6: backlog  # MEDIUM - Fresh dogfooding after fixes
+  epic-18-retrospective: backlog

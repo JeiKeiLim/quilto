@@ -2999,11 +2999,167 @@ Issue 10 from Story 17.1 investigation identified `except Exception: pass` patte
 
 ---
 
+## Epic 18: Observability & Data Pipeline Fix
+
+*Fix critical Analyzer failure + restore debug visibility + continue dogfooding*
+
+**Source:** Story 17.11 Dogfooding - 3 bugs discovered
+**Status:** Backlog
+
+**Quilto:** Fix Analyzer data pipeline, improve debug output, fix type handling
+**Swealog:** CLI debug output improvements
+
+**FRs covered:** NFR-F8 (error cascade), observability
+
+---
+
+### Story 18.1: Fix Analyzer Silent Failure
+
+**Priority:** CRITICAL | **Effort:** Medium (2-3 hours)
+
+**As a** Swealog user,
+**I want** the Synthesizer to use retrieved data correctly,
+**So that** I don't see "no data" responses when data exists.
+
+**Problem:**
+- Retriever found 23 entries
+- Synthesizer claims "no data"
+- Analyzer output was empty `{}`
+
+**Acceptance Criteria:**
+
+1. **Given** Retriever finds N > 0 entries
+   **When** Analyzer processes them
+   **Then** Analyzer output is NOT empty `{}`
+
+2. **Given** Analyzer returns empty output
+   **When** Synthesizer receives state
+   **Then** Synthesizer falls back to Retriever entries directly
+
+3. **Given** Analyzer fails silently
+   **When** state is checked
+   **Then** `analyzer_error` field indicates the issue
+
+4. **Given** full query flow with data
+   **When** processed
+   **Then** response reflects that data (not "no data")
+
+**Files to Investigate:**
+- `packages/quilto/quilto/orchestration.py` - analyze_node
+- `packages/quilto/quilto/agents/analyzer.py` - Analyzer agent
+
+---
+
+### Story 18.2: Restore Debug Intermediate Output Printing
+
+**Priority:** HIGH | **Effort:** Small (1-2 hours)
+
+**As a** Swealog developer/user,
+**I want** `--debug` to print intermediate agent outputs,
+**So that** I can see what each agent received and returned.
+
+**Problem:**
+Current `--debug` only shows timing, not agent outputs:
+```
+ℹ  6042ms - type=query
+ℹ  8245ms - action=retrieve
+```
+
+**Expected:**
+```
+[Router] input_type=QUERY, domains=[GeneralFitness], confidence=0.95
+[Retriever] found 23 entries
+[Analyzer] verdict=sufficient, findings=5
+```
+
+**Acceptance Criteria:**
+
+1. **Given** `--debug` flag is set
+   **When** each agent completes
+   **Then** agent output is printed to terminal
+
+2. **Given** Router/Planner/Retriever/Analyzer/Synthesizer completes
+   **When** output is printed
+   **Then** key fields are shown in readable format
+
+**Files to Modify:**
+- `packages/swealog/swealog/cli/run_cmd.py` - on_agent_complete callback
+
+---
+
+### Story 18.3: Fix Clarification Questions Type Mismatch
+
+**Priority:** HIGH | **Effort:** Small (1 hour)
+
+**As a** Swealog user,
+**I want** clarification questions to work correctly,
+**So that** the system can ask for missing information.
+
+**Problem:**
+```
+AttributeError: 'str' object has no attribute 'get'
+```
+at `session.py:267` - LangGraph serializes questions as strings instead of dicts.
+
+**Acceptance Criteria:**
+
+1. **Given** `clarify_questions_raw` contains dict items
+   **When** processed
+   **Then** questions extracted correctly
+
+2. **Given** `clarify_questions_raw` contains string items
+   **When** processed
+   **Then** no AttributeError, strings handled gracefully
+
+**Files to Modify:**
+- `packages/quilto/quilto/session/session.py` - `_build_process_result`
+
+**Fix Pattern (from Story 17.4):**
+```python
+if isinstance(q, dict) and q.get("question"):
+    # process dict
+elif isinstance(q, str):
+    # handle string case
+```
+
+---
+
+### Story 18.4: Dogfooding Iteration 6
+
+**Priority:** MEDIUM | **Effort:** Medium (2 hours)
+**Depends On:** 18.1, 18.2, 18.3
+
+**As a** Swealog user and developer,
+**I want** to test the system after Epic 18 fixes,
+**So that** I can discover any remaining issues.
+
+**Acceptance Criteria:**
+
+1. **Given** Stories 18.1-18.3 are complete
+   **When** reproduction queries are run
+   **Then** previously failing queries now work
+
+2. **Given** `--debug` flag
+   **When** query is processed
+   **Then** intermediate agent outputs are visible
+
+3. **Given** 10+ queries tested
+   **When** dogfooding completes
+   **Then** feedback recorded for next iteration
+
+**Query Types to Test:**
+- Factual, Insight, Temporal, Comparative
+- Goal-related (was broken in 17.11)
+- Korean queries
+- Comprehensive analysis
+
+---
+
 ## Future Epics
 
-### Epic 18+: Dogfooding Iteration 5+
+### Epic 19+: Continued Dogfooding Iterations
 
-*Stories generated from Epic 17 completion and fresh dogfooding on working query flow*
+*Stories generated from Epic 18 dogfooding results*
 
-**Status:** Backlog (depends on Epic 17 completion)
+**Status:** Backlog (depends on Epic 18 completion)
 
