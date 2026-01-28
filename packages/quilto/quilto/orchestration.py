@@ -12,7 +12,7 @@ import inspect
 import logging
 import time
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, Literal, TypedDict
+from typing import TYPE_CHECKING, Any, Final, Literal, TypedDict
 
 from langgraph.graph import END, StateGraph
 
@@ -48,6 +48,82 @@ if TYPE_CHECKING:
     from quilto.quilto import Quilto
 
 logger = logging.getLogger(__name__)
+
+
+class StateKeys:
+    """Constants for QuiltoState dictionary keys.
+
+    Using constants instead of string literals enables:
+    - Compile-time typo detection via pyright
+    - IDE autocomplete and navigation
+    - Single source of truth for key names
+    """
+
+    # Internal
+    QUILTO: Final[str] = "_quilto"
+    TRACES: Final[str] = "traces"
+
+    # Input
+    USER_INPUT: Final[str] = "user_input"
+    MODE: Final[str] = "mode"
+    CONVERSATION_CONTEXT: Final[str] = "conversation_context"
+
+    # Router output
+    INPUT_TYPE: Final[str] = "input_type"
+    SELECTED_DOMAINS: Final[str] = "selected_domains"
+    ROUTER_OUTPUT: Final[str] = "router_output"
+
+    # Planner output
+    QUERY_TYPE: Final[str] = "query_type"
+    RETRIEVAL_INSTRUCTIONS: Final[str] = "retrieval_instructions"
+    NEXT_ACTION: Final[str] = "next_action"
+    CLARIFY_QUESTIONS: Final[str] = "clarify_questions"
+    PLANNER_OUTPUT: Final[str] = "planner_output"
+
+    # Retriever output
+    ENTRIES: Final[str] = "entries"
+    RETRIEVAL_SUMMARY: Final[str] = "retrieval_summary"
+    SOURCE_ENTRY_IDS: Final[str] = "source_entry_ids"
+    RETRIEVER_OUTPUT: Final[str] = "retriever_output"
+
+    # Analyzer output
+    ANALYSIS_VERDICT: Final[str] = "analysis_verdict"
+    ANALYSIS_FINDINGS: Final[str] = "analysis_findings"
+    ANALYZER_OUTPUT: Final[str] = "analyzer_output"
+
+    # Synthesizer output
+    RESPONSE: Final[str] = "response"
+    SYNTHESIZER_OUTPUT: Final[str] = "synthesizer_output"
+
+    # Evaluator output
+    EVAL_VERDICT: Final[str] = "eval_verdict"
+    EVAL_FEEDBACK: Final[str] = "eval_feedback"
+    EVALUATOR_OUTPUT: Final[str] = "evaluator_output"
+
+    # Parser output
+    PARSED_DATA: Final[str] = "parsed_data"
+    PARSER_OUTPUT: Final[str] = "parser_output"
+
+    # Correction output
+    CORRECTION_RESULT: Final[str] = "correction_result"
+
+    # Observer output
+    OBSERVER_OUTPUT: Final[str] = "observer_output"
+    OBSERVER_ERROR: Final[str] = "observer_error"
+
+    # Control
+    RETRY_COUNT: Final[str] = "retry_count"
+    MAX_RETRIES: Final[str] = "max_retries"
+    IS_PARTIAL: Final[str] = "is_partial"
+    ERROR: Final[str] = "error"
+
+    # Context objects
+    DOMAIN_CONTEXT: Final[str] = "domain_context"
+    STORAGE_SUMMARY: Final[str] = "storage_summary"
+
+    # Metrics
+    CONFIDENCE: Final[str] = "confidence"
+    TOTAL_ELAPSED_MS: Final[str] = "total_elapsed_ms"
 
 
 # Confidence score constants
@@ -241,7 +317,7 @@ def _add_trace(
     Returns:
         Updated traces list.
     """
-    traces = list(state.get("traces", []))
+    traces = list(state.get(StateKeys.TRACES, []))
     traces.append(
         {
             "agent_name": agent_name,
@@ -264,7 +340,7 @@ def _get_quilto(state: QuiltoState, node_name: str) -> "Quilto | None":
     Returns:
         Quilto instance or None if missing.
     """
-    quilto = state.get("_quilto")
+    quilto = state.get(StateKeys.QUILTO)
     if quilto is None:
         logger.error("%s: Missing _quilto in state - graph not initialized", node_name)
     return quilto
@@ -286,19 +362,19 @@ async def route_node(state: QuiltoState) -> dict[str, Any]:
     """
     quilto = _get_quilto(state, "route_node")
     if quilto is None:
-        return {"error": "Internal error: orchestration not initialized"}
+        return {StateKeys.ERROR: "Internal error: orchestration not initialized"}
 
-    user_input: str = state.get("user_input", "")
-    mode = state.get("mode", "auto")
+    user_input: str = state.get(StateKeys.USER_INPUT, "")
+    mode = state.get(StateKeys.MODE, "auto")
 
     await _call_progress_handler(quilto, "on_stage", "routing")
 
     # If mode is forced, skip Router
     if mode == "log":
         return {
-            "input_type": "log",
-            "selected_domains": [d.name for d in quilto.domains],
-            "router_output": {"forced_mode": "log"},
+            StateKeys.INPUT_TYPE: "log",
+            StateKeys.SELECTED_DOMAINS: [d.name for d in quilto.domains],
+            StateKeys.ROUTER_OUTPUT: {"forced_mode": "log"},
         }
     elif mode == "query":
         # Still need to select domains via Router
@@ -336,19 +412,19 @@ async def route_node(state: QuiltoState) -> dict[str, Any]:
         domain_context = quilto.domain_selector.build_active_context(router_output.selected_domains)
 
         return {
-            "input_type": input_type,
-            "selected_domains": router_output.selected_domains,
-            "router_output": router_output.model_dump(),
-            "domain_context": domain_context.model_dump(),
-            "traces": _add_trace(state, "router", user_input[:50], f"type={input_type}", elapsed),
+            StateKeys.INPUT_TYPE: input_type,
+            StateKeys.SELECTED_DOMAINS: router_output.selected_domains,
+            StateKeys.ROUTER_OUTPUT: router_output.model_dump(),
+            StateKeys.DOMAIN_CONTEXT: domain_context.model_dump(),
+            StateKeys.TRACES: _add_trace(state, "router", user_input[:50], f"type={input_type}", elapsed),
         }
     except Exception as e:
         elapsed = (time.perf_counter() - start) * 1000
         await _call_progress_handler(quilto, "on_agent_complete", "router", elapsed / 1000, {})
         return {
-            "error": f"Router failed: {e!s}",
-            "input_type": "query",  # Default to query on error
-            "selected_domains": [],
+            StateKeys.ERROR: f"Router failed: {e!s}",
+            StateKeys.INPUT_TYPE: "query",  # Default to query on error
+            StateKeys.SELECTED_DOMAINS: [],
         }
 
 
@@ -363,10 +439,10 @@ async def plan_node(state: QuiltoState) -> dict[str, Any]:
     """
     quilto = _get_quilto(state, "plan_node")
     if quilto is None:
-        return {"error": "Internal error: orchestration not initialized"}
+        return {StateKeys.ERROR: "Internal error: orchestration not initialized"}
 
-    user_input: str = state.get("user_input", "")
-    conversation_context = state.get("conversation_context")
+    user_input: str = state.get(StateKeys.USER_INPUT, "")
+    conversation_context = state.get(StateKeys.CONVERSATION_CONTEXT)
 
     await _call_progress_handler(quilto, "on_stage", "planning")
 
@@ -380,20 +456,20 @@ async def plan_node(state: QuiltoState) -> dict[str, Any]:
         # Reconstruct domain context
         from quilto.agents.models import ActiveDomainContext
 
-        domain_context_dict = state.get("domain_context", {})
+        domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
         domain_context = ActiveDomainContext.model_validate(domain_context_dict)
 
         # Get evaluation feedback from previous retry if any
-        eval_feedback = state.get("eval_feedback")
-        if state.get("retry_count", 0) > 0:
+        eval_feedback = state.get(StateKeys.EVAL_FEEDBACK)
+        if state.get(StateKeys.RETRY_COUNT, 0) > 0:
             evaluation_feedback = eval_feedback[0] if isinstance(eval_feedback, list) and eval_feedback else None
         else:
             evaluation_feedback = None
 
         # Get retrieval history from previous retry if any
         retrieval_history: list[dict[str, Any]] = []
-        if state.get("retry_count", 0) > 0 and state.get("retrieval_summary"):
-            retrieval_history = state.get("retrieval_summary") or []
+        if state.get(StateKeys.RETRY_COUNT, 0) > 0 and state.get(StateKeys.RETRIEVAL_SUMMARY):
+            retrieval_history = state.get(StateKeys.RETRIEVAL_SUMMARY) or []
 
         planner = PlannerAgent(quilto.llm_client)
         planner_input = PlannerInput(
@@ -429,20 +505,22 @@ async def plan_node(state: QuiltoState) -> dict[str, Any]:
                 retrieval_instr.append(i)  # type: ignore[arg-type]
 
         return {
-            "query_type": query_type_str,
-            "retrieval_instructions": retrieval_instr,
-            "next_action": planner_output.next_action,
-            "clarify_questions": clarify_q,
-            "planner_output": planner_output.model_dump(),
-            "storage_summary": storage_summary,
-            "traces": _add_trace(state, "planner", "query analysis", f"action={planner_output.next_action}", elapsed),
+            StateKeys.QUERY_TYPE: query_type_str,
+            StateKeys.RETRIEVAL_INSTRUCTIONS: retrieval_instr,
+            StateKeys.NEXT_ACTION: planner_output.next_action,
+            StateKeys.CLARIFY_QUESTIONS: clarify_q,
+            StateKeys.PLANNER_OUTPUT: planner_output.model_dump(),
+            StateKeys.STORAGE_SUMMARY: storage_summary,
+            StateKeys.TRACES: _add_trace(
+                state, "planner", "query analysis", f"action={planner_output.next_action}", elapsed
+            ),
         }
     except Exception as e:
         elapsed = (time.perf_counter() - start) * 1000
         await _call_progress_handler(quilto, "on_agent_complete", "planner", elapsed / 1000, {})
         return {
-            "error": f"Planner failed: {e!s}",
-            "next_action": "clarify",
+            StateKeys.ERROR: f"Planner failed: {e!s}",
+            StateKeys.NEXT_ACTION: "clarify",
         }
 
 
@@ -457,12 +535,12 @@ async def retrieve_node(state: QuiltoState) -> dict[str, Any]:
     """
     quilto = _get_quilto(state, "retrieve_node")
     if quilto is None:
-        return {"error": "Internal error: orchestration not initialized"}
+        return {StateKeys.ERROR: "Internal error: orchestration not initialized"}
 
     await _call_progress_handler(quilto, "on_stage", "retrieving")
 
     start = time.perf_counter()
-    instructions = state.get("retrieval_instructions", [])
+    instructions = state.get(StateKeys.RETRIEVAL_INSTRUCTIONS, [])
     await _call_progress_handler(quilto, "on_agent_start", "retriever", f"{len(instructions)} instructions")
 
     try:
@@ -480,11 +558,11 @@ async def retrieve_node(state: QuiltoState) -> dict[str, Any]:
         )
 
         return {
-            "entries": [e.model_dump() for e in retriever_output.entries],
-            "retrieval_summary": [s.model_dump() for s in retriever_output.retrieval_summary],
-            "source_entry_ids": [e.id for e in retriever_output.entries],
-            "retriever_output": retriever_output.model_dump(),
-            "traces": _add_trace(
+            StateKeys.ENTRIES: [e.model_dump() for e in retriever_output.entries],
+            StateKeys.RETRIEVAL_SUMMARY: [s.model_dump() for s in retriever_output.retrieval_summary],
+            StateKeys.SOURCE_ENTRY_IDS: [e.id for e in retriever_output.entries],
+            StateKeys.RETRIEVER_OUTPUT: retriever_output.model_dump(),
+            StateKeys.TRACES: _add_trace(
                 state,
                 "retriever",
                 f"{len(instructions)} instructions",
@@ -496,9 +574,9 @@ async def retrieve_node(state: QuiltoState) -> dict[str, Any]:
         elapsed = (time.perf_counter() - start) * 1000
         await _call_progress_handler(quilto, "on_agent_complete", "retriever", elapsed / 1000, {})
         return {
-            "error": f"Retriever failed: {e!s}",
-            "entries": [],
-            "source_entry_ids": [],
+            StateKeys.ERROR: f"Retriever failed: {e!s}",
+            StateKeys.ENTRIES: [],
+            StateKeys.SOURCE_ENTRY_IDS: [],
         }
 
 
@@ -513,24 +591,24 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
     """
     quilto = _get_quilto(state, "analyze_node")
     if quilto is None:
-        return {"error": "Internal error: orchestration not initialized"}
+        return {StateKeys.ERROR: "Internal error: orchestration not initialized"}
 
-    user_input: str = state.get("user_input", "")
+    user_input: str = state.get(StateKeys.USER_INPUT, "")
 
     await _call_progress_handler(quilto, "on_stage", "analyzing")
 
     start = time.perf_counter()
-    entries = state.get("entries", [])
+    entries = state.get(StateKeys.ENTRIES, [])
     await _call_progress_handler(quilto, "on_agent_start", "analyzer", f"{len(entries)} entries")
 
     try:
         from quilto.agents.models import ActiveDomainContext
 
-        domain_context_dict = state.get("domain_context", {})
+        domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
         domain_context = ActiveDomainContext.model_validate(domain_context_dict)
 
-        query_type = state.get("query_type", "factual")
-        retrieval_summary = state.get("retrieval_summary", [])
+        query_type = state.get(StateKeys.QUERY_TYPE, "factual")
+        retrieval_summary = state.get(StateKeys.RETRIEVAL_SUMMARY, [])
 
         analyzer = AnalyzerAgent(quilto.llm_client)
         analyzer_input = AnalyzerInput(
@@ -548,10 +626,10 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
         )
 
         return {
-            "analysis_verdict": analyzer_output.verdict.value,
-            "analysis_findings": [f.model_dump() for f in analyzer_output.findings],
-            "analyzer_output": analyzer_output.model_dump(),
-            "traces": _add_trace(
+            StateKeys.ANALYSIS_VERDICT: analyzer_output.verdict.value,
+            StateKeys.ANALYSIS_FINDINGS: [f.model_dump() for f in analyzer_output.findings],
+            StateKeys.ANALYZER_OUTPUT: analyzer_output.model_dump(),
+            StateKeys.TRACES: _add_trace(
                 state, "analyzer", f"{len(entries)} entries", f"verdict={analyzer_output.verdict.value}", elapsed
             ),
         }
@@ -575,10 +653,10 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
         }
 
         return {
-            "error": f"Analyzer failed: {e!s}",
-            "analysis_verdict": "insufficient",
-            "analyzer_output": fallback_output,
-            "traces": _add_trace(state, "analyzer", f"{len(entries)} entries", f"ERROR: {e!s}", elapsed),
+            StateKeys.ERROR: f"Analyzer failed: {e!s}",
+            StateKeys.ANALYSIS_VERDICT: "insufficient",
+            StateKeys.ANALYZER_OUTPUT: fallback_output,
+            StateKeys.TRACES: _add_trace(state, "analyzer", f"{len(entries)} entries", f"ERROR: {e!s}", elapsed),
         }
 
 
@@ -593,24 +671,24 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
     """
     quilto = _get_quilto(state, "synthesize_node")
     if quilto is None:
-        return {"error": "Internal error: orchestration not initialized"}
+        return {StateKeys.ERROR: "Internal error: orchestration not initialized"}
 
-    user_input: str = state.get("user_input", "")
+    user_input: str = state.get(StateKeys.USER_INPUT, "")
 
     await _call_progress_handler(quilto, "on_stage", "synthesizing")
 
     start = time.perf_counter()
-    verdict = state.get("analysis_verdict", "insufficient")
+    verdict = state.get(StateKeys.ANALYSIS_VERDICT, "insufficient")
     await _call_progress_handler(quilto, "on_agent_start", "synthesizer", f"verdict={verdict}")
 
     try:
         from quilto.agents.models import ActiveDomainContext, SufficiencyEvaluation
 
-        domain_context_dict = state.get("domain_context", {})
+        domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
         domain_context = ActiveDomainContext.model_validate(domain_context_dict)
 
         # Reconstruct AnalyzerOutput with defensive validation
-        analyzer_output_dict = state.get("analyzer_output", {})
+        analyzer_output_dict = state.get(StateKeys.ANALYZER_OUTPUT, {})
         try:
             analyzer_output = AnalyzerOutput.model_validate(analyzer_output_dict)
         except Exception as validation_err:
@@ -630,8 +708,8 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
                 verdict=Verdict.INSUFFICIENT,
             )
 
-        query_type = state.get("query_type", "factual")
-        is_partial = state.get("is_partial", False)
+        query_type = state.get(StateKeys.QUERY_TYPE, "factual")
+        is_partial = state.get(StateKeys.IS_PARTIAL, False)
 
         synthesizer = SynthesizerAgent(quilto.llm_client)
         synthesizer_input = SynthesizerInput(
@@ -650,9 +728,9 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
         )
 
         return {
-            "response": synthesizer_output.response,
-            "synthesizer_output": synthesizer_output.model_dump(),
-            "traces": _add_trace(
+            StateKeys.RESPONSE: synthesizer_output.response,
+            StateKeys.SYNTHESIZER_OUTPUT: synthesizer_output.model_dump(),
+            StateKeys.TRACES: _add_trace(
                 state, "synthesizer", f"verdict={verdict}", f"response_len={len(synthesizer_output.response)}", elapsed
             ),
         }
@@ -663,9 +741,9 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
         # Sanitize error message (first line only)
         error_msg = str(e).split("\n")[0]
         return {
-            "error": f"Synthesizer failed: {e!s}",
-            "response": f"I encountered an error: Synthesizer failed - {error_msg}",
-            "traces": _add_trace(state, "synthesizer", f"verdict={verdict}", f"ERROR: {e!s}", elapsed),
+            StateKeys.ERROR: f"Synthesizer failed: {e!s}",
+            StateKeys.RESPONSE: f"I encountered an error: Synthesizer failed - {error_msg}",
+            StateKeys.TRACES: _add_trace(state, "synthesizer", f"verdict={verdict}", f"ERROR: {e!s}", elapsed),
         }
 
 
@@ -680,28 +758,28 @@ async def evaluate_node(state: QuiltoState) -> dict[str, Any]:
     """
     quilto = _get_quilto(state, "evaluate_node")
     if quilto is None:
-        return {"error": "Internal error: orchestration not initialized"}
+        return {StateKeys.ERROR: "Internal error: orchestration not initialized"}
 
-    user_input: str = state.get("user_input", "")
+    user_input: str = state.get(StateKeys.USER_INPUT, "")
 
     await _call_progress_handler(quilto, "on_stage", "evaluating")
 
     start = time.perf_counter()
-    retry_count = state.get("retry_count", 0)
+    retry_count = state.get(StateKeys.RETRY_COUNT, 0)
     await _call_progress_handler(quilto, "on_agent_start", "evaluator", f"attempt={retry_count + 1}")
 
     try:
         from quilto.agents.models import ActiveDomainContext
 
-        domain_context_dict = state.get("domain_context", {})
+        domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
         domain_context = ActiveDomainContext.model_validate(domain_context_dict)
 
         # Reconstruct AnalyzerOutput
-        analyzer_output_dict = state.get("analyzer_output", {})
+        analyzer_output_dict = state.get(StateKeys.ANALYZER_OUTPUT, {})
         analyzer_output = AnalyzerOutput.model_validate(analyzer_output_dict)
 
-        response = state.get("response", "")
-        entries = state.get("entries", [])
+        response = state.get(StateKeys.RESPONSE, "")
+        entries = state.get(StateKeys.ENTRIES, [])
 
         # Format entries summary
         entries_summary = _format_entries_summary(entries)
@@ -726,11 +804,11 @@ async def evaluate_node(state: QuiltoState) -> dict[str, Any]:
         confidence = _calculate_confidence(analyzer_output, evaluator_output)
 
         return {
-            "eval_verdict": evaluator_output.overall_verdict.value,
-            "eval_feedback": evaluator_output.feedback,
-            "evaluator_output": evaluator_output.model_dump(),
-            "confidence": confidence,
-            "traces": _add_trace(
+            StateKeys.EVAL_VERDICT: evaluator_output.overall_verdict.value,
+            StateKeys.EVAL_FEEDBACK: evaluator_output.feedback,
+            StateKeys.EVALUATOR_OUTPUT: evaluator_output.model_dump(),
+            StateKeys.CONFIDENCE: confidence,
+            StateKeys.TRACES: _add_trace(
                 state,
                 "evaluator",
                 f"attempt={retry_count + 1}",
@@ -743,10 +821,10 @@ async def evaluate_node(state: QuiltoState) -> dict[str, Any]:
         logger.exception("evaluate_node failed for query: %s", user_input[:50])
         await _call_progress_handler(quilto, "on_agent_complete", "evaluator", elapsed / 1000, {})
         return {
-            "error": f"Evaluator failed: {e!s}",
-            "eval_verdict": "insufficient",
-            "confidence": 0.5,
-            "traces": _add_trace(state, "evaluator", f"attempt={retry_count + 1}", f"ERROR: {e!s}", elapsed),
+            StateKeys.ERROR: f"Evaluator failed: {e!s}",
+            StateKeys.EVAL_VERDICT: "insufficient",
+            StateKeys.CONFIDENCE: 0.5,
+            StateKeys.TRACES: _add_trace(state, "evaluator", f"attempt={retry_count + 1}", f"ERROR: {e!s}", elapsed),
         }
 
 
@@ -783,9 +861,9 @@ async def parse_node(state: QuiltoState) -> dict[str, Any]:
     """
     quilto = _get_quilto(state, "parse_node")
     if quilto is None:
-        return {"error": "Internal error: orchestration not initialized"}
+        return {StateKeys.ERROR: "Internal error: orchestration not initialized"}
 
-    user_input: str = state.get("user_input", "")
+    user_input: str = state.get(StateKeys.USER_INPUT, "")
 
     await _call_progress_handler(quilto, "on_stage", "parsing")
 
@@ -795,7 +873,7 @@ async def parse_node(state: QuiltoState) -> dict[str, Any]:
     try:
         from quilto.agents.models import ActiveDomainContext
 
-        domain_context_dict = state.get("domain_context", {})
+        domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
         domain_context = ActiveDomainContext.model_validate(domain_context_dict)
 
         # Build domain schemas from domains
@@ -818,9 +896,9 @@ async def parse_node(state: QuiltoState) -> dict[str, Any]:
         )
 
         return {
-            "parsed_data": parser_output.domain_data,
-            "parser_output": parser_output.model_dump(),
-            "traces": _add_trace(
+            StateKeys.PARSED_DATA: parser_output.domain_data,
+            StateKeys.PARSER_OUTPUT: parser_output.model_dump(),
+            StateKeys.TRACES: _add_trace(
                 state, "parser", user_input[:50], f"domains={list(parser_output.domain_data.keys())}", elapsed
             ),
         }
@@ -828,8 +906,8 @@ async def parse_node(state: QuiltoState) -> dict[str, Any]:
         elapsed = (time.perf_counter() - start) * 1000
         await _call_progress_handler(quilto, "on_agent_complete", "parser", elapsed / 1000, {})
         return {
-            "error": f"Parser failed: {e!s}",
-            "parsed_data": None,
+            StateKeys.ERROR: f"Parser failed: {e!s}",
+            StateKeys.PARSED_DATA: None,
         }
 
 
@@ -844,7 +922,7 @@ async def correction_node(state: QuiltoState) -> dict[str, Any]:
     """
     quilto = _get_quilto(state, "correction_node")
     if quilto is None:
-        return {"error": "Internal error: orchestration not initialized"}
+        return {StateKeys.ERROR: "Internal error: orchestration not initialized"}
 
     await _call_progress_handler(quilto, "on_stage", "correcting")
 
@@ -854,10 +932,10 @@ async def correction_node(state: QuiltoState) -> dict[str, Any]:
     try:
         from quilto.agents.models import ActiveDomainContext, RouterOutput
 
-        domain_context_dict = state.get("domain_context", {})
+        domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
         domain_context = ActiveDomainContext.model_validate(domain_context_dict)
 
-        router_output_dict = state.get("router_output", {})
+        router_output_dict = state.get(StateKeys.ROUTER_OUTPUT, {})
         router_output = RouterOutput.model_validate(router_output_dict)
 
         # Build domain schemas
@@ -887,15 +965,15 @@ async def correction_node(state: QuiltoState) -> dict[str, Any]:
         )
 
         return {
-            "correction_result": result.model_dump(),
-            "traces": _add_trace(state, "correction", "upsert", f"success={result.success}", elapsed),
+            StateKeys.CORRECTION_RESULT: result.model_dump(),
+            StateKeys.TRACES: _add_trace(state, "correction", "upsert", f"success={result.success}", elapsed),
         }
     except Exception as e:
         elapsed = (time.perf_counter() - start) * 1000
         await _call_progress_handler(quilto, "on_agent_complete", "correction", elapsed / 1000, {})
         return {
-            "error": f"Correction failed: {e!s}",
-            "correction_result": CorrectionResult(success=False, error_message=str(e)).model_dump(),
+            StateKeys.ERROR: f"Correction failed: {e!s}",
+            StateKeys.CORRECTION_RESULT: CorrectionResult(success=False, error_message=str(e)).model_dump(),
         }
 
 
@@ -910,7 +988,7 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
     """
     quilto = _get_quilto(state, "observe_node")
     if quilto is None:
-        return {"error": "Internal error: orchestration not initialized"}
+        return {StateKeys.ERROR: "Internal error: orchestration not initialized"}
 
     # Check if Observer is enabled
     if not quilto.observer_config.enable_post_query:
@@ -924,9 +1002,9 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
     try:
         from quilto.agents.models import ActiveDomainContext, ObserverInput
 
-        domain_context_dict = state.get("domain_context", {})
+        domain_context_dict = state.get(StateKeys.DOMAIN_CONTEXT, {})
         if not domain_context_dict:
-            return {"observer_error": "No domain_context available"}
+            return {StateKeys.OBSERVER_ERROR: "No domain_context available"}
 
         domain_context = ActiveDomainContext.model_validate(domain_context_dict)
 
@@ -941,9 +1019,9 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
         guidance = get_combined_context_guidance(domain_context)
 
         # Build ObserverInput
-        user_input: str = state.get("user_input", "")
-        response = state.get("response", "")
-        analyzer_output_dict = state.get("analyzer_output", {})
+        user_input: str = state.get(StateKeys.USER_INPUT, "")
+        response = state.get(StateKeys.RESPONSE, "")
+        analyzer_output_dict = state.get(StateKeys.ANALYZER_OUTPUT, {})
 
         observer_input = ObserverInput(
             trigger="post_query",
@@ -967,8 +1045,10 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
         )
 
         return {
-            "observer_output": observer_output.model_dump(),
-            "traces": _add_trace(state, "observer", "post_query", f"updates={len(observer_output.updates)}", elapsed),
+            StateKeys.OBSERVER_OUTPUT: observer_output.model_dump(),
+            StateKeys.TRACES: _add_trace(
+                state, "observer", "post_query", f"updates={len(observer_output.updates)}", elapsed
+            ),
         }
     except Exception as e:
         # Observer failures are non-fatal but should be logged for debugging
@@ -976,7 +1056,7 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
         error_info = {"error": str(e), "error_type": type(e).__name__}
         await _call_progress_handler(quilto, "on_agent_complete", "observer", elapsed / 1000, error_info)
         logger.warning("observe_node failed: %s", e)
-        return {"observer_error": str(e)}
+        return {StateKeys.OBSERVER_ERROR: str(e)}
 
 
 async def check_both_node(state: QuiltoState) -> dict[str, Any]:
@@ -990,13 +1070,13 @@ async def check_both_node(state: QuiltoState) -> dict[str, Any]:
     Returns:
         Dict with is_partial flag if max_retries reached.
     """
-    eval_verdict = state.get("eval_verdict", "insufficient")
-    retry_count = state.get("retry_count", 0)
-    max_retries = state.get("max_retries", 2)
+    eval_verdict = state.get(StateKeys.EVAL_VERDICT, "insufficient")
+    retry_count = state.get(StateKeys.RETRY_COUNT, 0)
+    max_retries = state.get(StateKeys.MAX_RETRIES, 2)
 
     # Set is_partial if we reached max_retries without passing
     if eval_verdict != "sufficient" and retry_count >= max_retries:
-        return {"is_partial": True}
+        return {StateKeys.IS_PARTIAL: True}
 
     return {}
 
@@ -1012,18 +1092,18 @@ async def retry_node(state: QuiltoState) -> dict[str, Any]:
     """
     quilto = _get_quilto(state, "retry_node")
     if quilto is None:
-        return {"error": "Internal error: orchestration not initialized"}
+        return {StateKeys.ERROR: "Internal error: orchestration not initialized"}
 
-    retry_count = state.get("retry_count", 0)
+    retry_count = state.get(StateKeys.RETRY_COUNT, 0)
 
     # Get feedback reason
-    eval_feedback = state.get("eval_feedback")
+    eval_feedback = state.get(StateKeys.EVAL_FEEDBACK)
     reason = eval_feedback[0] if isinstance(eval_feedback, list) and eval_feedback else "insufficient"
 
     await _call_progress_handler(quilto, "on_retry", retry_count + 1, reason)
 
     return {
-        "retry_count": retry_count + 1,
+        StateKeys.RETRY_COUNT: retry_count + 1,
     }
 
 
@@ -1041,7 +1121,7 @@ def route_after_router(state: QuiltoState) -> Literal["plan", "parse", "correcti
     Returns:
         Next node name.
     """
-    input_type = state.get("input_type", "query")
+    input_type = state.get(StateKeys.INPUT_TYPE, "query")
 
     if input_type == "log":
         return "parse"
@@ -1060,7 +1140,7 @@ def route_after_plan(state: QuiltoState) -> Literal["retrieve", "__end__"]:
     Returns:
         Next node name.
     """
-    next_action = state.get("next_action", "retrieve")
+    next_action = state.get(StateKeys.NEXT_ACTION, "retrieve")
 
     if next_action == "clarify":
         return "__end__"
@@ -1076,9 +1156,9 @@ def route_after_evaluate(state: QuiltoState) -> Literal["check_both", "retry"]:
     Returns:
         Next node name.
     """
-    eval_verdict = state.get("eval_verdict", "insufficient")
-    retry_count = state.get("retry_count", 0)
-    max_retries = state.get("max_retries", 2)
+    eval_verdict = state.get(StateKeys.EVAL_VERDICT, "insufficient")
+    retry_count = state.get(StateKeys.RETRY_COUNT, 0)
+    max_retries = state.get(StateKeys.MAX_RETRIES, 2)
 
     # Check if passed
     if eval_verdict == "sufficient":
@@ -1101,7 +1181,7 @@ def route_after_check_both(state: QuiltoState) -> Literal["parse", "observe"]:
     Returns:
         Next node name.
     """
-    input_type = state.get("input_type", "query")
+    input_type = state.get(StateKeys.INPUT_TYPE, "query")
 
     if input_type == "both":
         return "parse"
@@ -1210,7 +1290,7 @@ def create_orchestration_graph(quilto: "Quilto") -> OrchestrationGraph:
 
         async def ainvoke(self, state: dict[str, Any]) -> dict[str, Any]:
             """Invoke graph with quilto reference injected."""
-            state["_quilto"] = self._quilto
+            state[StateKeys.QUILTO] = self._quilto
             return await self._graph.ainvoke(state)
 
     return QuiltoGraph(compiled, quilto)
