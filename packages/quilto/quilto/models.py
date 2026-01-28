@@ -105,6 +105,9 @@ class ProcessResult(BaseModel):
     # For LOG inputs
     parsed_data: dict[str, Any] | None = None
 
+    # For CORRECTION inputs
+    correction_result: dict[str, Any] | None = None
+
     # Classification
     input_type: Literal["log", "query", "both", "correction"]
     selected_domains: list[str] = Field(default_factory=list)

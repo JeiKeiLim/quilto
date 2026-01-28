@@ -1025,6 +1025,8 @@ async def correction_node(state: QuiltoState) -> dict[str, Any]:
         recent_date = datetime.now(UTC).date() - timedelta(days=7)
         recent_entries = quilto.storage.get_entries_by_date_range(recent_date, datetime.now(UTC).date())
 
+        user_input: str = state.get(StateKeys.USER_INPUT, "")
+
         parser = ParserAgent(quilto.llm_client)
         result = await process_correction(
             router_output=router_output,
@@ -1033,6 +1035,7 @@ async def correction_node(state: QuiltoState) -> dict[str, Any]:
             recent_entries=recent_entries,
             domain_schemas=domain_schemas,
             vocabulary=domain_context.vocabulary,
+            user_input=user_input,
         )
 
         elapsed = (time.perf_counter() - start) * 1000
@@ -1040,16 +1043,25 @@ async def correction_node(state: QuiltoState) -> dict[str, Any]:
             quilto, "on_agent_complete", "correction", elapsed / 1000, result.model_dump(mode="json")
         )
 
+        # Generate user-facing response
+        if result.success:
+            response = f"Corrected entry {result.target_entry_id}: {result.correction_delta}"
+        else:
+            response = f"Could not process correction: {result.error_message}"
+
         return {
             StateKeys.CORRECTION_RESULT: result.model_dump(),
+            StateKeys.RESPONSE: response,
             StateKeys.TRACES: _add_trace(state, "correction", "upsert", f"success={result.success}", elapsed),
         }
     except Exception as e:
         elapsed = (time.perf_counter() - start) * 1000
         await _call_progress_handler(quilto, "on_agent_complete", "correction", elapsed / 1000, {})
+        error_result = CorrectionResult(success=False, error_message=str(e))
         return {
             StateKeys.ERROR: f"Correction failed: {e!s}",
-            StateKeys.CORRECTION_RESULT: CorrectionResult(success=False, error_message=str(e)).model_dump(),
+            StateKeys.CORRECTION_RESULT: error_result.model_dump(),
+            StateKeys.RESPONSE: f"Could not process correction: {e!s}",
         }
 
 

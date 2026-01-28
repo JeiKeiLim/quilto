@@ -24,6 +24,7 @@ async def process_correction(
     recent_entries: list[Entry],
     domain_schemas: dict[str, type[BaseModel]],
     vocabulary: dict[str, str],
+    user_input: str,
     timestamp: datetime | None = None,
 ) -> CorrectionResult:
     """Process a correction request through Parser and Storage.
@@ -41,6 +42,7 @@ async def process_correction(
         recent_entries: Recent entries for target identification.
         domain_schemas: Domain schemas for parsing.
         vocabulary: Vocabulary for term normalization.
+        user_input: Original user input text for Parser extraction.
         timestamp: Override timestamp (defaults to now).
 
     Returns:
@@ -57,6 +59,7 @@ async def process_correction(
         ...     recent_entries=recent,
         ...     domain_schemas={"strength": StrengthSchema},
         ...     vocabulary={"bp": "bench press"},
+        ...     user_input="I logged 5 sets but it should be 4",
         ... )
         >>> if result.success:
         ...     print(f"Corrected entry: {result.target_entry_id}")
@@ -76,7 +79,7 @@ async def process_correction(
 
     # 2. Build ParserInput with correction mode
     parser_input = ParserInput(
-        raw_input=router_output.log_portion or router_output.reasoning,
+        raw_input=user_input,
         timestamp=ts,
         domain_schemas=domain_schemas,
         vocabulary=vocabulary,

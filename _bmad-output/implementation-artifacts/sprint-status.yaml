@@ -283,9 +283,9 @@ development_status:
   # Epic 19: Dogfooding Fixes & Design Issues
   # Source: iter-007 auto-dogfooding + Epic 18 retrospective
   # Goal: Fix broken CORRECTION flow + session DB design contradiction
-  epic-19: pending
+  epic-19: in-progress
   # --- Phase 1: Bug Fix ---
-  19-1-fix-correction-flow: pending  # HIGH - Parser fails to identify correction target, empty response returned
+  19-1-fix-correction-flow: done  # HIGH - Parser fails to identify correction target, empty response returned (code-reviewed 2026-01-29)
   # --- Phase 2: Design Fix ---
   19-2-fix-session-db-default: pending  # MEDIUM - :memory: default makes session continuity impossible
   # --- Phase 3: Validation ---

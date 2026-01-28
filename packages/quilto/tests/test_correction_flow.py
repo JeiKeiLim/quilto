@@ -6,12 +6,15 @@ Tests cover:
 - SessionState correction fields
 - Parser prompt correction mode enhancements
 - Integration with StorageRepository
+- correction_node response generation (Story 19.1)
+- _build_process_result correction_result extraction (Story 19.1)
+- End-to-end correction flow with mock LLM (Story 19.1)
 """
 
 import json
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -22,6 +25,9 @@ from quilto.agents.models import InputType, ParserInput, ParserOutput, RouterOut
 from quilto.llm.config import AgentConfig, LLMConfig, ProviderConfig, TierModels
 from quilto.state import SessionState
 from quilto.storage import Entry, StorageRepository
+
+if TYPE_CHECKING:
+    from quilto.session import Session
 
 # =============================================================================
 # Test Fixtures
@@ -235,6 +241,7 @@ class TestProcessCorrection:
             recent_entries=sample_entries,
             domain_schemas={"strength": StrengthSchema},
             vocabulary={"bp": "bench press"},
+            user_input="Actually that was 185 not 85",
             timestamp=datetime(2026, 1, 14, 10, 45, 0),
         )
 
@@ -263,6 +270,7 @@ class TestProcessCorrection:
                 recent_entries=sample_entries,
                 domain_schemas={},
                 vocabulary={},
+                user_input="test input",
             )
 
     @pytest.mark.asyncio
@@ -278,6 +286,7 @@ class TestProcessCorrection:
             recent_entries=[],  # Empty
             domain_schemas={},
             vocabulary={},
+            user_input="test input",
         )
 
         assert result.success is False
@@ -311,6 +320,7 @@ class TestProcessCorrection:
             recent_entries=sample_entries,
             domain_schemas={},
             vocabulary={},
+            user_input="Actually that was 185",
         )
 
         assert result.success is False
@@ -344,6 +354,7 @@ class TestProcessCorrection:
             recent_entries=sample_entries,
             domain_schemas={},
             vocabulary={},
+            user_input="Actually that was 185",
         )
 
         assert result.success is False
@@ -377,6 +388,7 @@ class TestProcessCorrection:
             recent_entries=sample_entries,
             domain_schemas={"strength": StrengthSchema},
             vocabulary={"bp": "bench press"},
+            user_input="Actually that was 185",
         )
 
         # Verify parser.parse was called with correction mode
@@ -386,23 +398,30 @@ class TestProcessCorrection:
         assert call_args.correction_target == "bench weight recorded as 85"  # pyright: ignore[reportUnknownMemberType]
 
     @pytest.mark.asyncio
-    async def test_uses_reasoning_when_log_portion_is_none(self, tmp_path: Path, sample_entries: list[Entry]) -> None:
-        """Test that reasoning is used as fallback when log_portion is None."""
+    async def test_uses_user_input_not_router_reasoning(self, tmp_path: Path, sample_entries: list[Entry]) -> None:
+        """Test that Parser receives user_input, not Router reasoning.
+
+        Story 19.1 fix: Previously, process_correction used
+        router_output.log_portion or router_output.reasoning as raw_input.
+        For CORRECTION, log_portion is null, so Parser received the
+        Router's classification reasoning instead of user text.
+        Now user_input is passed explicitly.
+        """
         router_output = RouterOutput(
             input_type=InputType.CORRECTION,
             confidence=0.9,
             selected_domains=["strength"],
             domain_selection_reasoning="Correcting entry",
             correction_target="bench weight",
-            reasoning="Actually that was 185 not 85",  # This should be used
-            log_portion=None,  # No log_portion
+            reasoning="The statement explicitly revises previously logged data",
+            log_portion=None,
         )
         parser_response: dict[str, Any] = {
             "date": "2026-01-14",
             "timestamp": "2026-01-14T10:45:00",
             "tags": [],
             "domain_data": {},
-            "raw_content": "Actually that was 185 not 85",
+            "raw_content": "I logged 5 sets but it should be 4",
             "confidence": 0.9,
             "extraction_notes": [],
             "uncertain_fields": [],
@@ -413,6 +432,7 @@ class TestProcessCorrection:
         parser = create_mock_parser_agent(parser_response)
         storage = StorageRepository(tmp_path)
 
+        user_text = "I logged 5 sets but it should be 4"
         await process_correction(
             router_output=router_output,
             parser_agent=parser,
@@ -420,12 +440,14 @@ class TestProcessCorrection:
             recent_entries=sample_entries,
             domain_schemas={"strength": StrengthSchema},
             vocabulary={},
+            user_input=user_text,
         )
 
-        # Verify parser received reasoning as raw_input
+        # Verify parser received user_input, NOT Router reasoning
         parser.parse.assert_called_once()  # type: ignore[union-attr]
         call_args: ParserInput = parser.parse.call_args[0][0]  # type: ignore[union-attr, reportUnknownMemberType]
-        assert call_args.raw_input == "Actually that was 185 not 85"  # pyright: ignore[reportUnknownMemberType]
+        assert call_args.raw_input == user_text  # pyright: ignore[reportUnknownMemberType]
+        assert call_args.raw_input != router_output.reasoning  # pyright: ignore[reportUnknownMemberType]
 
 
 # =============================================================================
@@ -748,3 +770,445 @@ class TestModuleExports:
         from quilto import process_correction as pc
 
         assert callable(pc)
+
+
+# =============================================================================
+# Test correction_node Response Generation (Story 19.1 - Tasks 5.3, 5.4)
+# =============================================================================
+
+
+class TestCorrectionNodeResponse:
+    """Tests for correction_node setting StateKeys.RESPONSE.
+
+    Story 19.1: Bug 2 fix - correction_node must set RESPONSE
+    so the CLI displays feedback to the user.
+    """
+
+    @pytest.mark.asyncio
+    async def test_correction_node_sets_response_on_success(self, tmp_path: Path) -> None:
+        """Test that correction_node sets RESPONSE on successful correction."""
+        from unittest.mock import MagicMock
+
+        from quilto.domain import DomainModule
+        from quilto.orchestration import StateKeys, correction_node
+        from quilto.quilto import Quilto
+
+        # Build mock domain
+        domain = DomainModule(
+            name="strength",
+            description="Strength training",
+            log_schema=StrengthSchema,
+            vocabulary={"bp": "bench press"},
+            expertise="Strength training expertise",
+            response_evaluation_rules=[],
+            context_management_guidance="",
+            clarification_patterns={},
+        )
+
+        # Build Quilto with mocked LLM
+        mock_llm = MagicMock()
+        storage = StorageRepository(tmp_path)
+
+        # Create an entry in storage for the correction to target
+        entry = Entry(
+            id="2026-01-14_10-30-00",
+            date=date(2026, 1, 14),
+            timestamp=datetime(2026, 1, 14, 10, 30, 0),
+            raw_content="Bench pressed 85x5",
+            parsed_data={"strength": {"exercise": "bench press", "weight_kg": 38.6}},
+        )
+        storage.save_entry(entry)
+
+        q = Quilto(
+            llm_client=mock_llm,
+            storage=storage,
+            domains=[domain],
+            session_db_path=":memory:",
+        )
+
+        # Mock process_correction to return success
+        import quilto.orchestration as orch_module
+
+        success_result = CorrectionResult(
+            success=True,
+            target_entry_id="2026-01-14_10-30-00",
+            correction_delta={"weight_kg": 84.0},
+        )
+
+        async def mock_process_correction(**kwargs: Any) -> CorrectionResult:  # type: ignore[no-untyped-def]
+            return success_result
+
+        original_fn = orch_module.process_correction
+        orch_module.process_correction = mock_process_correction  # type: ignore[assignment]
+
+        try:
+            state = {
+                StateKeys.QUILTO: q,
+                StateKeys.USER_INPUT: "I logged 85 but it should be 185",
+                StateKeys.ROUTER_OUTPUT: RouterOutput(
+                    input_type=InputType.CORRECTION,
+                    confidence=0.9,
+                    selected_domains=["strength"],
+                    domain_selection_reasoning="Correcting",
+                    correction_target="bench weight",
+                    reasoning="User is correcting",
+                ).model_dump(),
+                StateKeys.DOMAIN_CONTEXT: {
+                    "domains_loaded": [],
+                    "vocabulary": {"bp": "bench press"},
+                    "expertise": "Strength training",
+                },
+                StateKeys.TRACES: [],
+            }
+
+            result = await correction_node(state)  # type: ignore[arg-type]
+
+            assert StateKeys.RESPONSE in result
+            assert result[StateKeys.RESPONSE] is not None
+            assert len(result[StateKeys.RESPONSE]) > 0
+            assert "2026-01-14_10-30-00" in result[StateKeys.RESPONSE]
+        finally:
+            orch_module.process_correction = original_fn  # type: ignore[assignment]
+
+    @pytest.mark.asyncio
+    async def test_correction_node_sets_response_on_failure(self, tmp_path: Path) -> None:
+        """Test that correction_node sets RESPONSE on failed correction."""
+        from unittest.mock import MagicMock
+
+        from quilto.domain import DomainModule
+        from quilto.orchestration import StateKeys, correction_node
+        from quilto.quilto import Quilto
+
+        domain = DomainModule(
+            name="strength",
+            description="Strength training",
+            log_schema=StrengthSchema,
+            vocabulary={},
+            expertise="Strength training expertise",
+            response_evaluation_rules=[],
+            context_management_guidance="",
+            clarification_patterns={},
+        )
+
+        mock_llm = MagicMock()
+        storage = StorageRepository(tmp_path)
+
+        q = Quilto(
+            llm_client=mock_llm,
+            storage=storage,
+            domains=[domain],
+            session_db_path=":memory:",
+        )
+
+        # Mock process_correction to return failure
+        import quilto.orchestration as orch_module
+
+        failure_result = CorrectionResult(
+            success=False,
+            error_message="Parser did not identify correction",
+        )
+
+        async def mock_process_correction(**kwargs: Any) -> CorrectionResult:  # type: ignore[no-untyped-def]
+            return failure_result
+
+        original_fn = orch_module.process_correction
+        orch_module.process_correction = mock_process_correction  # type: ignore[assignment]
+
+        try:
+            state = {
+                StateKeys.QUILTO: q,
+                StateKeys.USER_INPUT: "I logged 85 but it should be 185",
+                StateKeys.ROUTER_OUTPUT: RouterOutput(
+                    input_type=InputType.CORRECTION,
+                    confidence=0.9,
+                    selected_domains=["strength"],
+                    domain_selection_reasoning="Correcting",
+                    correction_target="bench weight",
+                    reasoning="User is correcting",
+                ).model_dump(),
+                StateKeys.DOMAIN_CONTEXT: {
+                    "domains_loaded": [],
+                    "vocabulary": {},
+                    "expertise": "Strength training",
+                },
+                StateKeys.TRACES: [],
+            }
+
+            result = await correction_node(state)  # type: ignore[arg-type]
+
+            assert StateKeys.RESPONSE in result
+            assert "Could not process correction" in result[StateKeys.RESPONSE]
+            assert "Parser did not identify correction" in result[StateKeys.RESPONSE]
+        finally:
+            orch_module.process_correction = original_fn  # type: ignore[assignment]
+
+    @pytest.mark.asyncio
+    async def test_correction_node_sets_response_on_exception(self, tmp_path: Path) -> None:
+        """Test that correction_node sets RESPONSE when exception occurs."""
+        from unittest.mock import MagicMock
+
+        from quilto.domain import DomainModule
+        from quilto.orchestration import StateKeys, correction_node
+        from quilto.quilto import Quilto
+
+        domain = DomainModule(
+            name="strength",
+            description="Strength training",
+            log_schema=StrengthSchema,
+            vocabulary={},
+            expertise="Strength training expertise",
+            response_evaluation_rules=[],
+            context_management_guidance="",
+            clarification_patterns={},
+        )
+
+        mock_llm = MagicMock()
+        storage = StorageRepository(tmp_path)
+
+        q = Quilto(
+            llm_client=mock_llm,
+            storage=storage,
+            domains=[domain],
+            session_db_path=":memory:",
+        )
+
+        # Mock process_correction to raise exception
+        import quilto.orchestration as orch_module
+
+        async def mock_process_correction(**kwargs: Any) -> CorrectionResult:  # type: ignore[no-untyped-def]
+            raise RuntimeError("Storage unavailable")
+
+        original_fn = orch_module.process_correction
+        orch_module.process_correction = mock_process_correction  # type: ignore[assignment]
+
+        try:
+            state = {
+                StateKeys.QUILTO: q,
+                StateKeys.USER_INPUT: "Fix my entry",
+                StateKeys.ROUTER_OUTPUT: RouterOutput(
+                    input_type=InputType.CORRECTION,
+                    confidence=0.9,
+                    selected_domains=["strength"],
+                    domain_selection_reasoning="Correcting",
+                    correction_target="bench weight",
+                    reasoning="User is correcting",
+                ).model_dump(),
+                StateKeys.DOMAIN_CONTEXT: {
+                    "domains_loaded": [],
+                    "vocabulary": {},
+                    "expertise": "Strength training",
+                },
+                StateKeys.TRACES: [],
+            }
+
+            result = await correction_node(state)  # type: ignore[arg-type]
+
+            assert StateKeys.RESPONSE in result
+            assert "Could not process correction" in result[StateKeys.RESPONSE]
+            assert "Storage unavailable" in result[StateKeys.RESPONSE]
+        finally:
+            orch_module.process_correction = original_fn  # type: ignore[assignment]
+
+
+# =============================================================================
+# Test _build_process_result includes correction_result (Story 19.1 - Task 5.5)
+# =============================================================================
+
+
+class TestBuildProcessResultCorrection:
+    """Tests for _build_process_result correction_result extraction."""
+
+    @pytest.fixture
+    def session(self) -> "Session":
+        """Create session for testing _build_process_result."""
+        from quilto.session import Session
+        from quilto.session.models import SessionConfig, SessionData
+        from quilto.session.stores import SQLiteSessionStore
+
+        store = SQLiteSessionStore(":memory:")
+        config = SessionConfig()
+        now = datetime.now()
+        data = SessionData(session_id="test", created_at=now, updated_at=now)
+        store.save(data)
+        return Session(data, store, config)
+
+    def test_correction_result_extracted_from_state(self, session: "Session") -> None:
+        """Test that _build_process_result includes correction_result from state."""
+        correction_data = {
+            "success": True,
+            "target_entry_id": "2026-01-14_10-30-00",
+            "correction_delta": {"weight_kg": 84.0},
+            "original_entry_id": "2026-01-14_10-30-00",
+            "error_message": None,
+        }
+        state: dict[str, Any] = {
+            "input_type": "correction",
+            "response": "Corrected entry 2026-01-14_10-30-00",
+            "confidence": None,
+            "source_entry_ids": [],
+            "parsed_data": None,
+            "selected_domains": ["strength"],
+            "clarify_questions": None,
+            "correction_result": correction_data,
+        }
+
+        result = session._build_process_result(state)  # pyright: ignore[reportPrivateUsage]
+
+        assert result.correction_result is not None
+        assert result.correction_result["success"] is True
+        assert result.correction_result["target_entry_id"] == "2026-01-14_10-30-00"
+        assert result.correction_result["correction_delta"] == {"weight_kg": 84.0}
+        assert result.input_type == "correction"
+
+    def test_correction_result_none_when_not_correction(self, session: "Session") -> None:
+        """Test that correction_result is None for non-correction inputs."""
+        state: dict[str, Any] = {
+            "input_type": "query",
+            "response": "Your progress looks great",
+            "confidence": 0.9,
+            "source_entry_ids": [],
+            "parsed_data": None,
+            "selected_domains": ["strength"],
+            "clarify_questions": None,
+        }
+
+        result = session._build_process_result(state)  # pyright: ignore[reportPrivateUsage]
+
+        assert result.correction_result is None
+
+    def test_correction_result_none_when_correction_failed(self, session: "Session") -> None:
+        """Test that correction_result captures failure details."""
+        correction_data = {
+            "success": False,
+            "target_entry_id": None,
+            "correction_delta": None,
+            "original_entry_id": None,
+            "error_message": "Parser did not identify correction",
+        }
+        state: dict[str, Any] = {
+            "input_type": "correction",
+            "response": "Could not process correction: Parser did not identify correction",
+            "confidence": None,
+            "source_entry_ids": [],
+            "parsed_data": None,
+            "selected_domains": ["strength"],
+            "clarify_questions": None,
+            "correction_result": correction_data,
+        }
+
+        result = session._build_process_result(state)  # pyright: ignore[reportPrivateUsage]
+
+        assert result.correction_result is not None
+        assert result.correction_result["success"] is False
+        assert result.correction_result["error_message"] == "Parser did not identify correction"
+        assert result.response is not None
+        assert "Could not process correction" in result.response
+
+
+# =============================================================================
+# Test End-to-End Correction with Mock LLM (Story 19.1 - Task 5.6)
+# =============================================================================
+
+
+class TestCorrectionEndToEnd:
+    """End-to-end test verifying non-empty response for CORRECTION flow."""
+
+    @pytest.mark.asyncio
+    async def test_correction_flow_returns_non_empty_response(self, tmp_path: Path) -> None:
+        """Test that a full correction flow produces a non-empty response.
+
+        Mocks process_correction to simulate a successful correction and
+        verifies that correction_node returns both RESPONSE and CORRECTION_RESULT.
+        """
+        from unittest.mock import MagicMock
+
+        from quilto.domain import DomainModule
+        from quilto.orchestration import StateKeys, correction_node
+        from quilto.quilto import Quilto
+
+        domain = DomainModule(
+            name="strength",
+            description="Strength training",
+            log_schema=StrengthSchema,
+            vocabulary={"bp": "bench press"},
+            expertise="Strength training expertise",
+            response_evaluation_rules=[],
+            context_management_guidance="",
+            clarification_patterns={},
+        )
+
+        mock_llm = MagicMock()
+        storage = StorageRepository(tmp_path)
+
+        # Pre-populate storage with entry to correct
+        entry = Entry(
+            id="2026-01-27_10-30-00",
+            date=date(2026, 1, 27),
+            timestamp=datetime(2026, 1, 27, 10, 30, 0),
+            raw_content="5 sets of pull-ups",
+            parsed_data={"strength": {"exercise": "pull-ups", "sets": 5}},
+        )
+        storage.save_entry(entry)
+
+        q = Quilto(
+            llm_client=mock_llm,
+            storage=storage,
+            domains=[domain],
+            session_db_path=":memory:",
+        )
+
+        # Mock process_correction
+        import quilto.orchestration as orch_module
+
+        success_result = CorrectionResult(
+            success=True,
+            target_entry_id="2026-01-27_10-30-00",
+            correction_delta={"sets": 4},
+            original_entry_id="2026-01-27_10-30-00",
+        )
+
+        async def mock_process_correction(**kwargs: Any) -> CorrectionResult:  # type: ignore[no-untyped-def]
+            return success_result
+
+        original_fn = orch_module.process_correction
+        orch_module.process_correction = mock_process_correction  # type: ignore[assignment]
+
+        try:
+            state = {
+                StateKeys.QUILTO: q,
+                StateKeys.USER_INPUT: "I logged 5 sets but it should have been 4 sets of pull-ups",
+                StateKeys.ROUTER_OUTPUT: RouterOutput(
+                    input_type=InputType.CORRECTION,
+                    confidence=0.96,
+                    selected_domains=["strength"],
+                    domain_selection_reasoning="Correcting pull-up sets",
+                    correction_target="Number of pull-up sets (should be 4 sets instead of 5)",
+                    reasoning="The statement explicitly revises previously logged data",
+                ).model_dump(),
+                StateKeys.DOMAIN_CONTEXT: {
+                    "domains_loaded": ["strength"],
+                    "vocabulary": {"bp": "bench press"},
+                    "expertise": "Strength training",
+                },
+                StateKeys.TRACES: [],
+            }
+
+            result = await correction_node(state)  # type: ignore[arg-type]
+
+            # Verify non-empty response (AC #3)
+            assert StateKeys.RESPONSE in result
+            assert result[StateKeys.RESPONSE] != ""
+            assert result[StateKeys.RESPONSE] is not None
+
+            # Verify correction_result present
+            assert StateKeys.CORRECTION_RESULT in result
+            correction_result = result[StateKeys.CORRECTION_RESULT]
+            assert correction_result["success"] is True
+            assert correction_result["target_entry_id"] == "2026-01-27_10-30-00"
+            assert correction_result["correction_delta"] == {"sets": 4}
+
+            # Verify response content matches AC #4
+            response = result[StateKeys.RESPONSE]
+            assert "2026-01-27_10-30-00" in response
+        finally:
+            orch_module.process_correction = original_fn  # type: ignore[assignment]

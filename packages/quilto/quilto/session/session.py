@@ -253,6 +253,7 @@ class Session:
         source_entry_ids = state.get("source_entry_ids", [])
         parsed_data = state.get("parsed_data")
         selected_domains = state.get("selected_domains", [])
+        correction_result = state.get("correction_result")
 
         # Handle clarification questions - supports both dict and string formats
         # PlannerOutput.clarify_questions is list[str] | None, but session may have dicts
@@ -297,6 +298,7 @@ class Session:
             confidence=confidence,
             source_entry_ids=source_entry_ids,
             parsed_data=parsed_data,
+            correction_result=correction_result,
             input_type=input_type,
             selected_domains=selected_domains,
             clarification_questions=clarification_questions,

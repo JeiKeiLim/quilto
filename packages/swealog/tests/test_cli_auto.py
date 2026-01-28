@@ -180,9 +180,10 @@ class TestUnifiedCommandHandlesCorrection:
     def test_command_handles_correction(
         self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
     ) -> None:
-        """Command handles CORRECTION input_type showing corrected message."""
+        """Command handles CORRECTION input_type showing correction response."""
         mock_result = _create_mock_process_result(
             input_type="correction",
+            response="Corrected entry 2026-01-19_12-00-00: {'weight_kg': 88.5}",
             parsed_data={"entry_id": "2026-01-19_12-00-00"},
         )
 
@@ -200,7 +201,7 @@ class TestUnifiedCommandHandlesCorrection:
             result = runner.invoke(app, ["run", "actually yesterday was 195x5 not 185x5"])
 
             assert result.exit_code == 0
-            assert "Corrected entry:" in result.output
+            assert "Corrected entry" in result.output
 
 
 class TestUnifiedCommandDebugFlag:

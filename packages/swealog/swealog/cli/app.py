@@ -158,7 +158,10 @@ def _display_result(result: ProcessResult) -> None:
         _display_log_success(result)
 
     elif result.input_type == "correction":
-        _display_log_success(result, prefix="Corrected")
+        if result.response:
+            print_success(result.response)
+        else:
+            _display_log_success(result, prefix="Corrected")
 
     elif result.input_type == "both":
         _display_log_success(result)
