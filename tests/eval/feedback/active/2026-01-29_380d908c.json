@@ -1,0 +1,68 @@
+{
+  "id": "2026-01-29_380d908c",
+  "query": "actually it was 20 minutes at about 7.5kph",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "CORRECTION",
+      "confidence": 0.98,
+      "selected_domains": [
+        "Running",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The user is correcting the recorded details of a treadmill run (duration and speed), which directly pertains to the Running domain. Running is a specific type of cardio activity, and it also falls under the broader GeneralFitness domain that covers overall fitness tracking.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": "the previously logged duration and speed of the treadmill run (originally recorded as 35 minutes at about 8 kph)",
+      "reasoning": "The phrase \"actually it was...\" signals a correction of earlier logged information. No new query is present, so the input is classified as a CORRECTION with high confidence."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "run_2026-01-23",
+          "value": "duration_minutes: 20, speed_kph: 7.5, distance_km: 2.5",
+          "confidence": "certain",
+          "source": "post_query: user corrected last workout details"
+        }
+      ],
+      "insights_captured": [
+        "User corrected the most recent treadmill run (2026-01-23) to 20 minutes at approximately 7.5 kph, updating the logged duration, speed, and implied distance."
+      ]
+    },
+    "correction": {
+      "success": true,
+      "target_entry_id": "2026-01-29_10-30-00",
+      "correction_delta": {
+        "duration_minutes": 20,
+        "notes": "Corrected: actually it was about 7.5kph",
+        "pace": "8:00 min/km"
+      },
+      "original_entry_id": "2026-01-29_10-30-00",
+      "error_message": null,
+      "modified_file": "logs/raw/2026/01/2026-01-29.md",
+      "edited_lines": [
+        0,
+        2
+      ]
+    }
+  },
+  "final_response": "Corrected entry 2026-01-29_10-30-00: {'duration_minutes': 20, 'notes': 'Corrected: actually it was about 7.5kph', 'pace': '8:00 min/km'}",
+  "user_feedback": "I can see it got replaced in original record at right place. however, this is terrible. original raw markdown had running log information but now it just have actually it was 20 minutes at about 7.5kph only. it has no information on what it was. expected modification: Ran treadmil for 20 minutes at 7.5 kph, this is just so obvious modification but looks like the story missed it.",
+  "session": {
+    "timestamp": "2026-01-29 18:11:37.796127",
+    "input_type": "CORRECTION",
+    "session_id": "c2eafdd0-4d59-4d9c-b0a8-2a45fc5fed3a",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": false
+  },
+  "feedback_sentiment": null
+}
