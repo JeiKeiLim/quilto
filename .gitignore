@@ -60,3 +60,6 @@ htmlcov/
 # Logs
 logs/
 *.log
+
+# Runtime databases
+*.db
