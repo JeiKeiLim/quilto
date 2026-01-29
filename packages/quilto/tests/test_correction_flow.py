@@ -979,6 +979,158 @@ class TestStorageRepositoryCorrectionIntegration:
 
 
 # =============================================================================
+# Story 21.6: Correction Merge Integration Tests
+# =============================================================================
+
+
+class TestCorrectionMergeIntegration:
+    """Integration tests for correction raw_content merge behavior.
+
+    Story 21.6: Fix CORRECTION Raw Content Merge
+
+    These tests require --use-real-ollama to validate actual LLM merge behavior.
+    They test Parser.parse() directly with correction_mode=True, which is what
+    the correction flow uses internally.
+    """
+
+    @pytest.mark.asyncio
+    async def test_correction_flow_produces_merged_raw_content(
+        self,
+        tmp_path: Path,
+        use_real_ollama: bool,
+        integration_llm_config_path: Path,
+    ) -> None:
+        """Integration test: Parser produces merged raw_content.
+
+        Story 21.6 AC #1: Given correction "actually it was 20 minutes at 7.5kph"
+        targeting "Ran treadmill for 35 minutes at 8kph", the Parser should
+        output merged content like "Ran treadmill for 20 minutes at 7.5kph".
+
+        Verifies:
+        - raw_content contains "treadmill" (original activity preserved)
+        - raw_content contains "20" (corrected value)
+        - raw_content does NOT contain "actually" (literal replacement avoided)
+        """
+        if not use_real_ollama:
+            pytest.skip("Requires --use-real-ollama flag for merge behavior testing")
+
+        from quilto import load_llm_config
+        from quilto.llm import LLMClient
+
+        config = load_llm_config(integration_llm_config_path)
+        llm_client = LLMClient(config)
+        parser = ParserAgent(llm_client)
+
+        # Create mock entries representing recent history
+        class MockEntry:
+            def __init__(self, entry_id: str, raw_content: str, parsed_data: dict[str, Any]) -> None:
+                self.id = entry_id
+                self.raw_content = raw_content
+                self.parsed_data = parsed_data
+
+        recent_entries = [
+            MockEntry(
+                entry_id="2026-01-26_10-30-00",
+                raw_content="Ran treadmill for 35 minutes at 8kph",
+                parsed_data={"cardio": {"activity": "treadmill", "duration_min": 35}},
+            ),
+        ]
+
+        result = await parser.parse(
+            ParserInput(
+                raw_input="actually it was 20 minutes at 7.5kph",
+                timestamp=datetime(2026, 1, 26, 20, 0, 0),
+                domain_schemas={},  # Not needed for raw_content test
+                vocabulary={},
+                correction_mode=True,
+                correction_target="the treadmill entry",
+                recent_entries=recent_entries,
+            )
+        )
+
+        # AC #1: raw_content should be merged, not literal
+        assert result.raw_content != "actually it was 20 minutes at 7.5kph", (
+            f"raw_content should be MERGED, not literal input. Got: {result.raw_content}"
+        )
+
+        # AC #1: Should preserve activity context from original
+        activity_preserved = "treadmill" in result.raw_content.lower() or "ran" in result.raw_content.lower()
+        assert activity_preserved, f"Activity context not preserved. Got: {result.raw_content}"
+
+        # AC #1: Should have corrected duration
+        assert "20" in result.raw_content, f"Corrected duration not in content. Got: {result.raw_content}"
+
+        # AC #4: Should NOT contain literal correction phrase "actually"
+        assert "actually" not in result.raw_content.lower(), (
+            f"Contains literal correction phrase. Got: {result.raw_content}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_correction_preserves_unmodified_context(
+        self,
+        tmp_path: Path,
+        use_real_ollama: bool,
+        integration_llm_config_path: Path,
+    ) -> None:
+        """Integration test: Parser preserves context not being changed.
+
+        Story 21.6 AC #2: Given correction "it was 4 sets not 5" targeting
+        "Did 5 sets of bench press at 80kg, felt strong", the merged content
+        should preserve weight (80kg) and notes (felt strong).
+        """
+        if not use_real_ollama:
+            pytest.skip("Requires --use-real-ollama flag for merge behavior testing")
+
+        from quilto import load_llm_config
+        from quilto.llm import LLMClient
+
+        config = load_llm_config(integration_llm_config_path)
+        llm_client = LLMClient(config)
+        parser = ParserAgent(llm_client)
+
+        class MockEntry:
+            def __init__(self, entry_id: str, raw_content: str, parsed_data: dict[str, Any]) -> None:
+                self.id = entry_id
+                self.raw_content = raw_content
+                self.parsed_data = parsed_data
+
+        recent_entries = [
+            MockEntry(
+                entry_id="2026-01-26_18-30-00",
+                raw_content="Did 5 sets of bench press at 80kg, felt strong",
+                parsed_data={
+                    "strength": {
+                        "exercise": "bench press",
+                        "weight_kg": 80,
+                        "sets": 5,
+                    }
+                },
+            ),
+        ]
+
+        result = await parser.parse(
+            ParserInput(
+                raw_input="it was 4 sets not 5",
+                timestamp=datetime(2026, 1, 26, 20, 0, 0),
+                domain_schemas={},
+                vocabulary={},
+                correction_mode=True,
+                correction_target="the bench press entry",
+                recent_entries=recent_entries,
+            )
+        )
+
+        # AC #2: Preserve exercise type
+        assert "bench press" in result.raw_content.lower(), f"Exercise type not preserved. Got: {result.raw_content}"
+
+        # AC #2: Preserve weight
+        assert "80" in result.raw_content, f"Weight not preserved. Got: {result.raw_content}"
+
+        # AC #2: Have corrected sets (4, not 5 as original)
+        assert "4" in result.raw_content, f"Corrected sets not in content. Got: {result.raw_content}"
+
+
+# =============================================================================
 # Test Module Exports
 # =============================================================================
 

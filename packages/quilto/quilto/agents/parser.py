@@ -172,7 +172,7 @@ class ParserAgent:
         key_summary = " ".join(key_parts) if key_parts else ""
         return f"{domain_type}: {key_summary}" if key_summary else domain_type
 
-    def format_recent_entries(self, entries: list[Any]) -> str:
+    def format_recent_entries(self, entries: list[Any], *, correction_mode: bool = False) -> str:
         """Format recent entries for LLM prompt.
 
         Enhanced format includes time, domain type, and key values for
@@ -180,11 +180,16 @@ class ParserAgent:
 
         Format: "- {entry_id} | {HH:MM} | {DOMAIN: key_values} | {summary}"
 
+        In correction mode, the full raw_content is preserved (not truncated)
+        so the Parser can merge correction with original content.
+
         Args:
             entries: List of recent Entry objects.
+            correction_mode: If True, preserve full raw_content for merging.
 
         Returns:
-            Formatted string with entry summaries.
+            Formatted string with entry summaries, or "(No recent entries)"
+            if the entries list is empty.
         """
         if not entries:
             return "(No recent entries)"
@@ -201,8 +206,12 @@ class ParserAgent:
             # Extract domain and key values
             domain_summary = self._extract_domain_summary(parsed_data)
 
-            # Truncate raw content (80 chars for better context)
-            summary = raw_content[:80] + "..." if len(raw_content) > 80 else raw_content
+            # In correction mode, preserve full raw_content for merge capability
+            # Otherwise truncate to 80 chars for context efficiency
+            if correction_mode:
+                summary = raw_content
+            else:
+                summary = raw_content[:80] + "..." if len(raw_content) > 80 else raw_content
 
             # Enhanced format: entry_id | time | domain_summary | content
             lines.append(f"- {entry_id} | {time_str} | {domain_summary} | {summary}")
@@ -220,7 +229,9 @@ class ParserAgent:
         domain_schemas_text = self._format_domain_schemas(parser_input.domain_schemas)
         vocabulary_text = self._format_vocabulary(parser_input.vocabulary)
         global_context = parser_input.global_context or "(No global context)"
-        recent_entries_text = self.format_recent_entries(parser_input.recent_entries)
+        recent_entries_text = self.format_recent_entries(
+            parser_input.recent_entries, correction_mode=parser_input.correction_mode
+        )
 
         # Build correction mode section
         correction_section = ""
@@ -302,6 +313,35 @@ If NO MATCH FOUND (no entry matches the hint):
 - Set target_entry_id = null
 - Keep is_correction = true
 - Add explanation to extraction_notes: "No matching entry found for: [hint]"
+
+=== CORRECTION MERGE RULES ===
+
+CRITICAL: When generating raw_content in correction mode, you MUST:
+1. MERGE the correction INTO the original entry's raw_content
+2. PRESERVE all context from the original that is NOT being corrected
+3. OUTPUT a complete standalone description, NOT the literal correction text
+
+The original raw_content of the target entry is provided in recent_entries (full text, not truncated).
+Use it as the base, then apply the user's correction to create merged output.
+
+=== CORRECTION MERGE EXAMPLES ===
+
+Example 1 - Value correction:
+  original_raw_content: "Ran treadmill for 35 minutes at 8kph"
+  correction_input: "actually it was 20 minutes at 7.5kph"
+  CORRECT raw_content: "Ran treadmill for 20 minutes at 7.5kph"
+  WRONG raw_content: "actually it was 20 minutes at 7.5kph"  ← LOSES CONTEXT
+
+Example 2 - Partial correction:
+  original_raw_content: "Did 5 sets of bench press at 80kg, felt strong"
+  correction_input: "it was 4 sets not 5"
+  CORRECT raw_content: "Did 4 sets of bench press at 80kg, felt strong"
+  (preserves weight and notes)
+
+Example 3 - Addition:
+  original_raw_content: "Morning run 5km"
+  correction_input: "I also did stretching after"
+  CORRECT raw_content: "Morning run 5km, followed by stretching"
 """
 
         # Build the full prompt
@@ -350,7 +390,7 @@ Respond with a JSON object containing:
 - timestamp: ISO format datetime string
 - tags: list of extracted tags/keywords
 - domain_data: dict mapping domain names to extracted data
-- raw_content: the exact input text (preserved as-is)
+- raw_content: the MERGED content (in correction mode) OR exact input text (in normal mode)
 - confidence: number between 0.0 and 1.0
 - extraction_notes: list of notes about ambiguities
 - uncertain_fields: list of field names with uncertain values
