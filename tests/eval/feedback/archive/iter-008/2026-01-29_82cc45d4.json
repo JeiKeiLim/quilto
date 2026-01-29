@@ -1,0 +1,122 @@
+{
+  "id": "2026-01-29_82cc45d4",
+  "query": "오늘 스쿼트 3세트 10개씩 60kg 으로 진행함",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.99,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement logs a strength training activity (squat) with sets, reps, and weight, which directly maps to the Strength domain. Strength training is also a component of overall fitness, so the broader GeneralFitness domain is relevant as well.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The Korean sentence is a past‑tense declarative description of today's workout, containing no question words or correction cues. Therefore it is classified as a LOG with high confidence."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T00:14:10.022705Z",
+      "tags": [
+        "squat",
+        "60kg",
+        "strength"
+      ],
+      "domain_data": {
+        "Strength": {
+          "exercises": [
+            {
+              "name": "Squat (Barbell)",
+              "sets": [
+                {
+                  "reps": 10,
+                  "weight": 60,
+                  "weight_unit": "kg",
+                  "rpe": null,
+                  "rir": null,
+                  "notes": null
+                },
+                {
+                  "reps": 10,
+                  "weight": 60,
+                  "weight_unit": "kg",
+                  "rpe": null,
+                  "rir": null,
+                  "notes": null
+                },
+                {
+                  "reps": 10,
+                  "weight": 60,
+                  "weight_unit": "kg",
+                  "rpe": null,
+                  "rir": null,
+                  "notes": null
+                }
+              ],
+              "total_sets": null,
+              "notes": null
+            }
+          ],
+          "session_notes": null,
+          "date": "2026-01-29",
+          "duration_minutes": null,
+          "perceived_difficulty": null
+        }
+      },
+      "raw_content": "오늘 스쿼트 3세트 10개씩 60kg 으로 진행함",
+      "confidence": 0.98,
+      "extraction_notes": [
+        "Duration and perceived difficulty were not mentioned in the input, so they are left null.",
+        "Exercise name normalized from Korean \"스쿼트\" to \"Squat (Barbell)\"."
+      ],
+      "uncertain_fields": [
+        "duration_minutes",
+        "perceived_difficulty"
+      ],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "squat_session_2026-01-29",
+          "value": "60 kg × 10 reps × 3 sets",
+          "confidence": "certain",
+          "source": "post_query: user logged squat workout"
+        },
+        {
+          "category": "insight",
+          "key": "lower_body_strength_resumed",
+          "value": "User performed a lower‑body strength exercise (squat 3×10 @ 60 kg) on 2026‑01‑29, indicating re‑introduction of leg work after a period without lower‑body strength logs.",
+          "confidence": "likely",
+          "source": "post_query: user logged squat workout"
+        }
+      ],
+      "insights_captured": [
+        "A squat session (3 sets of 10 reps at 60 kg) was logged for 2026‑01‑29, providing the first lower‑body strength record in the recent period.",
+        "The presence of this squat session suggests the user is beginning to address the previously identified lower‑body strength gap."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 09:14:29.792385",
+    "input_type": "LOG",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

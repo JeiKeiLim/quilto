@@ -1,0 +1,26 @@
+{
+  "id": "2026-01-29_d1382056",
+  "query": "Was my upper body workout harder than cardio this month?",
+  "intermediate_outputs": {
+    "router": {},
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {},
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 09:27:59.770584",
+    "input_type": "QUERY",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

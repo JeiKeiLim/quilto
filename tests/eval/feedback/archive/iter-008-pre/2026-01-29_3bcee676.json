@@ -1,0 +1,68 @@
+{
+  "id": "2026-01-29_3bcee676",
+  "query": "Actually my last treadmill run was for 40 minutes with 8kph speed",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "CORRECTION",
+      "confidence": 0.96,
+      "selected_domains": [
+        "Running",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The user is correcting information about a treadmill run, which directly pertains to the Running domain (distance, duration, speed). Running is a specific subset of cardio activities, and GeneralFitness also covers overall cardio logging, so both are relevant.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": "Details of the last treadmill run (duration of 40 minutes and speed of 8 kph)",
+      "reasoning": "The presence of the word \"Actually\" signals a correction of previously recorded data. The statement provides corrected run metrics, so it is classified as a CORRECTION with high confidence."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "run_2026-01-26",
+          "value": "duration_minutes: 40, distance_km: 5.33, speed_kph: 8",
+          "confidence": "certain",
+          "source": "post_query: user correction of treadmill run details"
+        },
+        {
+          "category": "fact",
+          "key": "weekly_workout_summary_2026-01-20_2026-01-26",
+          "value": "3 sessions logged: 15‑min stair‑climbing cardio (HR ~160 bpm) + 5 min stretch on Jan 20, 3 sets of pull‑ups on Jan 25, and 40‑min treadmill run at 8 kph on Jan 26; total cardio time ≥55 min.",
+          "confidence": "certain",
+          "source": "post_query: user correction of treadmill run details"
+        }
+      ],
+      "insights_captured": [
+        "User corrected the Jan 26 treadmill run to 40 minutes at 8 kph (≈5.33 km), updating the recorded cardio volume for that week."
+      ]
+    },
+    "correction": {
+      "success": true,
+      "target_entry_id": "2026-01-26_18-33-00",
+      "correction_delta": {
+        "duration_minutes": 40,
+        "distance": 5.33
+      },
+      "original_entry_id": "2026-01-26_18-33-00",
+      "error_message": null
+    }
+  },
+  "final_response": "Corrected entry 2026-01-26_18-33-00: {'duration_minutes': 40, 'distance': 5.33}",
+  "user_feedback": "I see it updated global context but no raw and parsed files were updated. And I don't think global context shouldn't even have this information. global context is supposed to be user's preference, goal, insights something like that. Also I'm seeing correction log also created at raw directory. This shouldn't be logged since it's not something user wants to records as new entry. So ideal is that fix previous records in raw file which in this case modify raw/2026-01-26.md at ## 18:33 part and run parser agent then give it to application so that it handles whether to update parsed file or not. and no global context update. global context is supposed to something like when user says 'No when I say I run, it means run outside -> record to global context that when user mentions run, it means running outside not inside treadmill' you shouldn't take it literally. this is just mental model of what I think for global context. Think of how claude or chatgpt manages user memory\"",
+  "session": {
+    "timestamp": "2026-01-29 08:53:25.952828",
+    "input_type": "CORRECTION",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": false
+  },
+  "feedback_sentiment": null
+}

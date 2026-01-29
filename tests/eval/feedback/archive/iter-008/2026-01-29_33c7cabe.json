@@ -1,0 +1,53 @@
+{
+  "id": "2026-01-29_33c7cabe",
+  "query": "Test ephemeral session",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.86,
+      "selected_domains": [],
+      "domain_selection_reasoning": "The input \"Test ephemeral session\" is a simple declarative statement without any question words, question mark, or correction language. It does not mention any activities, topics, or terminology related to the available domains (GeneralFitness, Strength, Nutrition, Running, Swimming), so no domain is applicable.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "Classified as a LOG because it is a declarative statement and lacks any query or correction cues. No domain matches the content."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T00:12:33.531217Z",
+      "tags": [],
+      "domain_data": {},
+      "raw_content": "Test ephemeral session",
+      "confidence": 1.0,
+      "extraction_notes": [
+        "Input contains no recognizable fitness, nutrition, running, swimming, or strength information, so domain_data is empty."
+      ],
+      "uncertain_fields": [],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 09:12:40.150533",
+    "input_type": "LOG",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

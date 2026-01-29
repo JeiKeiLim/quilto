@@ -1,0 +1,57 @@
+{
+  "id": "2026-01-29_ee7b9d0d",
+  "query": "I logged 5 sets of pull-ups but it should be 4 sets",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "CORRECTION",
+      "confidence": 0.98,
+      "selected_domains": [
+        "Strength"
+      ],
+      "domain_selection_reasoning": "The user is correcting the recorded count of pull-up sets, which is a bodyweight strength exercise. This directly pertains to the Strength domain that tracks sets, reps, and related details for weight‑training movements.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": "number of pull-up sets",
+      "reasoning": "The statement contains correction language ('but it should be'), indicating the user is fixing previously logged information. The content concerns pull‑ups, a strength‑training exercise, so the appropriate domain is Strength."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "pull_up_set_correction_2026-01-29",
+          "value": "originally logged 5 sets, corrected to 4 sets",
+          "confidence": "certain",
+          "source": "user_correction"
+        }
+      ],
+      "insights_captured": [
+        "User corrected a pull‑up log from 5 sets to 4 sets for the 2026‑01‑29 session, confirming the accurate set count."
+      ]
+    },
+    "correction": {
+      "success": false,
+      "target_entry_id": null,
+      "correction_delta": null,
+      "original_entry_id": null,
+      "error_message": "Parser did not identify correction"
+    }
+  },
+  "final_response": "Could not process correction: Parser did not identify correction",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 09:09:23.493587",
+    "input_type": "CORRECTION",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

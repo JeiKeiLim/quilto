@@ -1,0 +1,66 @@
+{
+  "id": "2026-01-29_ee7b9d0d",
+  "query": "I logged 5 sets of pull-ups but it should be 4 sets",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "CORRECTION",
+      "confidence": 0.96,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The user is correcting the recorded number of pull-up sets, which is a strength training exercise. Strength is the primary domain for tracking sets, reps, and exercise details. GeneralFitness is also relevant because pull-ups are a bodyweight movement that falls under overall fitness activity logging.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": "number of pull-up sets (should be 4 instead of 5)",
+      "reasoning": "The statement contains correction language ('but it should be'), indicating the user is fixing a previously logged value. Therefore the input type is classified as CORRECTION. The content pertains to pull-ups, a strength exercise, so the Strength domain is appropriate, with GeneralFitness included for broader activity context."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "pull_up_session_2026-01-29",
+          "value": "4 sets of pull-ups",
+          "confidence": "certain",
+          "source": "user_correction"
+        },
+        {
+          "category": "insight",
+          "key": "pull_up_volume_progression_recent",
+          "value": "Pull-up volume remained stable over three sessions (3 sets on 2026‑01‑25, 4 sets on 2026‑01‑27, 4 sets on 2026‑01‑29)",
+          "confidence": "certain",
+          "source": "user_correction"
+        }
+      ],
+      "insights_captured": [
+        "User corrected the logged pull‑up session on 2026‑01‑29 from 5 sets to 4 sets.",
+        "The previously noted progressive overload in pull‑up volume is no longer supported; volume is now stable across the three recent sessions."
+      ]
+    },
+    "correction": {
+      "success": false,
+      "target_entry_id": null,
+      "correction_delta": null,
+      "original_entry_id": null,
+      "error_message": "Parser did not identify correction"
+    }
+  },
+  "final_response": "Could not process correction: Parser did not identify correction",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 09:07:55.007224",
+    "input_type": "CORRECTION",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

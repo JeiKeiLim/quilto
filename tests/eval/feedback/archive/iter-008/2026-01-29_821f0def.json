@@ -1,0 +1,90 @@
+{
+  "id": "2026-01-29_821f0def",
+  "query": "I did 5 sets of pull-ups today",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.99,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement logs a completed exercise (pull-ups), which is a bodyweight strength movement. This directly falls under the Strength domain for tracking sets, reps, and effort. Pull-ups are also a common component of overall fitness routines, so the broader GeneralFitness domain is relevant as well.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a past‑tense declarative statement describing an activity, with no question or correction language, so it is classified as a LOG. Confidence is high due to clear phrasing."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T00:06:53.593428Z",
+      "tags": [
+        "pull up",
+        "strength"
+      ],
+      "domain_data": {
+        "Strength": {
+          "exercises": [
+            {
+              "name": "pull up",
+              "sets": [],
+              "total_sets": 5,
+              "notes": null
+            }
+          ],
+          "session_notes": null,
+          "date": "2026-01-29",
+          "duration_minutes": null,
+          "perceived_difficulty": null
+        }
+      },
+      "raw_content": "I did 5 sets of pull-ups today",
+      "confidence": 0.98,
+      "extraction_notes": [],
+      "uncertain_fields": [],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "pull_up_session_2026-01-29",
+          "value": "5 sets of pull-ups",
+          "confidence": "certain",
+          "source": "post_query: user reported pull-up sets"
+        },
+        {
+          "category": "insight",
+          "key": "pull_up_volume_progression_recent",
+          "value": "User has increased pull‑up volume over three consecutive sessions (3 sets on 2026‑01‑25, 4 sets on 2026‑01‑27, 5 sets on 2026‑01‑29), indicating a progressive overload trend.",
+          "confidence": "likely",
+          "source": "post_query: user reported pull-up sets"
+        }
+      ],
+      "insights_captured": [
+        "Added a confirmed record of 5 sets of pull‑ups on 2026‑01‑29.",
+        "Observed a recent upward trend in pull‑up volume across three consecutive sessions."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 09:07:12.351951",
+    "input_type": "LOG",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

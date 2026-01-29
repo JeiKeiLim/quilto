@@ -1,0 +1,359 @@
+{
+  "id": "2026-01-29_7d6d4a04",
+  "query": "What should I focus on next week?",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "QUERY",
+      "confidence": 0.97,
+      "selected_domains": [
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The user asks a general planning question ('What should I focus on next week?') without specifying a particular activity. The most appropriate domain for broad fitness or activity planning is GeneralFitness, which covers overall workout and training focus decisions.",
+      "log_portion": null,
+      "query_portion": "What should I focus on next week?",
+      "correction_target": null,
+      "reasoning": "The sentence is a direct question, contains a question word ('What'), and ends with a question mark, indicating a QUERY. No declarative statement or correction language is present, so it is not a LOG or CORRECTION. The content is a generic planning query, best handled by the GeneralFitness domain."
+    },
+    "planner": {
+      "original_query": "What should I focus on next week?",
+      "query_type": "recommendation",
+      "sub_queries": [
+        {
+          "id": 1,
+          "question": "What workouts or activities did I log in the past week (2026-01-22 to 2026-01-28)?",
+          "retrieval_strategy": "date_range",
+          "retrieval_params": {
+            "start_date": "2026-01-22",
+            "end_date": "2026-01-28"
+          }
+        }
+      ],
+      "dependencies": [],
+      "execution_strategy": "coupled",
+      "execution_order": [
+        1
+      ],
+      "retrieval_instructions": [
+        {
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2026-01-22",
+            "end_date": "2026-01-28"
+          },
+          "sub_query_id": 1
+        }
+      ],
+      "gaps_status": {
+        "recent activity data (2026-01-22 to 2026-01-28)": {
+          "searched": true,
+          "found": false
+        }
+      },
+      "domain_expansion_request": null,
+      "expansion_reasoning": null,
+      "clarify_questions": null,
+      "next_action": "retrieve",
+      "reasoning": "The user asks for a recommendation on what to focus on next week. To give a useful, personalized recommendation we first need to know what they have been doing recently. Therefore we create a single sub‑query that retrieves any logged workouts from the past week (2026-01-22 to 2026-01-28). This sub‑query is independent (only one) and thus the execution strategy is 'coupled'. The retrieval will tell us whether there is recent data; if none is found (as indicated by the gaps_status), we will fall back to a generic, safety‑first recommendation using activity categories rather than specific exercises, and advise consulting a qualified professional before making major changes."
+    },
+    "retriever": {
+      "entries": [
+        {
+          "id": "2026-01-25_18-08-00",
+          "date": "2026-01-25",
+          "timestamp": "2026-01-25T18:08:00",
+          "raw_content": "Yesterday I did 3 sets of pull-ups, 어제 기록 확인해줘",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_07-39-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:39:00",
+          "raw_content": "I haven't been to gym and eating bad foods for a while. What do I do today?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_07-51-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:51:00",
+          "raw_content": "I have slept for 5 hours only yesterday and today. Do you think I should go easy even though I haven't gone to gym for a while?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_07-56-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T07:56:00",
+          "raw_content": "I'd like to run a full marathon.",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_16-50-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T16:50:00",
+          "raw_content": "I'd like to run a full marathon. How do I do?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-07-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:07:00",
+          "raw_content": "I want to get stronger legs",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-12-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:12:00",
+          "raw_content": "운동 좀 해야겠다",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_17-59-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T17:59:00",
+          "raw_content": "I want to lose 5kg by summer, what should I focus on?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-06-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:06:00",
+          "raw_content": "마라톤 준비하고 싶은데 현재 러닝 실력으로 가능할까?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-26-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:26:00",
+          "raw_content": "I want to hit a 200kg deadlift by summer",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-26_18-33-00",
+          "date": "2026-01-26",
+          "timestamp": "2026-01-26T18:33:00",
+          "raw_content": "런닝머신 30분 뛰었어",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-28_23-43-00",
+          "date": "2026-01-28",
+          "timestamp": "2026-01-28T23:43:00",
+          "raw_content": "Actually my last treadmill run was for 40 minutes with 8kph speed",
+          "parsed_data": null
+        }
+      ],
+      "retrieval_summary": [
+        {
+          "attempt_number": 1,
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2026-01-22",
+            "end_date": "2026-01-28"
+          },
+          "entries_found": 13,
+          "summary": "Retrieved 13 entries from 2026-01-22 to 2026-01-28",
+          "expansion_tier": 0
+        }
+      ],
+      "total_entries_found": 12,
+      "date_range_covered": {
+        "start": "2026-01-25",
+        "end": "2026-01-28"
+      },
+      "warnings": [],
+      "truncated": false,
+      "expansion_exhausted": false,
+      "strategies_used": [
+        "date_range"
+      ]
+    },
+    "analyzer": {
+      "query_intent": "The user is asking for a recommendation on what fitness activities, training focus, or lifestyle adjustments they should prioritize during the upcoming week.",
+      "findings": [
+        {
+          "claim": "The user has expressed a desire to run a full marathon.",
+          "evidence": [
+            "2026-01-26 entry: \"I'd like to run a full marathon.\"",
+            "2026-01-26 entry: \"I'd like to run a full marathon. How do I do?\"",
+            "2026-01-26 entry: \"마라톤 준비하고 싶은데 현재 러닝 실력으로 가능할까?\""
+          ],
+          "confidence": "high",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        },
+        {
+          "claim": "The user wants to increase leg strength and achieve a 200 kg deadlift by summer.",
+          "evidence": [
+            "2026-01-26 entry: \"I want to get stronger legs\"",
+            "2026-01-26 entry: \"I want to hit a 200kg deadlift by summer\""
+          ],
+          "confidence": "high",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        },
+        {
+          "claim": "The user aims to lose 5 kg by summer.",
+          "evidence": [
+            "2026-01-26 entry: \"I want to lose 5kg by summer, what should I focus on?\""
+          ],
+          "confidence": "high",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        },
+        {
+          "claim": "Recent cardio activity includes a 40‑minute treadmill run at 8 km/h (2026‑01‑28).",
+          "evidence": [
+            "2026-01-28 entry: \"Actually my last treadmill run was for 40 minutes with 8kph speed\""
+          ],
+          "confidence": "high",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        },
+        {
+          "claim": "The user has not been to the gym for several days and reports poor eating habits and limited sleep (≈5 h/night).",
+          "evidence": [
+            "2026-01-26 entry: \"I haven't been to gym and eating bad foods for a while. What do I do today?\"",
+            "2026-01-26 entry: \"I have slept for 5 hours only yesterday and today. Do you think I should go easy even though I haven't gone to gym for a while?\""
+          ],
+          "confidence": "high",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        },
+        {
+          "claim": "The most recent strength‑type activity recorded was 3 sets of pull‑ups on 2026‑01‑25.",
+          "evidence": [
+            "2026-01-25 entry: \"Yesterday I did 3 sets of pull-ups, 어제 기록 확인해줘\""
+          ],
+          "confidence": "high",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        }
+      ],
+      "patterns_identified": [
+        "Multiple overlapping long‑term goals (marathon, heavy deadlift, leg strength, weight loss).",
+        "Recent cardio work but a recent gap in strength training.",
+        "Self‑reported lifestyle challenges: poor diet, insufficient sleep, and gym inactivity.",
+        "User is seeking a structured plan to address several objectives simultaneously."
+      ],
+      "sufficiency_evaluation": {
+        "critical_gaps": [],
+        "nice_to_have_gaps": [
+          {
+            "description": "Current strength metrics (e.g., squat, deadlift, bench press loads) to tailor progressive overload.",
+            "gap_type": "topical",
+            "severity": "nice_to_have",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          },
+          {
+            "description": "Detailed nutrition intake (calories/macros) to support weight‑loss and recovery.",
+            "gap_type": "topical",
+            "severity": "nice_to_have",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          },
+          {
+            "description": "Sleep quality and quantity over the past week beyond the two‑day comment.",
+            "gap_type": "contextual",
+            "severity": "nice_to_have",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          }
+        ],
+        "evidence_check_passed": true,
+        "speculation_risk": "low"
+      },
+      "verdict_reasoning": "The retrieved entries clearly reveal the user’s primary fitness objectives (marathon training, leg strength/deadlift, weight loss) and recent activity patterns (cardio run, pull‑ups) as well as lifestyle constraints (poor diet, limited sleep, gym hiatus). While we lack precise strength numbers, detailed nutrition logs, and comprehensive sleep data, these omissions are not critical for providing a high‑level weekly focus recommendation. The available evidence is sufficient to construct a balanced, goal‑aligned plan, and any assumptions made are limited to general best‑practice guidance, resulting in low speculation risk.",
+      "verdict": "sufficient"
+    },
+    "synthesizer": {
+      "response": "Next week prioritize a balanced return‑to‑training: 1) Cardio – keep the 40‑minute, 8 km/h treadmill run you logged on 2026‑01‑28 and add two shorter runs (30 min, 8‑9 km/h) to build marathon endurance; 2) Leg strength – schedule two lower‑body sessions (e.g., deadlift 3 × 5 at 70‑75% of your target 200 kg, plus squats or lunges) to start the 200 kg deadlift progression; 3) Upper‑body maintenance – keep the pull‑up habit (3 sets on 2026‑01‑25) with one additional session; 4) Lifestyle – aim for ≥7 h sleep and replace at least one “bad” meal with a protein‑rich, whole‑food option to support weight loss. This mix addresses your marathon, deadlift, and 5 kg loss goals while compensating for the recent gym gap and sleep deficit.",
+      "key_points": [
+        "Resume training with 3 cardio runs, focusing on endurance.",
+        "Add 2 leg‑strength sessions targeting deadlift progression.",
+        "Maintain upper‑body work with pull‑ups.",
+        "Improve sleep (≥7 h) and nutrition to aid weight loss."
+      ],
+      "evidence_cited": [
+        "2026-01-28: 40‑min treadmill run at 8 km/h",
+        "2026-01-25: 3 sets of pull‑ups"
+      ],
+      "gaps_disclosed": [],
+      "confidence": "high"
+    },
+    "evaluator": {
+      "dimensions": [
+        {
+          "dimension": "accuracy",
+          "verdict": "sufficient",
+          "reasoning": "All factual statements (e.g., the 40‑minute run on 2026‑01‑28, pull‑up sets on 2026‑01‑25, goals for marathon, 200 kg deadlift, 5 kg weight loss, recent sleep deficit) are directly supported by the provided evidence.",
+          "issues": []
+        },
+        {
+          "dimension": "relevance",
+          "verdict": "sufficient",
+          "reasoning": "The response directly answers the user’s request for a focus plan for the upcoming week, covering cardio, leg strength, upper‑body maintenance, and lifestyle factors.",
+          "issues": []
+        },
+        {
+          "dimension": "safety",
+          "verdict": "insufficient",
+          "reasoning": "The answer recommends a specific deadlift load (70‑75% of a 200 kg target) without confirming the user’s current strength level or technique proficiency, violating the rule against prescribing specific exercises without knowing the user’s fitness level. This could lead to injury.",
+          "issues": [
+            "Prescribed a heavy deadlift intensity without assessing fitness level",
+            "Potential risk of injury from unsupervised heavy lifting"
+          ]
+        },
+        {
+          "dimension": "completeness",
+          "verdict": "sufficient",
+          "reasoning": "The plan addresses all identified goals (marathon training, leg strength/deadlift, weight loss, sleep, diet) and acknowledges the recent gym gap, providing a well‑rounded weekly focus.",
+          "issues": []
+        }
+      ],
+      "overall_verdict": "insufficient",
+      "feedback": [
+        {
+          "issue": "Specific heavy deadlift prescription without fitness assessment",
+          "suggestion": "Replace the exact load recommendation with a more general guideline (e.g., focus on technique, start with moderate weight, or consult a qualified coach) and emphasize safety and proper form.",
+          "affected_claim": "deadlift 3 × 5 at 70‑75% of your target 200 kg"
+        }
+      ],
+      "recommendation": "give_partial"
+    },
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "preference",
+          "key": "preference_weekly_focus_requests",
+          "value": "User explicitly asks for guidance on what to focus on in the upcoming week, showing a preference for weekly planning recommendations.",
+          "confidence": "certain",
+          "source": "post_query: weekly focus request"
+        }
+      ],
+      "insights_captured": [
+        "User explicitly requested a recommendation for next week's training focus, indicating a preference for weekly planning guidance."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "Next week prioritize a balanced return‑to‑training: 1) Cardio – keep the 40‑minute, 8 km/h treadmill run you logged on 2026‑01‑28 and add two shorter runs (30 min, 8‑9 km/h) to build marathon endurance; 2) Leg strength – schedule two lower‑body sessions (e.g., deadlift 3 × 5 at 70‑75% of your target 200 kg, plus squats or lunges) to start the 200 kg deadlift progression; 3) Upper‑body maintenance – keep the pull‑up habit (3 sets on 2026‑01‑25) with one additional session; 4) Lifestyle – aim for ≥7 h sleep and replace at least one “bad” meal with a protein‑rich, whole‑food option to support weight loss. This mix addresses your marathon, deadlift, and 5 kg loss goals while compensating for the recent gym gap and sleep deficit.",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 09:23:22.102729",
+    "input_type": "QUERY",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

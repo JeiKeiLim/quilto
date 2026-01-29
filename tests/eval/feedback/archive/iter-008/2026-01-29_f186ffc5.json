@@ -1,0 +1,64 @@
+{
+  "id": "2026-01-29_f186ffc5",
+  "query": "Actually I ran 3km not 5km yesterday",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "CORRECTION",
+      "confidence": 0.97,
+      "selected_domains": [
+        "Running"
+      ],
+      "domain_selection_reasoning": "The user is correcting the recorded distance of a run (3 km vs. 5 km). This information belongs to the Running domain, which handles distance, pace, and other run‑specific metrics.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": "I ran 3km not 5km yesterday",
+      "reasoning": "The sentence begins with \"Actually\" and explicitly states a revised fact, matching the pattern for a correction. No question is asked, and the content is about a running activity, so the appropriate domain is Running."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "run_2026-01-28",
+          "value": "3 km run logged on 2026-01-28 (corrected from 5 km)",
+          "confidence": "certain",
+          "source": "user_correction: run distance correction"
+        },
+        {
+          "category": "insight",
+          "key": "recent_run_distance_increase",
+          "value": "false (run distance not increased; corrected to 3 km)",
+          "confidence": "certain",
+          "source": "user_correction: run distance correction"
+        }
+      ],
+      "insights_captured": [
+        "User corrected the logged distance for the 2026-01-28 run from 5 km to 3 km, removing the previously tentative inference of a distance increase."
+      ]
+    },
+    "correction": {
+      "success": false,
+      "target_entry_id": null,
+      "correction_delta": null,
+      "original_entry_id": null,
+      "error_message": "Parser did not identify correction"
+    }
+  },
+  "final_response": "Could not process correction: Parser did not identify correction",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 09:13:57.729364",
+    "input_type": "CORRECTION",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}
