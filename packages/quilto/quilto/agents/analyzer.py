@@ -74,7 +74,7 @@ class AnalyzerAgent:
             return "(No entries retrieved)"
 
         lines: list[str] = []
-        for i, entry in enumerate(entries, 1):
+        for entry in entries:
             # Handle Entry objects or dict-like structures
             entry_repr = repr(entry)  # Get string representation early
             date_str: str = "unknown"
@@ -95,7 +95,8 @@ class AnalyzerAgent:
                 raw_content = str(content_val) if content_val else entry_repr
                 domain_data = getattr(entry, "domain_data", None)
 
-            line = f"[{i}] Date: {date_str}\n    Content: {raw_content}"
+            # Use date as primary reference, not index number
+            line = f"[{date_str}] Content: {raw_content}"
             if domain_data:
                 line += f"\n    Domain data: {domain_data}"
             lines.append(line)
@@ -402,13 +403,30 @@ Query: {analyzer_input.query}
 Query type: {analyzer_input.query_type.value}
 Sub-query ID: {sub_query_text}
 
+=== DATE-BASED CITATION (CRITICAL) ===
+
+When citing evidence, ALWAYS reference entries by their DATE (e.g., "2026-01-23" or
+"January 23rd"), NEVER by index number (e.g., "Entry 1", "[1]", "the first entry").
+
+BAD EXAMPLES:
+- "Entry 1 shows...", "[1] indicates...", "the first entry..."
+- "Entry 23 shows you ran 5km, Entry 24 corrected the duration"
+
+GOOD EXAMPLES:
+- "2026-01-23 shows...", "The January 23rd entry indicates..."
+- "On January 23rd you ran 5km. The January 28th entry corrected the duration."
+
+If multiple entries exist on the same day, include context to distinguish them:
+- "The morning entry on January 23rd (09:00)..." vs "The evening entry on January 23rd (18:00)..."
+- "The first workout on January 23rd..." vs "The second workout on January 23rd..."
+
 === OUTPUT (JSON) ===
 
 Respond with a JSON object containing:
 - query_intent: string (what the user is really asking)
 - findings: list of objects with:
   - claim: string (the insight discovered)
-  - evidence: list of strings (specific entry references with dates)
+  - evidence: list of strings (date-based references, e.g., "2026-01-23: ran 5km in 30min")
   - confidence: "high" | "medium" | "low"
   - indirect_estimate: boolean (true if based on indirect estimation, default false)
   - estimation_methodology: string or null (explanation of how indirect estimate was calculated)

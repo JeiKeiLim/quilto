@@ -65,13 +65,13 @@ class SynthesizerAgent:
         """
         lines: list[str] = []
 
-        # Format findings
+        # Format findings (use evidence dates as references, not index numbers)
         lines.append("FINDINGS:")
         if not analysis.findings:
             lines.append("  (No findings)")
         else:
-            for i, finding in enumerate(analysis.findings, 1):
-                lines.append(f"  [{i}] {finding.claim} (confidence: {finding.confidence})")
+            for finding in analysis.findings:
+                lines.append(f"  • {finding.claim} (confidence: {finding.confidence})")
                 if finding.evidence:
                     lines.append(f"      Evidence: {', '.join(finding.evidence)}")
                 if finding.indirect_estimate:
@@ -301,10 +301,27 @@ Example phrasing:
 - "This is an indirect estimate (converted from incline → flat bench using ~1.20x factor)."
 - "For a more accurate figure, log a direct bench press attempt."
 
+=== DATE-BASED CITATION (CRITICAL) ===
+
+When citing evidence, ALWAYS use the entry date (YYYY-MM-DD format or natural language
+like "January 23rd"), NEVER use internal entry numbers or indexes like "Entry 23", "[1]",
+"the first entry".
+
+BAD EXAMPLES:
+- "Entry 23 shows you ran 5km, Entry 24 corrected the duration"
+- "[1] indicates...", "the first entry shows..."
+
+GOOD EXAMPLES:
+- "On January 23rd you ran 5km. You later corrected the duration on January 28th."
+- "Your January 23rd workout shows 5km, and the January 28th entry confirmed the speed."
+
+If multiple entries exist on the same day, include time or context to distinguish:
+- "January 23rd at 09:00" or "the morning run on Jan 23" vs "the evening session on Jan 23"
+
 === RESPONSE GUIDELINES ===
 
 1. Address what the user asked directly
-2. Support claims with evidence (cite dates/entries from findings)
+2. Support claims with evidence (cite DATES from findings, NEVER entry numbers)
 3. Use domain-appropriate terminology from vocabulary
 4. Match requested response style (concise vs detailed)
 5. If partial: clearly state what you can answer and what remains unknown

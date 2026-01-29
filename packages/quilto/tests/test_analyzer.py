@@ -583,6 +583,64 @@ class TestFormatEntriesEdgeCases:
 
 
 # =============================================================================
+# Test _format_entries Uses Dates Not Indices (Story 21.7 - AC #3)
+# =============================================================================
+
+
+class TestAnalyzerFormatsEntriesWithDates:
+    """Tests for _format_entries using dates instead of index numbers (Story 21.7)."""
+
+    def test_format_entries_uses_date_as_primary_reference(self) -> None:
+        """_format_entries uses date as primary reference, not index numbers."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        entries = [
+            {"date": "2026-01-23", "raw_content": "Ran 5km in 30min"},
+            {"date": "2026-01-24", "raw_content": "Ran 3km in 20min"},
+        ]
+        result = analyzer._format_entries(entries)  # pyright: ignore[reportPrivateUsage]
+
+        # Should use date as reference
+        assert "[2026-01-23]" in result
+        assert "[2026-01-24]" in result
+        # Should NOT use index-based references
+        assert "[1]" not in result
+        assert "[2]" not in result
+
+    def test_format_entries_no_index_prefix(self) -> None:
+        """_format_entries does not prefix entries with index numbers."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        entries = create_sample_entries()
+        result = analyzer._format_entries(entries)  # pyright: ignore[reportPrivateUsage]
+
+        # Count occurrences of "[1]", "[2]", "[3]" - should be 0
+        import re
+
+        index_pattern = re.compile(r"\[\d+\]")
+        # The only brackets should be around dates like [2026-01-23]
+        matches = index_pattern.findall(result)
+        # All matches should be dates, not indices
+        for match in matches:
+            # Dates have format [YYYY-MM-DD], indices have format [N]
+            assert len(match) > 3, f"Found index-like bracket: {match}"
+
+    def test_format_entries_content_label(self) -> None:
+        """_format_entries uses 'Content:' label after date reference."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        entries = [{"date": "2026-01-23", "raw_content": "Workout log"}]
+        result = analyzer._format_entries(entries)  # pyright: ignore[reportPrivateUsage]
+
+        assert "Content: Workout log" in result
+        # Should not have "Date:" label since date is the reference
+        assert "Date:" not in result
+
+
+# =============================================================================
 # Test AnalyzerAgent Instantiation (Task 2)
 # =============================================================================
 
@@ -995,6 +1053,64 @@ class TestAnalyzerPromptBuilding:
         # Check output schema includes new fields
         assert "indirect_estimate: boolean" in prompt
         assert "estimation_methodology: string or null" in prompt
+
+    def test_prompt_includes_date_based_citation_instructions(self) -> None:
+        """Prompt includes DATE-BASED CITATION instructions (Story 21.7 AC #3)."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        analyzer_input = AnalyzerInput(
+            query="What was my last workout?",
+            query_type=QueryType.SIMPLE,
+            entries=[],
+            retrieval_summary=[],
+            domain_context=create_minimal_domain_context(),
+        )
+        prompt = analyzer.build_prompt(analyzer_input)
+
+        # Check for date-based citation section
+        assert "DATE-BASED CITATION" in prompt
+        # Check for instruction to use dates, not indices
+        assert "ALWAYS reference entries by their DATE" in prompt
+        assert "NEVER by index number" in prompt
+
+    def test_prompt_includes_date_citation_examples(self) -> None:
+        """Prompt includes good/bad examples for date-based citations (Story 21.7)."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        analyzer_input = AnalyzerInput(
+            query="What was my last workout?",
+            query_type=QueryType.SIMPLE,
+            entries=[],
+            retrieval_summary=[],
+            domain_context=create_minimal_domain_context(),
+        )
+        prompt = analyzer.build_prompt(analyzer_input)
+
+        # Check for bad examples
+        assert "Entry 1 shows" in prompt or "BAD EXAMPLES" in prompt
+        # Check for good examples
+        assert "January 23rd" in prompt or "2026-01-23" in prompt
+
+    def test_prompt_includes_same_day_disambiguation(self) -> None:
+        """Prompt includes instruction for same-day entry disambiguation (Story 21.7 AC #2)."""
+        client = create_mock_llm_client({})
+        analyzer = AnalyzerAgent(client)
+
+        analyzer_input = AnalyzerInput(
+            query="What was my last workout?",
+            query_type=QueryType.SIMPLE,
+            entries=[],
+            retrieval_summary=[],
+            domain_context=create_minimal_domain_context(),
+        )
+        prompt = analyzer.build_prompt(analyzer_input)
+
+        # Check for same-day disambiguation instruction
+        assert "same day" in prompt.lower()
+        # Should mention time or context for disambiguation
+        assert "morning" in prompt.lower() or "09:00" in prompt or "time" in prompt.lower()
 
 
 # =============================================================================

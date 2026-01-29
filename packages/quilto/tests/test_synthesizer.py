@@ -567,6 +567,41 @@ class TestFormatAnalysisHelper:
 
 
 # =============================================================================
+# Test _format_analysis Uses Dates Not Indices (Story 21.7 - AC #1, #3)
+# =============================================================================
+
+
+class TestSynthesizerFormatAnalysisUsesDates:
+    """Tests for _format_analysis using dates instead of index numbers (Story 21.7)."""
+
+    def test_format_analysis_no_numbered_indices(self) -> None:
+        """_format_analysis does not use numbered indices for findings."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        analysis = create_sample_analyzer_output_sufficient()
+        result = synthesizer._format_analysis(analysis)  # pyright: ignore[reportPrivateUsage]
+
+        # Should NOT have numbered indices like [1], [2], [3]
+        import re
+
+        index_pattern = re.compile(r"^\s*\[\d+\]", re.MULTILINE)
+        matches = index_pattern.findall(result)
+        assert len(matches) == 0, f"Found index-based references: {matches}"
+
+    def test_format_analysis_uses_bullet_points(self) -> None:
+        """_format_analysis uses bullet points instead of numbered indices."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        analysis = create_sample_analyzer_output_sufficient()
+        result = synthesizer._format_analysis(analysis)  # pyright: ignore[reportPrivateUsage]
+
+        # Should use bullet points (•) for findings
+        assert "•" in result or "- " in result
+
+
+# =============================================================================
 # Test _format_vocabulary Helper (Task 3.2, 6.3.2)
 # =============================================================================
 
@@ -999,6 +1034,79 @@ class TestSynthesizerPromptBuilding:
 
         assert "indirect estimate" in prompt.lower()
         assert "incline" in prompt.lower()
+
+    def test_prompt_includes_date_based_citation_section(self) -> None:
+        """Prompt includes DATE-BASED CITATION section (Story 21.7 AC #1)."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        synthesizer_input = SynthesizerInput(
+            query="What was my last workout?",
+            query_type=QueryType.SIMPLE,
+            analysis=create_sample_analyzer_output_sufficient(),
+            vocabulary=create_sample_vocabulary(),
+        )
+        prompt = synthesizer.build_prompt(synthesizer_input)
+
+        # Check for date-based citation section
+        assert "DATE-BASED CITATION" in prompt
+        # Check for instruction to use dates, not entry numbers
+        assert "ALWAYS use the entry date" in prompt
+        assert "NEVER use internal entry numbers" in prompt
+
+    def test_prompt_includes_date_citation_examples(self) -> None:
+        """Prompt includes good/bad examples for date-based citations (Story 21.7)."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        synthesizer_input = SynthesizerInput(
+            query="What was my last workout?",
+            query_type=QueryType.SIMPLE,
+            analysis=create_sample_analyzer_output_sufficient(),
+            vocabulary=create_sample_vocabulary(),
+        )
+        prompt = synthesizer.build_prompt(synthesizer_input)
+
+        # Check for bad example
+        assert "Entry 23" in prompt or "BAD EXAMPLES" in prompt
+        # Check for good example
+        assert "January 23rd" in prompt
+
+    def test_prompt_includes_same_day_disambiguation_instruction(self) -> None:
+        """Prompt includes instruction for same-day entry disambiguation (Story 21.7 AC #2)."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        synthesizer_input = SynthesizerInput(
+            query="What was my last workout?",
+            query_type=QueryType.SIMPLE,
+            analysis=create_sample_analyzer_output_sufficient(),
+            vocabulary=create_sample_vocabulary(),
+        )
+        prompt = synthesizer.build_prompt(synthesizer_input)
+
+        # Check for same-day disambiguation instruction
+        assert "same day" in prompt.lower()
+        # Should mention time or context for disambiguation
+        assert "morning" in prompt.lower() or "09:00" in prompt
+
+    def test_prompt_response_guidelines_cite_dates_not_numbers(self) -> None:
+        """Prompt response guidelines emphasize citing DATES, not entry numbers (Story 21.7)."""
+        client = create_mock_llm_client({})
+        synthesizer = SynthesizerAgent(client)
+
+        synthesizer_input = SynthesizerInput(
+            query="What was my last workout?",
+            query_type=QueryType.SIMPLE,
+            analysis=create_sample_analyzer_output_sufficient(),
+            vocabulary=create_sample_vocabulary(),
+        )
+        prompt = synthesizer.build_prompt(synthesizer_input)
+
+        # Response guidelines should mention citing dates
+        assert "cite DATES" in prompt or "cite dates" in prompt.lower()
+        # Should explicitly say NOT entry numbers
+        assert "NEVER entry numbers" in prompt or "never entry numbers" in prompt.lower()
 
 
 # =============================================================================
