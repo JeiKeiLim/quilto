@@ -283,11 +283,43 @@ development_status:
   # Epic 19: Dogfooding Fixes & Design Issues
   # Source: iter-007 auto-dogfooding + Epic 18 retrospective
   # Goal: Fix broken CORRECTION flow + session DB design contradiction
-  epic-19: in-progress
+  epic-19: done
   # --- Phase 1: Bug Fix ---
   19-1-fix-correction-flow: done  # HIGH - Parser fails to identify correction target, empty response returned (code-reviewed 2026-01-29)
   # --- Phase 2: Design Fix ---
   19-2-fix-session-db-default: done  # MEDIUM - Fixed: persistent DB default + --no-persist flag (code-reviewed 2026-01-29)
   # --- Phase 3: Validation ---
   19-3-dogfooding-iteration-8: done  # MEDIUM - 81% success rate (13/16), session fix PASS, CORRECTION still broken (LLM prompt issue) - code reviewed 2026-01-29
-  epic-19-retrospective: optional
+  epic-19-retrospective: done
+
+  # Epic 20: Session + Clarification
+  # Source: Epic 19 Retrospective + iter-008 analysis
+  # Key Insight: Session persistence ≠ session continuation
+  epic-20: backlog
+  20-1-fix-session-conversation-context: backlog  # HIGH - load conversation history when resuming
+  20-2-verify-clarification-flow-session-resume: backlog  # HIGH - clarification + session resume integration
+  20-3-add-clarification-to-dogfooding-script: backlog  # HIGH - automated clarification testing
+  20-4-dogfooding-iteration-9: backlog  # MEDIUM - session + clarification focus
+  epic-20-retrospective: optional
+
+  # Epic 21: Correction Redesign
+  # Source: Epic 19 Retrospective + iter-008-pre user feedback
+  # Key Insight: Edit raw markdown in-place, not create new entries
+  epic-21: backlog
+  21-1-redesign-correction-edit-raw-markdown: backlog  # CRITICAL - modify existing raw file, not create new
+  21-2-implement-surgical-edit: backlog  # HIGH - preserve surrounding content
+  21-3-re-parse-modified-raw-file: backlog  # HIGH - update parsed entry after correction
+  21-4-improve-parser-correction-entry-matching: backlog  # MEDIUM - improve entry matching reliability
+  21-5-dogfooding-iteration-10: backlog  # MEDIUM - CORRECTION focus
+  epic-21-retrospective: optional
+
+  # Epic 22: Global Context / Observer Refinement
+  # Source: Epic 19 Retrospective + iter-008-pre user feedback
+  # Key Insight: Only persist user-stated info, not agent recommendations
+  epic-22: backlog
+  22-1-observer-only-persists-user-stated-info: backlog  # HIGH - no fabricating from agent output
+  22-2-restrict-global-context-scope: backlog  # HIGH - preferences/goals/insights only
+  22-3-add-observer-validation: backlog  # MEDIUM - prevent hallucinated facts
+  22-4-add-session-id-to-feedback-json: backlog  # LOW - feedback tracking improvement
+  22-5-dogfooding-iteration-11: backlog  # MEDIUM - Observer focus
+  epic-22-retrospective: optional

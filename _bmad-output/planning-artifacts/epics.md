@@ -3278,11 +3278,564 @@ Logical contradiction:
 
 ---
 
+## Epic 20: Session + Clarification
+
+*Fix session continuation and verify clarification flow*
+
+**Source:** Epic 19 Retrospective + iter-008 analysis
+**Status:** Backlog
+
+**Quilto:** Session continuation (load conversation history), clarification flow verification
+**Swealog:** CLI session resume behavior
+
+**FRs covered:** Session continuity, clarification question handling
+
+**Key Insight:** Session persistence ≠ session continuation. Story 19.2 fixed persistence (saving to SQLite), but conversation history is not being used when resuming sessions.
+
+---
+
+### Story 20.1: Fix Session Conversation Context
+
+**Priority:** HIGH | **Effort:** Medium (2-3 hours)
+
+**As a** Swealog user,
+**I want** my conversation history to be used when resuming a session,
+**So that** the system understands context from previous turns.
+
+**Problem:**
+- Session persists to SQLite (fixed in 19.2)
+- But conversation history is not loaded/used when resuming
+- Queries requiring previous context are treated as fresh starts
+
+**Evidence:** `tests/eval/feedback/archive/iter-008-pre/2026-01-29_90c94c13.json`
+- User resumed with `--session <id>`
+- System didn't use previous conversation history
+- Query "What? You didn't look at my previous logs?" treated as fresh start
+
+**Acceptance Criteria:**
+
+1. **Given** a session was created with conversation history
+   **When** user resumes with `--session <id>`
+   **Then** previous conversation context is loaded from SQLite
+
+2. **Given** loaded conversation history
+   **When** agents process the new query
+   **Then** previous turns are included in agent context/prompts
+
+3. **Given** a follow-up query like "What about that one?"
+   **When** processed in resumed session
+   **Then** "that one" correctly resolves from previous turn
+
+4. **Given** a context-dependent query
+   **When** no context is available (new session)
+   **Then** system asks for clarification OR explains missing context
+
+**Files to Investigate:**
+- `packages/quilto/quilto/session/session.py` - conversation history storage/retrieval
+- `packages/quilto/quilto/orchestration.py` - how conversation context is passed to agents
+- Agent prompt templates - how to inject conversation history
+
+---
+
+### Story 20.2: Verify/Fix Clarification Flow + Session Resume
+
+**Priority:** HIGH | **Effort:** Medium (2-3 hours)
+
+**As a** Swealog user,
+**I want** the clarification flow to work with session resume,
+**So that** I can answer clarifying questions and continue the conversation.
+
+**Problem:**
+- Clarification flow hasn't been tested since session changes
+- Expected behavior: Query → Clarification question → User answers → Continue with answer
+- This flow should work via session resume
+
+**Acceptance Criteria:**
+
+1. **Given** a query that requires clarification
+   **When** processed
+   **Then** clarification question is returned with session ID
+
+2. **Given** a clarification question was asked
+   **When** user resumes session with answer
+   **Then** original query continues with the clarification
+
+3. **Given** clarification answer
+   **When** flow continues
+   **Then** response reflects both original query AND clarification answer
+
+4. **Given** multiple clarification questions
+   **When** answered sequentially
+   **Then** all answers are incorporated
+
+**Files to Investigate:**
+- `packages/quilto/quilto/orchestration.py` - clarification node handling
+- `packages/quilto/quilto/session/session.py` - state persistence for pending queries
+- `packages/quilto/quilto/agents/clarifier.py` - clarification generation
+
+---
+
+### Story 20.3: Add Clarification to Automated Dogfooding Script
+
+**Priority:** HIGH | **Effort:** Medium (2 hours)
+
+**As a** developer,
+**I want** the dogfooding script to test clarification flows,
+**So that** clarification regressions are caught automatically.
+
+**Approach:**
+1. Send query that triggers clarification
+2. Capture session ID from response
+3. Resume session with clarification answer
+4. Verify final response incorporates the answer
+
+**Acceptance Criteria:**
+
+1. **Given** a query designed to trigger clarification
+   **When** run through automated script
+   **Then** session ID is captured from response
+
+2. **Given** captured session ID
+   **When** script resumes with answer
+   **Then** continuation is processed correctly
+
+3. **Given** clarification test cases
+   **When** added to dogfooding suite
+   **Then** at least 2 clarification scenarios are covered
+
+**Files to Create/Modify:**
+- `tests/eval/dogfooding_script.py` (or similar) - add session resume capability
+- Test cases for clarification scenarios
+
+---
+
+### Story 20.4: Dogfooding Iteration 9
+
+**Priority:** MEDIUM | **Effort:** Medium (2 hours)
+**Depends On:** 20.1, 20.2, 20.3
+
+**As a** Swealog user and developer,
+**I want** to test the system after Epic 20 fixes,
+**So that** I can verify session continuation and clarification work correctly.
+
+**Acceptance Criteria:**
+
+1. **Given** Stories 20.1-20.3 are complete
+   **When** session resume queries are run
+   **Then** conversation context is correctly used
+
+2. **Given** clarification scenarios
+   **When** tested via automated script
+   **Then** clarification flow completes successfully
+
+3. **Given** 10+ queries tested
+   **When** dogfooding completes
+   **Then** target success rate >= 90%
+
+**Query Types to Test:**
+- **Focused (Session):** Context-dependent follow-ups requiring previous turn
+- **Focused (Clarification):** Queries that trigger clarification, then answer via resume
+- **General Regression:** LOG, QUERY (factual, insight, temporal), BOTH, multilingual
+
+---
+
+## Epic 21: Correction Redesign
+
+*Architectural change: edit raw markdown in-place, not create new entries*
+
+**Source:** Epic 19 Retrospective + iter-008-pre user feedback
+**Status:** Backlog
+
+**Quilto:** Correction flow redesign, raw file editing, re-parsing
+**Swealog:** None (all changes in Quilto)
+
+**FRs covered:** CORRECTION semantics, raw file editing
+
+**Key Insight:** Current CORRECTION creates a new entry, but user expectation is: modify the raw markdown file at the relevant section, then re-parse. This is an architectural change, not just a prompt fix.
+
+**User Feedback:** "Ideal is that fix previous records in raw file... modify raw/2026-01-26.md at ## 18:33 part and run parser agent then give it to application so that it handles whether to update parsed file or not."
+
+---
+
+### Story 21.1: Redesign CORRECTION to Edit Raw Markdown In-Place
+
+**Priority:** CRITICAL | **Effort:** Large (4-6 hours)
+
+**As a** Swealog user,
+**I want** corrections to modify the original raw entry,
+**So that** my log files maintain accurate history without duplicates.
+
+**Problem:**
+- Current CORRECTION creates a new raw entry and new parsed entry
+- User expects: modify existing raw file section, not create new file
+
+**Current Flow:**
+```
+User: "Actually my run was 3km not 5km"
+→ Creates new raw file (wrong!)
+→ Creates new parsed entry (wrong!)
+```
+
+**Expected Flow:**
+```
+User: "Actually my run was 3km not 5km"
+→ Identifies target entry (raw/2026-01-26.md, ## 18:33 section)
+→ Modifies that section in-place
+→ Re-parses the modified file
+→ Updates parsed entry
+```
+
+**Acceptance Criteria:**
+
+1. **Given** a CORRECTION request
+   **When** target entry is identified
+   **Then** the original raw file is located (not a new file created)
+
+2. **Given** target raw file and section
+   **When** correction is applied
+   **Then** only the specific section is modified
+
+3. **Given** correction applied to raw file
+   **When** no new raw file is created
+   **Then** existing file modification timestamp is updated
+
+**Files to Modify:**
+- `packages/quilto/quilto/orchestration.py` - correction_node logic
+- `packages/quilto/quilto/agents/parser.py` - correction output format
+
+---
+
+### Story 21.2: Implement Surgical Edit (Preserve Surrounding Content)
+
+**Priority:** HIGH | **Effort:** Medium (2-3 hours)
+**Depends On:** 21.1
+
+**As a** Swealog user,
+**I want** corrections to only modify the relevant section,
+**So that** other log entries in the same file are preserved.
+
+**Problem:**
+Raw files may contain multiple entries (e.g., multiple workout logs on same day). Correction must edit only the target section.
+
+**Example:**
+```markdown
+# 2026-01-26
+
+## 08:00 - Morning Run
+Ran 5km in 30 minutes. Felt good.
+
+## 18:33 - Evening Treadmill  ← ONLY EDIT THIS
+40 minutes at 8kph
+```
+
+**Acceptance Criteria:**
+
+1. **Given** raw file with multiple sections
+   **When** correction targets one section
+   **Then** only that section is modified
+
+2. **Given** correction edit
+   **When** applied
+   **Then** surrounding markdown structure is preserved (headers, formatting)
+
+3. **Given** section boundaries
+   **When** edit is applied
+   **Then** content before and after target section is unchanged
+
+**Files to Modify:**
+- Create utility function for surgical markdown section editing
+- `packages/quilto/quilto/storage/` - file editing utilities
+
+---
+
+### Story 21.3: Re-Parse Modified Raw File After Correction
+
+**Priority:** HIGH | **Effort:** Medium (2-3 hours)
+**Depends On:** 21.2
+
+**As a** Swealog user,
+**I want** the parsed entry to update after raw file correction,
+**So that** structured data reflects the correction.
+
+**Flow:**
+1. Raw file is modified (21.1, 21.2)
+2. Parser re-parses the modified raw file
+3. Parsed entry is updated (not created new)
+
+**Acceptance Criteria:**
+
+1. **Given** raw file has been corrected
+   **When** re-parsing is triggered
+   **Then** Parser processes the modified section
+
+2. **Given** Parser output for corrected section
+   **When** compared to existing parsed entry
+   **Then** existing parsed entry is updated (not duplicated)
+
+3. **Given** other sections in the same raw file
+   **When** re-parsing runs
+   **Then** their parsed entries are unchanged
+
+**Files to Modify:**
+- `packages/quilto/quilto/orchestration.py` - post-correction re-parse flow
+- `packages/quilto/quilto/storage/` - parsed entry update logic
+
+---
+
+### Story 21.4: Improve Parser Correction Entry Matching
+
+**Priority:** MEDIUM | **Effort:** Medium (2-3 hours)
+
+**As a** Swealog user,
+**I want** the Parser to reliably identify which entry to correct,
+**So that** corrections target the right data.
+
+**Problem:**
+- Parser LLM sometimes returns `is_correction: false` despite correction context
+- Entry matching fails because truncated content summaries don't give enough info
+- Issue is intermittent (LLM-dependent)
+
+**Options:**
+1. **Improve prompt:** Include full raw_content (not truncated at 50 chars)
+2. **Pre-matching heuristic:** Use fuzzy text matching to narrow candidates before LLM
+3. **Simplify:** Always use most recent entry matching correction domain + date hints
+
+**Acceptance Criteria:**
+
+1. **Given** correction request mentioning specific details (e.g., "5 sets of pull-ups")
+   **When** Parser processes with recent entries
+   **Then** correct entry is matched >= 90% of the time
+
+2. **Given** recent entries list
+   **When** provided to Parser
+   **Then** includes sufficient detail for matching (full content, not truncated)
+
+3. **Given** ambiguous correction (multiple possible matches)
+   **When** Parser cannot determine target
+   **Then** clarification is requested (not silent failure)
+
+**Files to Modify:**
+- `packages/quilto/quilto/agents/parser.py` - correction prompt, entry formatting
+- Potentially add pre-matching heuristic utility
+
+---
+
+### Story 21.5: Dogfooding Iteration 10
+
+**Priority:** MEDIUM | **Effort:** Medium (2 hours)
+**Depends On:** 21.1, 21.2, 21.3, 21.4
+
+**As a** Swealog user and developer,
+**I want** to test the CORRECTION redesign,
+**So that** I can verify raw file editing works correctly.
+
+**Acceptance Criteria:**
+
+1. **Given** Stories 21.1-21.4 are complete
+   **When** CORRECTION queries are run
+   **Then** raw files are modified in-place (not new files created)
+
+2. **Given** multi-section raw files
+   **When** corrections are applied
+   **Then** only target sections are modified
+
+3. **Given** 10+ queries tested
+   **When** dogfooding completes
+   **Then** CORRECTION success rate >= 80%
+
+**Query Types to Test:**
+- **Focused (CORRECTION):** Various correction scenarios (value change, detail addition, removal)
+- **Edge Cases:** Same-day multiple entries, ambiguous corrections
+- **General Regression:** LOG, QUERY, BOTH, session resume, clarification
+
+---
+
+## Epic 22: Global Context / Observer Refinement
+
+*Restrict Observer to user-stated info only*
+
+**Source:** Epic 19 Retrospective + iter-008-pre user feedback
+**Status:** Backlog
+
+**Quilto:** Observer agent behavior, global context scope
+**Swealog:** None (all changes in Quilto)
+
+**FRs covered:** Global context management, user memory system
+
+**Key Insight:** Observer should function like Claude/ChatGPT memory - only persist user preferences, goals, and behavioral insights. Never persist agent recommendations or per-session facts.
+
+**User Feedback:** "Observer should only note something from me not from agents." and "Global context is supposed to be user's preference, goal, insights... Think of how Claude or ChatGPT manages user memory."
+
+---
+
+### Story 22.1: Observer Only Persists User-Stated Information
+
+**Priority:** HIGH | **Effort:** Medium (2-3 hours)
+
+**As a** Swealog user,
+**I want** Observer to only save what I actually said,
+**So that** my preferences aren't fabricated from agent suggestions.
+
+**Problem:**
+- Observer stores Synthesizer recommendations as user preferences
+- Example: User asked about motivation → Synthesizer suggested "light workout" → Observer stored "User prefers light or mobility-focused workout"
+- The user never stated this preference
+
+**Acceptance Criteria:**
+
+1. **Given** Synthesizer recommendation in response
+   **When** Observer analyzes the interaction
+   **Then** recommendation is NOT stored as user preference
+
+2. **Given** user explicitly states preference (e.g., "I prefer morning workouts")
+   **When** Observer processes
+   **Then** preference IS stored in global context
+
+3. **Given** agent-generated content vs user input
+   **When** Observer decides what to persist
+   **Then** clear distinction is made (only user input persisted)
+
+**Files to Modify:**
+- `packages/quilto/quilto/agents/observer.py` - prompt/logic to distinguish user vs agent content
+
+---
+
+### Story 22.2: Restrict Global Context Scope
+
+**Priority:** HIGH | **Effort:** Medium (2-3 hours)
+
+**As a** Swealog user,
+**I want** global context to only contain preferences, goals, and insights,
+**So that** it doesn't become a noisy fact dump.
+
+**Problem:**
+- Observer stores per-session facts like "run_2026-01-26: duration_minutes: 40"
+- This belongs in structured storage (parsed entries), not global context
+- Global context should be: preferences, stated goals, behavioral patterns
+
+**Mental Model:**
+```
+CORRECT (global context):
+- "User prefers outdoor running over treadmill"
+- "User's goal: run 10km by March"
+- "When user says 'run', they mean outdoor jogging"
+
+WRONG (should NOT be in global context):
+- "run_2026-01-26: duration_minutes: 40, distance_km: 5.33"
+- "User did 3 sets of squats on Monday"
+```
+
+**Acceptance Criteria:**
+
+1. **Given** correction or log interaction
+   **When** Observer extracts facts
+   **Then** per-session facts are NOT stored in global context
+
+2. **Given** user states a preference or goal
+   **When** Observer processes
+   **Then** preference/goal IS stored in global context
+
+3. **Given** behavioral pattern observed over multiple sessions
+   **When** Observer identifies it
+   **Then** pattern MAY be stored as insight (not raw facts)
+
+**Files to Modify:**
+- `packages/quilto/quilto/agents/observer.py` - context scope filtering
+- Possibly add validation/filtering layer
+
+---
+
+### Story 22.3: Add Validation - Observer Cannot Store Unstated Facts
+
+**Priority:** MEDIUM | **Effort:** Medium (2 hours)
+
+**As a** developer,
+**I want** validation that Observer only stores user-stated information,
+**So that** hallucinated facts are prevented.
+
+**Problem:**
+- Observer hallucinated "3 km run on 2026-01-28; user reported feeling sluggish, possibly due to cold weather"
+- None of this was in any user entry
+
+**Acceptance Criteria:**
+
+1. **Given** Observer output
+   **When** validated
+   **Then** all stored facts can be traced to user input
+
+2. **Given** fact that doesn't appear in user input
+   **When** Observer attempts to store it
+   **Then** fact is filtered out with warning
+
+3. **Given** Observer validation
+   **When** implemented
+   **Then** unit tests cover hallucination prevention
+
+**Files to Modify:**
+- `packages/quilto/quilto/agents/observer.py` - output validation
+- Add unit tests for validation
+
+---
+
+### Story 22.4: Add Session ID to Feedback JSON
+
+**Priority:** LOW | **Effort:** Small (30 minutes)
+
+**As a** developer,
+**I want** feedback JSON to include session ID,
+**So that** I can correlate feedback with sessions.
+
+**Acceptance Criteria:**
+
+1. **Given** feedback is recorded
+   **When** JSON is saved
+   **Then** `session_id` field is included
+
+2. **Given** session resume scenario
+   **When** multiple feedback records exist
+   **Then** they can be linked by session_id
+
+**Files to Modify:**
+- Feedback recording infrastructure (from Story 11.2)
+- `packages/swealog/swealog/cli/` - callback that records feedback
+
+---
+
+### Story 22.5: Dogfooding Iteration 11
+
+**Priority:** MEDIUM | **Effort:** Medium (2 hours)
+**Depends On:** 22.1, 22.2, 22.3, 22.4
+
+**As a** Swealog user and developer,
+**I want** to test Observer behavior after refinements,
+**So that** I can verify global context is clean.
+
+**Acceptance Criteria:**
+
+1. **Given** Stories 22.1-22.4 are complete
+   **When** queries that triggered fabrication are re-run
+   **Then** Observer no longer fabricates preferences
+
+2. **Given** global context after multiple sessions
+   **When** reviewed
+   **Then** only preferences, goals, and insights are stored (no per-session facts)
+
+3. **Given** 10+ queries tested
+   **When** dogfooding completes
+   **Then** target success rate >= 90%
+
+**Query Types to Test:**
+- **Focused (Observer):** Queries that previously triggered fabrication
+- **Context Scope:** Verify corrections don't pollute global context
+- **General Regression:** LOG, QUERY, BOTH, session resume, clarification, CORRECTION
+
+---
+
 ## Future Epics
 
-### Epic 20+: Continued Dogfooding Iterations
+### Epic 23+: Continued Dogfooding Iterations
 
-*Stories generated from Epic 19 dogfooding results*
+*Stories generated from Epic 22 dogfooding results*
 
-**Status:** Backlog (depends on Epic 19 completion)
+**Status:** Backlog (depends on Epic 22 completion)
 
