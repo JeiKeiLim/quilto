@@ -308,12 +308,12 @@ development_status:
   # Epic 21: Correction Redesign
   # Source: Epic 19 Retrospective + iter-008-pre user feedback
   # Key Insight: Edit raw markdown in-place, not create new entries
-  epic-21: in-progress
+  epic-21: done
   21-1-redesign-correction-edit-raw-markdown: done  # CRITICAL - modify existing raw file, not create new
   21-2-implement-surgical-edit: done  # HIGH - preserve surrounding content - code reviewed 2026-01-29
   21-3-re-parse-modified-raw-file: done  # HIGH - update parsed entry after correction - code reviewed 2026-01-29
   21-4-improve-parser-correction-entry-matching: done  # MEDIUM - improve entry matching reliability - code reviewed 2026-01-29
-  21-5-dogfooding-iteration-10: review  # MEDIUM - CORRECTION focus - 100% success (6/6), Epic 21 PASS
+  21-5-dogfooding-iteration-10: done  # MEDIUM - CORRECTION focus - 100% success (6/6), Epic 21 PASS - code reviewed
   epic-21-retrospective: optional
 
   # Epic 22: Global Context / Observer Refinement

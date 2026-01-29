@@ -1,6 +1,6 @@
 # Story 21.5: Dogfooding Iteration 10
 
-Status: review
+Status: done
 
 **Story Type:** Validation (testing, analysis, and documentation; minimal code changes expected)
 
@@ -35,49 +35,49 @@ so that **I can verify raw file editing works correctly and CORRECTION flow is f
 ## Tasks / Subtasks
 
 - [x] Task 0: Prerequisites (AC: #1)
-  - [ ] 0.1: Verify `sprint-status.yaml` shows `21-1`, `21-2`, `21-3`, `21-4` all marked `done`:
+  - [x] 0.1: Verify `sprint-status.yaml` shows `21-1`, `21-2`, `21-3`, `21-4` all marked `done`:
     ```bash
     grep -E "21-[1-4]-" _bmad-output/implementation-artifacts/sprint-status.yaml | grep -c "done"
     # Must show: 4 (all four stories are done)
     ```
-  - [ ] 0.2: Run `make validate` -- must pass (0 errors)
-  - [ ] 0.3: Verify `llm-config-openai.yaml` exists with valid API key: `test -f ./llm-config-openai.yaml && echo "exists"`
-  - [ ] 0.4: Verify `./logs/raw/` has entries: `find ./logs/raw -name "*.md" | wc -l` should show 10+
-  - [ ] 0.5: Archive existing active feedback:
+  - [x] 0.2: Run `make validate` -- must pass (0 errors)
+  - [x] 0.3: Verify `llm-config-openai.yaml` exists with valid API key: `test -f ./llm-config-openai.yaml && echo "exists"`
+  - [x] 0.4: Verify `./logs/raw/` has entries: `find ./logs/raw -name "*.md" | wc -l` should show 10+
+  - [x] 0.5: Archive existing active feedback:
     ```bash
     mkdir -p tests/eval/feedback/archive/iter-010-pre && mv tests/eval/feedback/active/*.json tests/eval/feedback/archive/iter-010-pre/ 2>/dev/null || true
     ```
 
 - [x] Task 1: Verify Story 21.1 Fix -- Raw File In-Place Edit (AC: #1)
-  - [ ] 1.1: Create test entry via LOG:
+  - [x] 1.1: Create test entry via LOG:
     ```bash
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "I did 5 sets of bench press at 80kg today"
     ```
-  - [ ] 1.2: Note raw file location and capture initial state:
+  - [x] 1.2: Note raw file location and capture initial state:
     ```bash
     RAW_FILE="logs/raw/2026/01/$(date +%Y-%m-%d).md"
     cat "$RAW_FILE"  # Note the section content BEFORE correction
     ENTRY_ID=$(ls -t logs/parsed/2026/01/*.json | head -1 | xargs jq -r 'keys[-1]')
     echo "Entry ID: $ENTRY_ID"
     ```
-  - [ ] 1.3: Run CORRECTION query targeting the entry:
+  - [x] 1.3: Run CORRECTION query targeting the entry:
     ```bash
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "Actually that bench press was 4 sets not 5"
     ```
-  - [ ] 1.4: **SUCCESS CRITERIA:** Check raw file -- section should be modified in-place (no `[correction]` tag appended):
+  - [x] 1.4: **SUCCESS CRITERIA:** Check raw file -- section should be modified in-place (no `[correction]` tag appended):
     ```bash
     cat "$RAW_FILE"  # Should show "4 sets" not "5 sets", no [correction] marker
     grep -c "\[correction\]" "$RAW_FILE" || echo "0"  # Must be 0
     ```
-  - [ ] 1.5: **SUCCESS CRITERIA:** Check parsed JSON -- entry should show 4 sets (replaced, not merged):
+  - [x] 1.5: **SUCCESS CRITERIA:** Check parsed JSON -- entry should show 4 sets (replaced, not merged):
     ```bash
     cat logs/parsed/2026/01/$(date +%Y-%m-%d).json | jq --arg id "$ENTRY_ID" '.[$id]'
     # Verify: "sets": 4 (not 5), no duplicate fields
     ```
-  - [ ] 1.6: Record feedback: `--debug` flag triggers FeedbackProgressHandler to write JSON to `tests/eval/feedback/active/`
+  - [x] 1.6: Record feedback: `--debug` flag triggers FeedbackProgressHandler to write JSON to `tests/eval/feedback/active/`
 
 - [x] Task 2: Verify Story 21.2 Fix -- Surgical Edit (AC: #2)
-  - [ ] 2.1: Create a raw file with multiple sections (2+ LOG entries on same day):
+  - [x] 2.1: Create a raw file with multiple sections (2+ LOG entries on same day):
     ```bash
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "Morning run 5km in 30 minutes"
     sleep 2  # Ensure different timestamp
@@ -85,17 +85,17 @@ so that **I can verify raw file editing works correctly and CORRECTION flow is f
     sleep 2
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "Evening stretching 15 minutes"
     ```
-  - [ ] 2.2: Capture file state before correction:
+  - [x] 2.2: Capture file state before correction:
     ```bash
     RAW_FILE="logs/raw/2026/01/$(date +%Y-%m-%d).md"
     cp "$RAW_FILE" /tmp/raw-before.md
     md5 "$RAW_FILE"  # Note checksum
     ```
-  - [ ] 2.3: Run CORRECTION targeting middle entry (squats):
+  - [x] 2.3: Run CORRECTION targeting middle entry (squats):
     ```bash
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "The squats were 4x10 not 3x10"
     ```
-  - [ ] 2.4: **SUCCESS CRITERIA:** Surrounding sections unchanged (byte-identical):
+  - [x] 2.4: **SUCCESS CRITERIA:** Surrounding sections unchanged (byte-identical):
     ```bash
     # Extract sections BEFORE and AFTER the squats entry from both files
     # Morning run section must be identical
@@ -104,25 +104,25 @@ so that **I can verify raw file editing works correctly and CORRECTION flow is f
     diff <(grep -A5 "stretching" /tmp/raw-before.md) <(grep -A5 "stretching" "$RAW_FILE")
     # Both diffs should show NO output (identical)
     ```
-  - [ ] 2.5: Record feedback: verify `tests/eval/feedback/active/` has new JSON file
+  - [x] 2.5: Record feedback: verify `tests/eval/feedback/active/` has new JSON file
 
 - [x] Task 3: Verify Story 21.3 Fix -- Re-Parse with Replace Semantics (AC: #4)
-  - [ ] 3.1: Create entry with multiple fields (exercise, weight, sets, AND notes):
+  - [x] 3.1: Create entry with multiple fields (exercise, weight, sets, AND notes):
     ```bash
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "Deadlift 5x5 at 100kg. Felt strong today, lower back felt good."
     ```
-  - [ ] 3.2: Capture parsed JSON BEFORE correction:
+  - [x] 3.2: Capture parsed JSON BEFORE correction:
     ```bash
     PARSED_FILE="logs/parsed/2026/01/$(date +%Y-%m-%d).json"
     ENTRY_ID=$(jq -r 'keys[-1]' "$PARSED_FILE")
     jq --arg id "$ENTRY_ID" '.[$id]' "$PARSED_FILE" > /tmp/parsed-before.json
     cat /tmp/parsed-before.json  # Note: should have "notes" or similar field
     ```
-  - [ ] 3.3: Run CORRECTION that removes the notes (don't mention notes in correction):
+  - [x] 3.3: Run CORRECTION that removes the notes (don't mention notes in correction):
     ```bash
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "That deadlift was 4x5 not 5x5"
     ```
-  - [ ] 3.4: **SUCCESS CRITERIA:** Parsed JSON entry does NOT have notes field (replace semantics, not merge):
+  - [x] 3.4: **SUCCESS CRITERIA:** Parsed JSON entry does NOT have notes field (replace semantics, not merge):
     ```bash
     jq --arg id "$ENTRY_ID" '.[$id]' "$PARSED_FILE" > /tmp/parsed-after.json
     # Compare: notes field should be GONE (or empty) in parsed-after.json
@@ -130,20 +130,20 @@ so that **I can verify raw file editing works correctly and CORRECTION flow is f
     # Verify sets changed from 5x5 to 4x5
     jq --arg id "$ENTRY_ID" '.[$id].strength.sets // .[$id].sets' "$PARSED_FILE"
     ```
-  - [ ] 3.5: Record feedback: verify JSON captured in `tests/eval/feedback/active/`
+  - [x] 3.5: Record feedback: verify JSON captured in `tests/eval/feedback/active/`
 
 - [x] Task 4: Verify Story 21.4 Fix -- Parser Entry Matching (AC: #5)
-  - [ ] 4.1: Create multiple entries on same day (morning cardio, evening strength):
+  - [x] 4.1: Create multiple entries on same day (morning cardio, evening strength):
     ```bash
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "Morning treadmill 30 minutes at 8kph"
     sleep 2
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "Evening bench press 4x8 at 70kg"
     ```
-  - [ ] 4.2: Run CORRECTION with specific exercise keyword:
+  - [x] 4.2: Run CORRECTION with specific exercise keyword:
     ```bash
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "Fix the bench press entry - it was 5x8 not 4x8"
     ```
-  - [ ] 4.3: **SUCCESS CRITERIA:** Parser matches correct entry by exercise type:
+  - [x] 4.3: **SUCCESS CRITERIA:** Parser matches correct entry by exercise type:
     ```bash
     # Check debug output for: target_entry_id should be the bench press entry (not treadmill)
     # Verify in feedback JSON:
@@ -151,22 +151,22 @@ so that **I can verify raw file editing works correctly and CORRECTION flow is f
     jq '.intermediate_outputs.parser.target_entry_id' "$FEEDBACK_FILE"
     # Should match the bench press entry ID (contains evening timestamp)
     ```
-  - [ ] 4.4: Run CORRECTION with ambiguous target (both are workouts):
+  - [x] 4.4: Run CORRECTION with ambiguous target (both are workouts):
     ```bash
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "Fix my workout"
     ```
-  - [ ] 4.5: **SUCCESS CRITERIA:** Parser returns `target_entry_id: null` with explanation (not wrong match):
+  - [x] 4.5: **SUCCESS CRITERIA:** Parser returns `target_entry_id: null` with explanation (not wrong match):
     ```bash
     FEEDBACK_FILE=$(ls -t tests/eval/feedback/active/*.json | head -1)
     jq '.intermediate_outputs.parser | {target_entry_id, extraction_notes}' "$FEEDBACK_FILE"
     # Expected: target_entry_id: null, extraction_notes contains "ambiguous" or "multiple"
     # NOT acceptable: target_entry_id points to wrong entry
     ```
-  - [ ] 4.6: Record feedback: both scenarios should have feedback JSON files
+  - [x] 4.6: Record feedback: both scenarios should have feedback JSON files
 
 - [x] Task 5: Dogfooding Session -- 10+ Diverse Queries (AC: #1, #2, #3)
   **CRITICAL:** All commands must include `--debug` for feedback recording.
-  - [ ] 5.1: **CORRECTION (Primary Focus - 5+ queries):**
+  - [x] 5.1: **CORRECTION (Primary Focus - 5+ queries):**
     ```bash
     # Value correction
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "That was 3km not 5km"
@@ -179,7 +179,7 @@ so that **I can verify raw file editing works correctly and CORRECTION flow is f
     # Time-based correction
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "Fix my 10:30 workout - it was 40 minutes"
     ```
-  - [ ] 5.2: **General Regression (5+ queries):**
+  - [x] 5.2: **General Regression (5+ queries):**
     ```bash
     # LOG: Basic workout logging
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "Did 3 sets of overhead press at 50kg"
@@ -193,16 +193,16 @@ so that **I can verify raw file editing works correctly and CORRECTION flow is f
     # Korean
     uv run swealog run --config ./llm-config-openai.yaml --storage ./logs --debug --non-interactive "이번 주 운동 요약해줘"
     ```
-  - [ ] 5.3: Rate each query response (1-5 scale):
+  - [x] 5.3: Rate each query response (1-5 scale):
     | Query | Rating | Notes |
     |-------|--------|-------|
     | ... | /5 | ... |
-  - [ ] 5.4: Note any failures or unexpected behaviors (fill during execution)
+  - [x] 5.4: Note any failures or unexpected behaviors (fill during execution)
 
 - [x] Task 6: Archive and Analyze (AC: #3)
-  - [ ] 6.1: Create archive directory: `mkdir -p tests/eval/feedback/archive/iter-010`
-  - [ ] 6.2: Archive active feedback: `mv tests/eval/feedback/active/*.json tests/eval/feedback/archive/iter-010/`
-  - [ ] 6.3: Create `tests/eval/feedback/archive/iter-010/analysis.md` using this structure:
+  - [x] 6.1: Create archive directory: `mkdir -p tests/eval/feedback/archive/iter-010`
+  - [x] 6.2: Archive active feedback: `mv tests/eval/feedback/active/*.json tests/eval/feedback/archive/iter-010/`
+  - [x] 6.3: Create `tests/eval/feedback/archive/iter-010/analysis.md` using this structure:
     ```markdown
     # Iteration 010 Analysis - Epic 21 CORRECTION Redesign Verification
 
@@ -234,20 +234,20 @@ so that **I can verify raw file editing works correctly and CORRECTION flow is f
     ## Conclusion
     Epic 21 Status: PASS/FAIL
     ```
-  - [ ] 6.4: Calculate CORRECTION success rate: `correction_success / correction_total` -- Target: >= 80%
-  - [ ] 6.5: Calculate overall success rate: `success_count / total_count` (rating >= 3 = success)
-  - [ ] 6.6: Calculate average rating: `sum(ratings) / total_count`
-  - [ ] 6.7: Document any new failure patterns vs iter-008 patterns (P1, P6 should be RESOLVED)
-  - [ ] 6.8: **IF CORRECTION success rate >= 80%:** Epic 21 objectives achieved - mark retrospective optional
-  - [ ] 6.9: **IF CORRECTION success rate < 80%:** Investigate failures, document root causes, route to Epic 22 or new Epic
+  - [x] 6.4: Calculate CORRECTION success rate: `correction_success / correction_total` -- Target: >= 80%
+  - [x] 6.5: Calculate overall success rate: `success_count / total_count` (rating >= 3 = success)
+  - [x] 6.6: Calculate average rating: `sum(ratings) / total_count`
+  - [x] 6.7: Document any new failure patterns vs iter-008 patterns (P1, P6 should be RESOLVED)
+  - [x] 6.8: **IF CORRECTION success rate >= 80%:** Epic 21 objectives achieved - mark retrospective optional
+  - [x] 6.9: **IF CORRECTION success rate < 80%:** Investigate failures, document root causes, route to Epic 22 or new Epic
 
 - [x] Task 7: Update Documentation (All ACs)
-  - [ ] 7.1: Update this story status to "review" in `sprint-status.yaml`:
+  - [x] 7.1: Update this story status to "review" in `sprint-status.yaml`:
     ```bash
     # Change: 21-5-dogfooding-iteration-10: ready-for-dev → review
     ```
-  - [ ] 7.2: Fill in Dev Agent Record section below (Agent Model, Completion Notes, File List)
-  - [ ] 7.3: Commit all changes:
+  - [x] 7.2: Fill in Dev Agent Record section below (Agent Model, Completion Notes, File List)
+  - [x] 7.3: Commit all changes:
     ```bash
     git add tests/eval/feedback/archive/iter-010/ \
             tests/eval/feedback/archive/iter-010/analysis.md \

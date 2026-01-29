@@ -7,8 +7,9 @@
 - **CORRECTION success rate:** 100% (6/6) - All CORRECTION queries behaved correctly
   - 5 succeeded with correct target identification and in-place edit
   - 1 correctly returned `null` for ambiguous target (expected behavior per AC #5)
-- **Overall success rate:** 80% (8/10 rating >= 3)
-  - 2 LOG entries classified as partial success due to LOG persistence bug (not Epic 21 scope)
+- **Overall success rate:** 100% (10/10 rating >= 3)
+  - Note: 2 LOG entries rated 3/5 (partial success) due to LOG persistence bug (not Epic 21 scope)
+  - Full success rate (rating >= 4): 80% (8/10)
 - **Average rating:** 4.2/5
 - **Target CORRECTION success rate (>= 80%):** MET ✅
 
@@ -16,9 +17,11 @@
 
 | Rating | Count | Queries |
 |--------|-------|---------|
-| 5/5 | 6 | CORRECTION (5 specific), QUERY (2 - factual, Korean) |
-| 4/5 | 2 | CORRECTION (ambiguous - correct null return) |
-| 3/5 | 2 | LOG (persistence bug - not Epic 21) |
+| 5/5 | 6 | CORRECTION (5 successful), QUERY factual (1), QUERY Korean (1) |
+| 4/5 | 2 | CORRECTION ambiguous (1 - correct null return), LOG (1) |
+| 3/5 | 2 | LOG (2 - persistence bug not Epic 21 scope) |
+
+**Note:** CORRECTION queries total 6: 5 successful corrections + 1 correct null return for ambiguous target.
 
 ## Epic 21 Story Verification
 
@@ -120,9 +123,11 @@
 
 ## Recommendations
 
-1. **LOG persistence bug:** Should be addressed in a future epic. The orchestration flow's `parse_node` parses LOG entries but doesn't call `storage.save_entry()`. This works in API routes but not CLI.
+1. **LOG persistence bug:** Should be addressed in a future epic. The orchestration flow's `parse_node` parses LOG entries but doesn't call `storage.save_entry()`. This works in API routes but not CLI. **Candidate for Epic 23 or new issue tracking.**
 
-2. **No Epic 21 fixes needed:** All 4 stories verified working correctly.
+2. **Observer date key bug:** Observer creates context keys with wrong dates (e.g., `bench_press_session_2026-01-31` when query was on 2026-01-29). **Candidate for Epic 22 (Observer refinement).**
+
+3. **No Epic 21 fixes needed:** All 4 stories verified working correctly.
 
 ## Conclusion
 
