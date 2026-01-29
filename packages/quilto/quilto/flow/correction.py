@@ -173,10 +173,10 @@ async def process_correction(
     )
     reparse_output = await parser_agent.parse(reparse_input)
 
-    # 9. Update the parsed JSON entry (upsert semantics)
+    # 9. Replace the parsed JSON entry with fresh re-parse output (not merge)
     # Accessing private methods here is intentional - correction flow is internal to quilto
     parsed_path = storage._get_parsed_path(parser_output.date)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
-    storage._update_parsed_json(  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+    storage._save_parsed_json(  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
         parsed_path,
         parser_output.target_entry_id,
         reparse_output.domain_data,

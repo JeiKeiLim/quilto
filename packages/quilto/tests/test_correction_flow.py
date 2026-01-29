@@ -810,9 +810,7 @@ class TestStorageRepositoryCorrectionIntegration:
         content = raw_path.read_text()
         assert "[correction]" not in content
 
-    def test_surgical_edit_preserves_surrounding_content_integration(
-        self, tmp_path: Path
-    ) -> None:
+    def test_surgical_edit_preserves_surrounding_content_integration(self, tmp_path: Path) -> None:
         """Integration test: surgical edit preserves byte-identical surrounding content (AC: #1-#4).
 
         Story 21.2: Verify that edit_raw_section() preserves surrounding content byte-for-byte.
@@ -863,22 +861,118 @@ class TestStorageRepositoryCorrectionIntegration:
         middle_start_idx_after = modified_content.find(middle_marker)
         leading_bytes_after = modified_content[:middle_start_idx_after].encode("utf-8")
         assert leading_bytes_before == leading_bytes_after, (
-            f"Leading section not preserved. "
-            f"Before: {leading_bytes_before!r}, After: {leading_bytes_after!r}"
+            f"Leading section not preserved. Before: {leading_bytes_before!r}, After: {leading_bytes_after!r}"
         )
 
         # Verify trailing section (## 18:00) is byte-identical
         trailing_start_idx_after = modified_content.find(trailing_marker)
         trailing_bytes_after = modified_content[trailing_start_idx_after:].encode("utf-8")
         assert trailing_bytes_before == trailing_bytes_after, (
-            f"Trailing section not preserved. "
-            f"Before: {trailing_bytes_before!r}, After: {trailing_bytes_after!r}"
+            f"Trailing section not preserved. Before: {trailing_bytes_before!r}, After: {trailing_bytes_after!r}"
         )
 
         # Additional verification: the edit actually happened
         assert "80kg (corrected)" in modified_content
         assert "Additional notes here" in modified_content
         assert "60kg" not in modified_content  # Old value gone
+
+    def test_correction_reparse_removes_old_fields(self, tmp_path: Path) -> None:
+        """Test that re-parse uses replace semantics, removing fields not in new output.
+
+        Story 21.3 AC #4: If original entry has fields that the corrected re-parse
+        doesn't include, those fields should be removed (replace, not merge).
+
+        This tests the fix: correction flow uses _save_parsed_json() (assignment)
+        instead of _update_parsed_json() (.update() merge).
+        """
+        storage = StorageRepository(tmp_path)
+
+        # 1. Save original entry with notes field
+        original = Entry(
+            id="2026-01-14_10-30-00",
+            date=date(2026, 1, 14),
+            timestamp=datetime(2026, 1, 14, 10, 30, 0),
+            raw_content="Bench press 80kg, felt good",
+            parsed_data={"exercise": "bench press", "weight_kg": 80, "notes": "felt good"},
+        )
+        storage.save_entry(original)
+
+        # Verify original parsed data has notes
+        parsed_path = storage._get_parsed_path(date(2026, 1, 14))  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+        initial_data = json.loads(parsed_path.read_text())
+        assert "notes" in initial_data["2026-01-14_10-30-00"]
+
+        # 2. Simulate re-parse output after correction (no notes field)
+        reparse_output = {"exercise": "bench press", "weight_kg": 85}  # notes field GONE
+
+        # 3. Use _save_parsed_json (replace semantics) - this is what correction flow now uses
+        storage._save_parsed_json(  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+            parsed_path,
+            "2026-01-14_10-30-00",
+            reparse_output,
+        )
+
+        # 4. Verify the notes field is GONE (replace semantics)
+        final_data = json.loads(parsed_path.read_text())
+        entry_data = final_data["2026-01-14_10-30-00"]
+
+        assert "notes" not in entry_data, (
+            f"Field 'notes' should be removed by replace semantics, but found: {entry_data}"
+        )
+        assert entry_data["exercise"] == "bench press"
+        assert entry_data["weight_kg"] == 85
+
+    def test_reparse_only_updates_target_entry(self, tmp_path: Path) -> None:
+        """Test that re-parsing only updates the target entry, not other entries.
+
+        Story 21.3 AC #3: Other sections in the same raw file should have their
+        parsed entries unchanged after correction.
+        """
+        storage = StorageRepository(tmp_path)
+
+        # 1. Create 2 entries in the same day
+        entry1 = Entry(
+            id="2026-01-14_08-30-00",
+            date=date(2026, 1, 14),
+            timestamp=datetime(2026, 1, 14, 8, 30, 0),
+            raw_content="Morning run 5km",
+            parsed_data={"exercise": "running", "distance_km": 5, "time_of_day": "morning"},
+        )
+        entry2 = Entry(
+            id="2026-01-14_18-30-00",
+            date=date(2026, 1, 14),
+            timestamp=datetime(2026, 1, 14, 18, 30, 0),
+            raw_content="Evening run 3km",
+            parsed_data={"exercise": "running", "distance_km": 3, "time_of_day": "evening"},
+        )
+        storage.save_entry(entry1)
+        storage.save_entry(entry2)
+
+        # 2. Capture first entry's parsed data (byte-identical comparison)
+        parsed_path = storage._get_parsed_path(date(2026, 1, 14))  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+        initial_data = json.loads(parsed_path.read_text())
+        first_entry_before = json.dumps(initial_data["2026-01-14_08-30-00"], sort_keys=True)
+
+        # 3. Simulate correcting the SECOND entry only (replace semantics)
+        corrected_second = {"exercise": "running", "distance_km": 4, "time_of_day": "evening"}  # Changed 3→4
+        storage._save_parsed_json(  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+            parsed_path,
+            "2026-01-14_18-30-00",  # Only update second entry
+            corrected_second,
+        )
+
+        # 4. Read back and verify
+        final_data = json.loads(parsed_path.read_text())
+
+        # First entry should be byte-identical
+        first_entry_after = json.dumps(final_data["2026-01-14_08-30-00"], sort_keys=True)
+        assert first_entry_before == first_entry_after, (
+            f"First entry was modified. Before: {first_entry_before}, After: {first_entry_after}"
+        )
+
+        # Second entry should reflect the correction
+        assert final_data["2026-01-14_18-30-00"]["distance_km"] == 4
+        assert final_data["2026-01-14_18-30-00"]["exercise"] == "running"
 
 
 # =============================================================================

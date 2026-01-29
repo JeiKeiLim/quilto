@@ -799,9 +799,7 @@ Evening session - 1hr
         # We edit starting at line 3 (## 12:00), so lines[:3] should be preserved
         leading_bytes_before = "".join(lines_before[:3]).encode("utf-8")
 
-        repo.edit_raw_section(
-            file_path, start=3, end=6, new_content="## 12:00\nCorrected lunch\n"
-        )
+        repo.edit_raw_section(file_path, start=3, end=6, new_content="## 12:00\nCorrected lunch\n")
 
         modified = file_path.read_text(encoding="utf-8")
         lines_after = modified.splitlines(keepends=True)
@@ -858,9 +856,7 @@ Evening session - 1hr
         # Trailing: lines[6:] = "\n", "## 18:00\n", "中文晚餐\n"
         trailing_bytes_before = "".join(lines_before[6:]).encode("utf-8")
 
-        repo.edit_raw_section(
-            file_path, start=3, end=6, new_content="## 12:00\nEdited target\n"
-        )
+        repo.edit_raw_section(file_path, start=3, end=6, new_content="## 12:00\nEdited target\n")
 
         modified = file_path.read_text(encoding="utf-8")
         lines_after = modified.splitlines(keepends=True)
@@ -880,9 +876,7 @@ Evening session - 1hr
         file_path = raw_dir / "2026-01-26.md"
         file_path.write_text(content, encoding="utf-8")
 
-        repo.edit_raw_section(
-            file_path, start=3, end=6, new_content="## 12:00\nCorrected middle\n"
-        )
+        repo.edit_raw_section(file_path, start=3, end=6, new_content="## 12:00\nCorrected middle\n")
 
         modified = file_path.read_text(encoding="utf-8")
         # Exact header strings must be present
