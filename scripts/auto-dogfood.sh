@@ -37,6 +37,10 @@ NUM_QUERIES=10
 SKIP_GENERATE=false
 SKIP_RUN=false
 
+# Clarification tracking (associative arrays for session capture and follow-ups)
+declare -A CLARIFICATION_SESSIONS  # query -> session_id
+declare -A CLARIFICATION_ANSWERS   # query -> expected_answer
+
 # Context files (generated during runtime)
 CONTEXT_DIR="$PROJECT_ROOT/tests/eval/feedback/.context"
 PROJECT_CONTEXT_FILE="$CONTEXT_DIR/project-context.md"
@@ -462,6 +466,27 @@ FOCUS_SECTION
 }
 
 # =============================================================================
+# CLARIFICATION HELPER FUNCTIONS
+# =============================================================================
+
+# Extract session ID from CLI output
+# Pattern: "Session: <uuid>" where UUID is [a-f0-9-]{36}
+capture_session_id() {
+    local output="$1"
+    echo "$output" | grep -oE 'Session: [a-f0-9-]{36}' | head -1 | cut -d' ' -f2
+}
+
+# Detect if output contains clarification request
+# Pattern: "Clarification needed:" in output
+detect_clarification() {
+    local output="$1"
+    if echo "$output" | grep -q "Clarification needed:"; then
+        return 0  # true
+    fi
+    return 1  # false
+}
+
+# =============================================================================
 # STEP 1: GENERATE TEST QUERIES (WITH FULL CONTEXT)
 # =============================================================================
 
@@ -503,11 +528,30 @@ Generate exactly $NUM_QUERIES test queries that a real user might ask this fitne
 - **Explore edges**: Include queries that might challenge the system in unexpected ways
 - **Don't repeat patterns**: Each query should test something meaningfully different
 
-You decide what queries will best evaluate this system. Don't follow a formula - use your judgment as a QA engineer to find potential weaknesses.
+### IMPORTANT: Include Clarification Test Cases
+
+At least 2 of your queries MUST be designed to trigger the system's clarification flow.
+These are vague or ambiguous queries that lack sufficient context for the system to answer directly.
+
+Use the special CLARIFY tag format for these queries:
+\`\`\`
+CLARIFY|<vague_query>|<expected_answer>
+\`\`\`
+
+Examples of clarification-triggering queries (pick your own creative ones):
+- \`CLARIFY|How was that?|my morning run yesterday\`
+- \`CLARIFY|What about last time?|bench press on Monday\`
+- \`CLARIFY|Should I do more?|yes for chest exercises\`
+- \`CLARIFY|그거 어땠어?|어제 아침 스쿼트\` (Korean example)
+
+The <expected_answer> should be what a user would reasonably respond when asked for clarification.
 
 ### Output Format
 
-Output ONLY the queries, one per line. No numbering, no explanations, no categories."
+Output ONLY the queries, one per line. No numbering, no explanations, no categories.
+Lines starting with # are comments and will be skipped.
+Regular queries go as plain text.
+Clarification queries use the CLARIFY|query|answer format."
 
     claude -p "$prompt" --output-format text > "$QUERIES_FILE"
 
@@ -544,21 +588,56 @@ run_queries() {
     mkdir -p "$FEEDBACK_DIR"
 
     local total
-    total=$(wc -l < "$QUERIES_FILE" | tr -d ' ')
+    total=$(grep -cvE '^#|^$' "$QUERIES_FILE" || echo "0")
     local count=0
+    local clarification_count=0
 
-    while IFS= read -r query || [[ -n "$query" ]]; do
-        # Skip empty lines
-        [[ -z "$query" ]] && continue
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Skip empty lines and comments
+        [[ -z "$line" ]] && continue
+        [[ "$line" =~ ^# ]] && continue
 
         ((count++))
-        log_info "[$count/$total] Running: ${query:0:60}..."
 
-        # Run swealog auto with debug mode and non-interactive flag
-        # This creates JSON files in tests/eval/feedback/active/
-        # --non-interactive skips the feedback prompt (to be filled by auto-review)
-        if ! uv run swealog run "$query" --debug --non-interactive --config "$LLM_CONFIG" --storage ./logs 2>/dev/null; then
-            log_warn "Query failed: $query"
+        local query=""
+        local expected_answer=""
+        local is_clarification_query=false
+
+        # Parse CLARIFY tagged queries: CLARIFY|query|answer
+        if [[ "$line" =~ ^CLARIFY\| ]]; then
+            is_clarification_query=true
+            # Extract query and answer from pipe-delimited format
+            query=$(echo "$line" | cut -d'|' -f2)
+            expected_answer=$(echo "$line" | cut -d'|' -f3)
+            log_info "[$count/$total] [CLARIFY] Running: ${query:0:50}..."
+        else
+            query="$line"
+            log_info "[$count/$total] Running: ${query:0:60}..."
+        fi
+
+        # Run swealog and capture output
+        local output
+        output=$(uv run swealog run "$query" --debug --non-interactive --config "$LLM_CONFIG" --storage ./logs 2>&1) || true
+
+        # Capture session ID from output
+        local session_id
+        session_id=$(capture_session_id "$output")
+
+        if [[ -z "$session_id" ]]; then
+            log_warn "Could not capture session ID for query: ${query:0:40}..."
+        fi
+
+        # Detect if clarification was triggered
+        if detect_clarification "$output"; then
+            ((clarification_count++))
+            if [[ "$is_clarification_query" == "true" && -n "$session_id" && -n "$expected_answer" ]]; then
+                # Store for follow-up
+                CLARIFICATION_SESSIONS["$query"]="$session_id"
+                CLARIFICATION_ANSWERS["$query"]="$expected_answer"
+                log_info "  → Clarification detected, stored for follow-up (session: ${session_id:0:8}...)"
+            else
+                log_info "  → Clarification triggered (unexpected or no follow-up configured)"
+            fi
         fi
 
         # Small delay to avoid rate limiting
@@ -566,7 +645,52 @@ run_queries() {
 
     done < "$QUERIES_FILE"
 
-    log_success "Executed $count queries"
+    log_success "Executed $count queries ($clarification_count triggered clarification)"
+}
+
+# =============================================================================
+# STEP 2.5: RUN CLARIFICATION FOLLOW-UPS
+# =============================================================================
+
+run_clarification_followups() {
+    local stored_count=${#CLARIFICATION_SESSIONS[@]}
+
+    if [[ $stored_count -eq 0 ]]; then
+        log_info "No clarification follow-ups to execute"
+        return
+    fi
+
+    log_section "RUNNING CLARIFICATION FOLLOW-UPS"
+    log_info "Processing $stored_count clarification follow-ups..."
+
+    local success_count=0
+    local fail_count=0
+
+    for query in "${!CLARIFICATION_SESSIONS[@]}"; do
+        local session_id="${CLARIFICATION_SESSIONS[$query]}"
+        local answer="${CLARIFICATION_ANSWERS[$query]}"
+
+        log_info "Following up on: ${query:0:40}..."
+        log_info "  → Session: ${session_id:0:8}..., Answer: ${answer:0:30}..."
+
+        # Run follow-up with session ID and the expected answer
+        local output
+        output=$(uv run swealog run "$answer" --session "$session_id" --config "$LLM_CONFIG" --storage ./logs --debug --non-interactive 2>&1) || true
+
+        # Check if clarification was resolved (no more clarification in output)
+        if detect_clarification "$output"; then
+            log_warn "  → Follow-up still triggered clarification (may need better answer)"
+            ((fail_count++))
+        else
+            log_success "  → Follow-up processed successfully"
+            ((success_count++))
+        fi
+
+        # Small delay
+        sleep 1
+    done
+
+    log_success "Clarification follow-ups: $success_count succeeded, $fail_count still need clarification"
 }
 
 # =============================================================================
@@ -632,6 +756,19 @@ $project_context
    - Temporal Awareness: For time-related queries, does it account for recency?
    - Known Pattern Check: Does this exhibit patterns from previous iterations?
 
+### CLARIFICATION FLOW EVALUATION (IMPORTANT)
+If the query appears to be a vague/ambiguous query OR a follow-up to a clarification:
+
+For initial clarification triggers:
+   - Did the system correctly identify the need for clarification?
+   - Are the clarification questions relevant and helpful?
+   - Would the questions help disambiguate the user's intent?
+
+For follow-up responses (after clarification):
+   - Did the system correctly use the clarification answer?
+   - Is the final response coherent given the original query + clarification?
+   - Does the response properly incorporate the context from the conversation?
+
 4. Edit the file to add these three fields:
    - \"user_feedback\": Your detailed feedback (2-4 sentences, be specific about what worked or failed)
    - \"feedback_sentiment\": One of \"positive\", \"mixed\", or \"negative\"
@@ -646,6 +783,7 @@ $project_context
 - Be critical but fair
 - Note any regression from supposedly fixed patterns
 - If the response is genuinely good, say so clearly
+- For clarification flows: verify both the trigger and the follow-up work correctly
 - DO NOT output anything except reading and editing the file"
 
         # Let Claude directly read and edit the file
@@ -727,6 +865,9 @@ generate_summary() {
         esac
     done
 
+    # Count clarification follow-ups executed
+    local clarification_followup_count=${#CLARIFICATION_SESSIONS[@]}
+
     echo ""
     echo "╔═══════════════════════════════════════════════════════════╗"
     echo "║           AUTO-DOGFOOD SUMMARY                            ║"
@@ -738,6 +879,8 @@ generate_summary() {
     if [[ $no_feedback -gt 0 ]]; then
         printf "║  ⏳ No feedback:    %3d                                   ║\n" "$no_feedback"
     fi
+    echo "╠═══════════════════════════════════════════════════════════╣"
+    printf "║  🔄 Clarification follow-ups: %3d                         ║\n" "$clarification_followup_count"
     echo "╚═══════════════════════════════════════════════════════════╝"
     echo ""
 
@@ -784,6 +927,7 @@ main() {
     gather_project_context
     generate_queries
     run_queries
+    run_clarification_followups
     review_feedback
     generate_summary
 
