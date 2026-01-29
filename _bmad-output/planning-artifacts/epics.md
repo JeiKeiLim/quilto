@@ -3283,14 +3283,16 @@ Logical contradiction:
 *Fix session continuation and verify clarification flow*
 
 **Source:** Epic 19 Retrospective + iter-008 analysis
-**Status:** Backlog
+**Status:** In Progress (reopened 2026-01-29)
 
-**Quilto:** Session continuation (load conversation history), clarification flow verification
-**Swealog:** CLI session resume behavior
+**Quilto:** Session continuation (load conversation history), clarification flow verification, context propagation to all agents
+**Swealog:** CLI session resume behavior, feedback session_id recording
 
 **FRs covered:** Session continuity, clarification question handling
 
 **Key Insight:** Session persistence ≠ session continuation. Story 19.2 fixed persistence (saving to SQLite), but conversation history is not being used when resuming sessions.
+
+**Reopened (2026-01-29):** Story 20.5 added as critical hotfix. Dogfooding revealed that `conversation_context` is only passed to Planner, not to other agents. When Planner skips retrieval expecting Synthesizer to use context, Synthesizer fails because it never received the context.
 
 ---
 
@@ -3436,6 +3438,75 @@ Logical contradiction:
 - **Focused (Session):** Context-dependent follow-ups requiring previous turn
 - **Focused (Clarification):** Queries that trigger clarification, then answer via resume
 - **General Regression:** LOG, QUERY (factual, insight, temporal), BOTH, multilingual
+
+---
+
+### Story 20.5: Fix Session Context Propagation to All Agents
+
+**Priority:** CRITICAL | **Effort:** Medium (2-3 hours)
+**Depends On:** None (hotfix)
+**Added:** 2026-01-29 (Epic 20 Retrospective)
+
+**As a** Swealog user resuming a session,
+**I want** all agents to have access to my conversation history,
+**So that** follow-up questions and clarification answers work correctly.
+
+**Problem:**
+- Session conversation context is only passed to Planner agent
+- When Planner skips retrieval (`next_action: synthesize`) because answer is in context, Synthesizer cannot access that context
+- Router misclassifies clarification answers as LOG (no context to understand follow-ups)
+- Feedback JSON doesn't record session_id
+
+**Evidence:** `tests/eval/feedback/active/2026-01-29_4f6d9897.json`
+- User query: "Can you tell me which workout you recommended me earlier?"
+- User ran with `--session 4dc30d9c-9d0a-4597-8191-a69dc88a15da`
+- Planner reasoning: "This information is already present in the conversation context"
+- Planner decision: `next_action: synthesize` (skip retrieval)
+- Synthesizer response: "I don't have a record" (BUG: never received context)
+
+**Root Cause:**
+`orchestration.py` only passes `conversation_context` to `PlannerInput`. Other agents (Router, Analyzer, Synthesizer, Evaluator, Observer) don't receive it.
+
+**Acceptance Criteria:**
+
+1. **Given** conversation context exists in state
+   **When** Router processes input
+   **Then** RouterInput includes conversation_context
+
+2. **Given** conversation context exists in state
+   **When** Analyzer processes entries
+   **Then** AnalyzerInput includes conversation_context
+
+3. **Given** conversation context exists in state
+   **When** Synthesizer generates response
+   **Then** SynthesizerInput includes conversation_context
+
+4. **Given** conversation context exists in state
+   **When** Evaluator checks response
+   **Then** EvaluatorInput includes conversation_context
+
+5. **Given** conversation context exists in state
+   **When** Observer updates global context
+   **Then** ObserverInput includes conversation_context
+
+6. **Given** a query like "What workout did you recommend earlier?"
+   **When** Planner skips retrieval (next_action: synthesize)
+   **Then** Synthesizer can answer from conversation context
+
+7. **Given** feedback recording with `--session <id>`
+   **When** session_id is provided via CLI
+   **Then** session_id is recorded in feedback JSON
+
+**Files to Modify:**
+- `packages/quilto/quilto/agents/models.py` - Add conversation_context to 5 Input models
+- `packages/quilto/quilto/orchestration.py` - Pass context in 5 node functions
+- `packages/quilto/quilto/agents/router.py` - Update prompt
+- `packages/quilto/quilto/agents/analyzer.py` - Update prompt
+- `packages/quilto/quilto/agents/synthesizer.py` - Update prompt
+- `packages/quilto/quilto/agents/evaluator.py` - Update prompt
+- `packages/quilto/quilto/agents/observer.py` - Update prompt
+- `packages/swealog/swealog/cli/feedback.py` - Add session_id to SessionMetadata
+- `packages/swealog/swealog/cli/app.py` - Pass session_id to recording
 
 ---
 

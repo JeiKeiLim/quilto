@@ -132,6 +132,39 @@ class SynthesizerAgent:
 
         return "\n".join(lines)
 
+    def _format_conversation_context(self, context: str | None) -> str:
+        """Format conversation context for the synthesis prompt.
+
+        Args:
+            context: Optional conversation context from session.
+
+        Returns:
+            Formatted context with critical usage instructions.
+        """
+        if context is None or not context.strip():
+            return "(No conversation context available)"
+
+        return f"""{context}
+
+=== CRITICAL: CONTEXT-BASED ANSWERING ===
+
+IMPORTANT: If findings are empty or retrieval returned no entries, BUT the answer
+is clearly present in the conversation context above:
+
+1. USE THE CONTEXT to generate your response
+2. DO NOT say "I don't have a record" when the information IS in the context
+3. Reference the context: "As discussed earlier..." or "The recommendation I gave was..."
+
+Example scenario:
+- Previous turn: You recommended a leg workout
+- User asks: "What workout did you recommend?"
+- Findings: empty (Planner skipped retrieval)
+- Conversation context: Contains the leg workout recommendation
+- CORRECT: "Earlier, I recommended a leg workout focusing on..."
+- WRONG: "I don't have a record of recommending a workout"
+
+The conversation context IS valid evidence for answering follow-up questions."""
+
     def _get_confidence_from_verdict(self, verdict: Verdict) -> str:
         """Map analyzer verdict to synthesizer confidence.
 
@@ -208,6 +241,9 @@ Use proper terminology from the domain:
 
 === ANALYSIS RESULTS ===
 {analysis_text}
+
+=== CONVERSATION CONTEXT ===
+{self._format_conversation_context(synthesizer_input.conversation_context)}
 
 === INPUT ===
 Query: {synthesizer_input.query}

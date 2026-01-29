@@ -432,7 +432,12 @@ async def route_node(state: QuiltoState) -> dict[str, Any]:
     try:
         router = RouterAgent(quilto.llm_client)
         domain_infos = quilto.domain_selector.get_domain_infos()
-        router_input = RouterInput(raw_input=user_input, available_domains=domain_infos)
+        session_context = state.get(StateKeys.CONVERSATION_CONTEXT)
+        router_input = RouterInput(
+            raw_input=user_input,
+            available_domains=domain_infos,
+            session_context=session_context,
+        )
         router_output = await router.classify(router_input)
 
         elapsed = (time.perf_counter() - start) * 1000
@@ -647,6 +652,7 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
         query_type = QueryType(query_type_str) if isinstance(query_type_str, str) else query_type_str
         retrieval_summary_raw = state.get(StateKeys.RETRIEVAL_SUMMARY, [])
         retrieval_summary = retrieval_summary_raw if isinstance(retrieval_summary_raw, list) else []
+        conversation_context = state.get(StateKeys.CONVERSATION_CONTEXT)
 
         analyzer = AnalyzerAgent(quilto.llm_client)
         analyzer_input = AnalyzerInput(
@@ -655,6 +661,7 @@ async def analyze_node(state: QuiltoState) -> dict[str, Any]:
             entries=entries,
             retrieval_summary=retrieval_summary,
             domain_context=domain_context,
+            conversation_context=conversation_context,
         )
         analyzer_output = await analyzer.analyze(analyzer_input)
 
@@ -790,6 +797,7 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
         query_type_str = state.get(StateKeys.QUERY_TYPE, "factual")
         query_type = QueryType(query_type_str) if isinstance(query_type_str, str) else query_type_str
         is_partial = state.get(StateKeys.IS_PARTIAL, False)
+        conversation_context = state.get(StateKeys.CONVERSATION_CONTEXT)
 
         synthesizer = SynthesizerAgent(quilto.llm_client)
         synthesizer_input = SynthesizerInput(
@@ -799,6 +807,7 @@ async def synthesize_node(state: QuiltoState) -> dict[str, Any]:
             vocabulary=domain_context.vocabulary,
             response_style="concise",
             is_partial=is_partial,
+            conversation_context=conversation_context,
         )
         synthesizer_output = await synthesizer.synthesize(synthesizer_input)
 
@@ -861,6 +870,7 @@ async def evaluate_node(state: QuiltoState) -> dict[str, Any]:
 
         # Format entries summary
         entries_summary = _format_entries_summary(entries)
+        conversation_context = state.get(StateKeys.CONVERSATION_CONTEXT)
 
         evaluator = EvaluatorAgent(quilto.llm_client)
         evaluator_input = EvaluatorInput(
@@ -870,6 +880,7 @@ async def evaluate_node(state: QuiltoState) -> dict[str, Any]:
             entries_summary=entries_summary,
             evaluation_rules=domain_context.evaluation_rules,
             attempt_number=retry_count + 1,
+            conversation_context=conversation_context,
         )
         evaluator_output = await evaluator.evaluate(evaluator_input)
 
@@ -1109,6 +1120,7 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
         user_input: str = state.get(StateKeys.USER_INPUT, "")
         response = state.get(StateKeys.RESPONSE, "")
         analyzer_output_dict = state.get(StateKeys.ANALYZER_OUTPUT, {})
+        conversation_context = state.get(StateKeys.CONVERSATION_CONTEXT)
 
         observer_input = ObserverInput(
             trigger="post_query",
@@ -1117,6 +1129,7 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
             query=user_input,
             analysis=analyzer_output_dict,
             response=response,
+            conversation_context=conversation_context,
         )
 
         observer = ObserverAgent(quilto.llm_client)

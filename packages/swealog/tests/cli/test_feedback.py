@@ -416,6 +416,23 @@ class TestSessionMetadata:
         assert metadata.storage_path is None
         assert metadata.debug_enabled is True  # Default
 
+    def test_session_metadata_with_session_id(self) -> None:
+        """Test creating session metadata with session_id (AC: #7)."""
+        metadata = SessionMetadata(
+            timestamp=datetime.now(),
+            input_type="QUERY",
+            session_id="4dc30d9c-9d0a-4597-8191-a69dc88a15da",
+        )
+        assert metadata.session_id == "4dc30d9c-9d0a-4597-8191-a69dc88a15da"
+
+    def test_session_metadata_session_id_defaults_none(self) -> None:
+        """Test that session_id defaults to None."""
+        metadata = SessionMetadata(
+            timestamp=datetime.now(),
+            input_type="QUERY",
+        )
+        assert metadata.session_id is None
+
     def test_invalid_input_type_raises_error(self) -> None:
         """Test that invalid input type raises validation error."""
         with pytest.raises(ValidationError) as exc_info:

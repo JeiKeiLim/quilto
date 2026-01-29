@@ -60,6 +60,7 @@ class ObserverAgent:
             Formatted string with query, analysis, and response.
         """
         analysis_str = str(observer_input.analysis) if observer_input.analysis else "(none)"
+        conversation_context = observer_input.conversation_context or "(none)"
         return f"""=== QUERY CONTEXT ===
 User Query: {observer_input.query}
 
@@ -67,7 +68,16 @@ Analysis Summary:
 {analysis_str}
 
 Response Given:
-{observer_input.response}"""
+{observer_input.response}
+
+=== SESSION CONVERSATION CONTEXT ===
+{conversation_context}
+
+NOTE ON SESSION VS GLOBAL CONTEXT:
+- SESSION context: Temporary facts from current conversation (e.g., "user asked about leg workout")
+- GLOBAL context: Persistent preferences/patterns (e.g., "user prefers metric units")
+- DO NOT add session-specific facts to global context
+- Only add persistent insights discovered during this session"""
 
     def _format_correction_context(self, observer_input: ObserverInput) -> str:
         """Format context for user_correction trigger.

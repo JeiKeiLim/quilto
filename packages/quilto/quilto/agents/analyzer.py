@@ -136,6 +136,25 @@ class AnalyzerAgent:
             return "(No global context available)"
         return context
 
+    def _format_conversation_context(self, context: str | None) -> str:
+        """Format conversation context for the prompt.
+
+        Args:
+            context: Optional conversation context from session.
+
+        Returns:
+            Formatted context with usage guidance or placeholder if None.
+        """
+        if context is None or not context.strip():
+            return "(No conversation context available)"
+        return f"""{context}
+
+USAGE: Use conversation context to:
+1. RESOLVE VAGUE REFERENCES: "the workout" → workout mentioned in context
+2. UNDERSTAND FOLLOW-UPS: "What about yesterday?" → relates to previous query
+3. FILL IN IMPLICIT INFO: If query asks about "my recommendation", check context for recommendations
+4. DO NOT repeat information already answered in context"""
+
     def _calculate_temporal_context(self, entries: list[Any]) -> str:
         """Calculate temporal context from entries.
 
@@ -372,6 +391,10 @@ INDIRECT ESTIMATION RULES:
 Example: Query "bench press 1RM?" with data "인클라인 프레스 50kg x 5회"
 → Incline 5RM=50kg → Incline 1RM=57.5kg (×1.15) → Flat bench 1RM≈69kg (×1.20)
 → Finding: claim="Estimated bench 1RM ~69kg", indirect_estimate=true, confidence="low"
+
+=== CONVERSATION CONTEXT ===
+
+{self._format_conversation_context(analyzer_input.conversation_context)}
 
 === INPUT ===
 

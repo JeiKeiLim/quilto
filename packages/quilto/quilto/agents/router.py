@@ -114,11 +114,20 @@ IMPORTANT for domain_selection_reasoning:
 - If multiple domains are selected, mention each one specifically
 - If no domains match, explain why none of the available domains apply
 
+=== SESSION CONTEXT FOR FOLLOW-UP DETECTION ===
+
+{session_context}
+
+CRITICAL: When session context is provided:
+1. RECOGNIZE FOLLOW-UPS: Short responses that answer questions from context are QUERY continuations, NOT LOG
+   - Example context: "What type of strength training?" → User: "Upper body" → This is a QUERY continuation
+   - Example context: No question asked → User: "I just ran 5km" → This is a LOG
+2. CLARIFICATION ANSWERS: If context contains a question and user input is a brief answer, classify as QUERY
+3. DO NOT classify clarification answers as LOG just because they lack question marks
+4. Look at the CONTEXT to determine if user input is answering a previous question
+
 === INPUT ===
 {router_input.raw_input}
-
-Session context (recent messages):
-{session_context}
 
 === OUTPUT (JSON) ===
 Respond with a JSON object matching this schema:

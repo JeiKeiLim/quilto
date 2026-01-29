@@ -56,6 +56,7 @@ class SessionMetadata(BaseModel):
 
     timestamp: datetime
     input_type: Literal["LOG", "QUERY", "BOTH", "CORRECTION"]
+    session_id: str | None = None
     config_path: str | None = None
     storage_path: str | None = None
     debug_enabled: bool = True

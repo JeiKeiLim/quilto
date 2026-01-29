@@ -141,6 +141,30 @@ class EvaluatorAgent:
         """
         return entries_summary
 
+    def _format_conversation_context(self, context: str | None) -> str:
+        """Format conversation context for the evaluation prompt.
+
+        Args:
+            context: Optional conversation context from session.
+
+        Returns:
+            Formatted context section or empty string if None.
+        """
+        if context is None or not context.strip():
+            return ""
+
+        return f"""
+=== CONVERSATION CONTEXT ===
+
+{context}
+
+EVALUATION RULES FOR CONVERSATION CONTEXT:
+1. Information from conversation context is VALID EVIDENCE for follow-up questions
+2. Response correctly uses context if it references previous turns appropriately
+3. Do NOT flag as "speculative" when answer is derived from conversation context
+4. Example: If user asks about a previous recommendation, response may use context
+"""
+
     def _format_user_responses(self, user_responses: dict[str, str]) -> str:
         """Format user responses for the prompt.
 
@@ -245,6 +269,7 @@ CRITICAL: Strict AND logic applies:
 === AVAILABLE EVIDENCE ===
 {entries_text}
 {user_responses_section}
+{self._format_conversation_context(evaluator_input.conversation_context)}
 === INPUT ===
 
 Original query: {evaluator_input.query}

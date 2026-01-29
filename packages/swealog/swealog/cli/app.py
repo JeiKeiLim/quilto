@@ -205,6 +205,7 @@ def _record_feedback_with_handler(
     config_path: Path | None,
     storage_path: Path | None,
     non_interactive: bool = False,
+    session_id: str | None = None,
 ) -> Path:
     """Record feedback using FeedbackProgressHandler outputs.
 
@@ -220,6 +221,7 @@ def _record_feedback_with_handler(
         config_path: Path to LLM config (optional).
         storage_path: Path to storage directory (optional).
         non_interactive: Whether running in non-interactive mode.
+        session_id: Session ID for multi-turn conversation tracking.
 
     Returns:
         Path to recorded feedback file.
@@ -234,6 +236,7 @@ def _record_feedback_with_handler(
         session=SessionMetadata(
             timestamp=datetime.now(),
             input_type=input_type,
+            session_id=session_id,
             config_path=str(config_path) if config_path else None,
             storage_path=str(storage_path) if storage_path else None,
             debug_enabled=True,
@@ -380,6 +383,7 @@ async def run_command(
                     config_path=config,
                     storage_path=storage_path,
                     non_interactive=non_interactive,
+                    session_id=session.session_id,
                 )
 
     except typer.Exit:

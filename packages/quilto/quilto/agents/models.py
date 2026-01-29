@@ -595,6 +595,7 @@ class AnalyzerInput(BaseModel):
 
     domain_context: ActiveDomainContext
     global_context_summary: str | None = None
+    conversation_context: str | None = None
 
 
 class AnalyzerOutput(BaseModel):
@@ -674,6 +675,7 @@ class SynthesizerInput(BaseModel):
     unanswered_gaps: list[Gap] = []
 
     response_style: Literal["concise", "detailed"] = "concise"
+    conversation_context: str | None = None
 
 
 class SynthesizerOutput(BaseModel):
@@ -790,6 +792,7 @@ class EvaluatorInput(BaseModel):
     When non-empty, Evaluator should treat this as authoritative information
     and NOT flag responses using this data as speculative.
     """
+    conversation_context: str | None = None
 
 
 class EvaluatorOutput(BaseModel):
@@ -1009,6 +1012,9 @@ class ObserverInput(BaseModel):
 
     # significant_log fields
     new_entry: Any | None = None  # Entry at runtime, Any to avoid circular import
+
+    # Session context for continuity
+    conversation_context: str | None = None
 
     @model_validator(mode="after")
     def validate_trigger_fields(self) -> "ObserverInput":

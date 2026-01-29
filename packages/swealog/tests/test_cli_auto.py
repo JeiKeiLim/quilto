@@ -91,6 +91,7 @@ class TestUnifiedCommandRoutesLog:
         )
 
         mock_session = MagicMock()
+        mock_session.session_id = "test-session-id"
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
@@ -123,6 +124,7 @@ class TestUnifiedCommandRoutesQuery:
         )
 
         mock_session = MagicMock()
+        mock_session.session_id = "test-session-id"
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
@@ -156,6 +158,7 @@ class TestUnifiedCommandHandlesBoth:
         )
 
         mock_session = MagicMock()
+        mock_session.session_id = "test-session-id"
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
@@ -188,6 +191,7 @@ class TestUnifiedCommandHandlesCorrection:
         )
 
         mock_session = MagicMock()
+        mock_session.session_id = "test-session-id"
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
@@ -224,6 +228,7 @@ class TestUnifiedCommandDebugFlag:
         mock_result.debug.traces = [mock_trace]
 
         mock_session = MagicMock()
+        mock_session.session_id = "test-session-id"
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
@@ -258,6 +263,7 @@ class TestUnifiedCommandOptions:
         )
 
         mock_session = MagicMock()
+        mock_session.session_id = "test-session-id"
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
@@ -285,6 +291,7 @@ class TestUnifiedCommandOptions:
         )
 
         mock_session = MagicMock()
+        mock_session.session_id = "test-session-id"
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
@@ -335,6 +342,7 @@ class TestUnifiedCommandClarification:
         )
 
         mock_session = MagicMock()
+        mock_session.session_id = "test-session-id"
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
@@ -631,6 +639,7 @@ class TestUnifiedCommandFeedbackIntegration:
         )
 
         mock_session = MagicMock()
+        mock_session.session_id = "test-session-id"
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
@@ -663,6 +672,7 @@ class TestUnifiedCommandFeedbackIntegration:
         )
 
         mock_session = MagicMock()
+        mock_session.session_id = "test-session-id"
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
@@ -693,6 +703,7 @@ class TestUnifiedCommandFeedbackIntegration:
         )
 
         mock_session = MagicMock()
+        mock_session.session_id = "test-session-id"
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
@@ -728,6 +739,7 @@ class TestUnifiedCommandNonInteractive:
         )
 
         mock_session = MagicMock()
+        mock_session.session_id = "test-session-id"
         mock_session.process = AsyncMock(return_value=mock_result)
 
         with (
