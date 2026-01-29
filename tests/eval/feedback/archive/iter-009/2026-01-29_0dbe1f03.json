@@ -1,0 +1,105 @@
+{
+  "id": "2026-01-29_0dbe1f03",
+  "query": "My running progress this month",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.88,
+      "selected_domains": [
+        "Running"
+      ],
+      "domain_selection_reasoning": "The statement refers to \"running progress\" which directly pertains to tracking distance, pace, or other metrics associated with running activities. Therefore the Running domain is the most relevant. No other domains (Strength, Nutrition, etc.) are mentioned.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The input is a declarative phrase without question words or a question mark, indicating a log entry rather than a query. It does not contain correction language or a goal statement, so it is classified as a LOG."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T03:56:24.326272Z",
+      "tags": [
+        "running",
+        "progress",
+        "month"
+      ],
+      "domain_data": {
+        "Running": {
+          "distance": null,
+          "distance_unit": null,
+          "duration_minutes": null,
+          "pace": null,
+          "pace_unit": null,
+          "workout_type": null,
+          "terrain": null,
+          "splits": [],
+          "intervals": [],
+          "average_heart_rate": null,
+          "max_heart_rate": null,
+          "cadence": null,
+          "elevation_gain": null,
+          "elevation_loss": null,
+          "perceived_exertion": null,
+          "weather": null,
+          "notes": null,
+          "date": "2026-01-29"
+        }
+      },
+      "raw_content": "My running progress this month",
+      "confidence": 0.3,
+      "extraction_notes": [
+        "The input mentions running progress but provides no specific metrics (distance, pace, duration, etc.). All Running fields are left null."
+      ],
+      "uncertain_fields": [],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "monthly_running_sessions_January_2026",
+          "value": "3",
+          "confidence": "certain",
+          "source": "post_query: My running progress this month"
+        },
+        {
+          "category": "fact",
+          "key": "monthly_running_distance_January_2026",
+          "value": "13.33 km",
+          "confidence": "certain",
+          "source": "post_query: My running progress this month"
+        },
+        {
+          "category": "preference",
+          "key": "preference_monthly_running_summary_requests",
+          "value": "User asks for monthly running progress summaries, indicating a preference for periodic (monthly) running overviews.",
+          "confidence": "likely",
+          "source": "post_query: My running progress this month"
+        }
+      ],
+      "insights_captured": [
+        "User logged three running sessions in January 2026 (26th, 28th, 30th) totaling approximately 13.33 km.",
+        "The user explicitly requested a monthly running progress summary, suggesting a preference for monthly overviews of running activity."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 12:56:50.209033",
+    "input_type": "LOG",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

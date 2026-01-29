@@ -1,0 +1,207 @@
+{
+  "id": "2026-01-29_1067b102",
+  "query": "이번 주 운동 요약해줘",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "QUERY",
+      "confidence": 0.99,
+      "selected_domains": [
+        "GeneralFitness",
+        "Strength",
+        "Running",
+        "Swimming"
+      ],
+      "domain_selection_reasoning": "The user asks for a summary of this week's workouts, which pertains to exercise tracking. This could involve any type of physical activity logged in the system, so the broad GeneralFitness domain is relevant. Additionally, the user might have recorded strength training, running, or swimming sessions, so those specific domains are also included to ensure coverage.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The statement is a request for information (a summary), containing no declarative log or correction language. Therefore it is classified as a QUERY with high confidence."
+    },
+    "planner": {
+      "original_query": "이번 주 운동 요약해줘",
+      "query_type": "simple",
+      "sub_queries": [
+        {
+          "id": 1,
+          "question": "What workouts did I do during the current week (Monday 2026-01-27 to today 2026-01-29)?",
+          "retrieval_strategy": "date_range",
+          "retrieval_params": {
+            "start_date": "2026-01-27",
+            "end_date": "2026-01-29"
+          }
+        }
+      ],
+      "dependencies": [],
+      "execution_strategy": "coupled",
+      "execution_order": [
+        1
+      ],
+      "retrieval_instructions": [
+        {
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2026-01-27",
+            "end_date": "2026-01-29"
+          },
+          "sub_query_id": 1
+        }
+      ],
+      "gaps_status": {},
+      "domain_expansion_request": null,
+      "expansion_reasoning": null,
+      "clarify_questions": null,
+      "next_action": "retrieve",
+      "reasoning": "The user asks for a summary of this week's workouts. This is a single, coupled request that can be satisfied by retrieving all workout logs from the start of the current week (Monday 2026-01-27) through today (2026-01-29). No additional domains or clarification are needed, and the data falls within the available storage range."
+    },
+    "retriever": {
+      "entries": [
+        {
+          "id": "2026-01-28_23-43-00",
+          "date": "2026-01-28",
+          "timestamp": "2026-01-28T23:43:00",
+          "raw_content": "Actually my last treadmill run was for 40 minutes with 8kph speed",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-29_03-52-00",
+          "date": "2026-01-29",
+          "timestamp": "2026-01-29T03:52:00",
+          "raw_content": "I meant my 40 minute treadmill run on January 28 - how did that go?",
+          "parsed_data": null
+        },
+        {
+          "id": "2026-01-29_03-55-00",
+          "date": "2026-01-29",
+          "timestamp": "2026-01-29T03:55:00",
+          "raw_content": "I meant my running progress",
+          "parsed_data": null
+        }
+      ],
+      "retrieval_summary": [
+        {
+          "attempt_number": 1,
+          "strategy": "date_range",
+          "params": {
+            "start_date": "2026-01-27",
+            "end_date": "2026-01-29"
+          },
+          "entries_found": 3,
+          "summary": "Retrieved 3 entries from 2026-01-27 to 2026-01-29",
+          "expansion_tier": 0
+        }
+      ],
+      "total_entries_found": 3,
+      "date_range_covered": {
+        "start": "2026-01-28",
+        "end": "2026-01-29"
+      },
+      "warnings": [],
+      "truncated": false,
+      "expansion_exhausted": false,
+      "strategies_used": [
+        "date_range"
+      ]
+    },
+    "analyzer": {
+      "query_intent": "Provide a summary of the user's workouts for the current week.",
+      "findings": [
+        {
+          "claim": "The only logged workout for this week is a 40‑minute treadmill run at 8 km/h on 2026‑01‑28.",
+          "evidence": [
+            "2026-01-28: \"Actually my last treadmill run was for 40 minutes with 8kph speed\"",
+            "2026-01-29: \"I meant my 40 minute treadmill run on January 28 - how did that go?\""
+          ],
+          "confidence": "high",
+          "indirect_estimate": false,
+          "estimation_methodology": null
+        }
+      ],
+      "patterns_identified": [
+        "Only a single running session is recorded for the week.",
+        "The same treadmill run is referenced in multiple entries, indicating it is the most recent/only activity logged."
+      ],
+      "sufficiency_evaluation": {
+        "critical_gaps": [],
+        "nice_to_have_gaps": [
+          {
+            "description": "No workout entries for the rest of the week (e.g., Jan 23‑27, Jan 29‑30).",
+            "gap_type": "temporal",
+            "severity": "nice_to_have",
+            "searched": true,
+            "found": false,
+            "outside_current_expertise": false,
+            "suspected_domain": null
+          }
+        ],
+        "evidence_check_passed": true,
+        "speculation_risk": "low"
+      },
+      "verdict_reasoning": "The retrieved logs provide clear evidence of one treadmill run (40 min @ 8 km/h) on Jan 28, which can be summarized confidently. However, there are no records for other days of the week, leaving a temporal gap. This gap is not critical for reporting the known activity but means the summary will be incomplete for the full week. Therefore, the answer can be given with the noted limitation.",
+      "verdict": "partial"
+    },
+    "synthesizer": {
+      "response": "로그에 따르면 이번 주에 기록된 유일한 운동은 2026‑01‑28에 진행한 40분 트레드밀 러닝이며, 속도는 8 km/h였습니다. 다른 날짜의 운동 기록이 없으므로 이번 주 전체 운동량을 파악하기엔 제한적입니다.",
+      "key_points": [
+        "2026‑01‑28: 트레드밀 러닝 40분, 8 km/h",
+        "이번 주에 다른 운동 로그가 없습니다",
+        "전체 주간 활동을 파악하려면 추가 기록이 필요합니다"
+      ],
+      "evidence_cited": [
+        "2026-01-28: treadmill run 40분 @ 8km/h"
+      ],
+      "gaps_disclosed": [
+        "이번 주에 다른 운동 기록이 없어서 전체 요약이 제한됩니다"
+      ],
+      "confidence": "medium"
+    },
+    "evaluator": {
+      "dimensions": [
+        {
+          "dimension": "accuracy",
+          "verdict": "sufficient",
+          "reasoning": "The response correctly states the only logged workout (40‑minute treadmill run on 2026‑01‑28 at 8 km/h) and notes the absence of other records, matching the evidence provided.",
+          "issues": []
+        },
+        {
+          "dimension": "relevance",
+          "verdict": "sufficient",
+          "reasoning": "The answer directly addresses the user's request to summarize this week's exercise.",
+          "issues": []
+        },
+        {
+          "dimension": "safety",
+          "verdict": "sufficient",
+          "reasoning": "The response contains no advice or recommendations that could pose safety concerns.",
+          "issues": []
+        },
+        {
+          "dimension": "completeness",
+          "verdict": "sufficient",
+          "reasoning": "Given the available data, the summary includes all known activity and appropriately mentions the lack of additional records, fulfilling the request.",
+          "issues": []
+        }
+      ],
+      "overall_verdict": "sufficient",
+      "feedback": [],
+      "recommendation": "accept"
+    },
+    "parser": {},
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {}
+  },
+  "final_response": "로그에 따르면 이번 주에 기록된 유일한 운동은 2026‑01‑28에 진행한 40분 트레드밀 러닝이며, 속도는 8 km/h였습니다. 다른 날짜의 운동 기록이 없으므로 이번 주 전체 운동량을 파악하기엔 제한적입니다.",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 13:05:08.797407",
+    "input_type": "QUERY",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

@@ -1,0 +1,120 @@
+{
+  "id": "2026-01-29_6c3bb687",
+  "query": "I did 5 sets of pull-ups today and my arms are sore",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.99,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The user reports performing pull-ups, which are a strength training exercise (bodyweight). This directly maps to the Strength domain. Pull-ups also count as a general fitness activity, so the GeneralFitness domain is relevant as well.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The statement is a past‑tense declarative description of an activity and its outcome, with no question or correction. Therefore it is classified as a LOG."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T03:48:57.190507Z",
+      "tags": [
+        "pull-ups",
+        "arms",
+        "sore"
+      ],
+      "domain_data": {
+        "Strength": {
+          "exercises": [
+            {
+              "name": "pull up",
+              "sets": [],
+              "total_sets": 5,
+              "notes": "arms are sore"
+            }
+          ],
+          "session_notes": null,
+          "date": "2026-01-29",
+          "duration_minutes": null,
+          "perceived_difficulty": null
+        },
+        "GeneralFitness": {
+          "activity_type": "workout",
+          "exercises": [
+            {
+              "name": "pull up",
+              "sets": 5,
+              "reps": null,
+              "weight": null,
+              "weight_unit": null,
+              "duration_seconds": null,
+              "distance": null,
+              "distance_unit": null
+            }
+          ],
+          "duration_minutes": null,
+          "notes": "arms are sore",
+          "perceived_effort": null,
+          "date": "2026-01-29"
+        }
+      },
+      "raw_content": "I did 5 sets of pull-ups today and my arms are sore",
+      "confidence": 0.98,
+      "extraction_notes": [
+        "Only the number of sets was provided; repetitions per set and weight were not specified."
+      ],
+      "uncertain_fields": [],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "pull_up_session_2026-01-31",
+          "value": "5 sets of pull-ups",
+          "confidence": "certain",
+          "source": "post_query: pull-up report"
+        },
+        {
+          "category": "insight",
+          "key": "pull_up_volume_trend_recent",
+          "value": "Pull-up volume increased to 5 sets, indicating a possible upward progression in upper‑body volume",
+          "confidence": "tentative",
+          "source": "post_query: pull-up report"
+        },
+        {
+          "category": "insight",
+          "key": "post_workout_soreness_arms",
+          "value": "User reports arm soreness after the pull‑up session, suggesting higher muscular fatigue and a need for adequate recovery",
+          "confidence": "tentative",
+          "source": "post_query: pull-up report"
+        }
+      ],
+      "insights_captured": [
+        "Recorded a new pull‑up workout on 2026‑01‑31 with 5 sets.",
+        "Observed a tentative increase in pull‑up volume (from 4 to 5 sets), which may signal progressive overload.",
+        "User noted arm soreness after the session, highlighting current recovery demands."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 12:49:37.467675",
+    "input_type": "LOG",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

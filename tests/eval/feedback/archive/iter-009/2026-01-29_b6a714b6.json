@@ -1,0 +1,90 @@
+{
+  "id": "2026-01-29_b6a714b6",
+  "query": "Swam 1000m breaststroke today",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.99,
+      "selected_domains": [
+        "Swimming"
+      ],
+      "domain_selection_reasoning": "The statement records a swimming activity (distance and stroke), which directly maps to the Swimming domain that tracks laps, distance, strokes, and session details. No other domains (e.g., Strength, Nutrition, Running, GeneralFitness) are specifically relevant to this entry.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a past‑tense declarative statement describing a completed swim session, so it is classified as a LOG. There is no question or correction present."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T04:11:16.975030Z",
+      "tags": [
+        "swim",
+        "breaststroke"
+      ],
+      "domain_data": {
+        "Swimming": {
+          "laps": null,
+          "distance": 1000,
+          "distance_unit": "m",
+          "duration_minutes": null,
+          "stroke_type": "breaststroke",
+          "workout_type": null,
+          "pool_length": null,
+          "pool_length_unit": null,
+          "open_water": false,
+          "lap_times": [],
+          "intervals": [],
+          "equipment": [],
+          "average_pace": null,
+          "average_heart_rate": null,
+          "max_heart_rate": null,
+          "perceived_exertion": null,
+          "water_temperature": null,
+          "notes": null,
+          "date": "2026-01-29"
+        }
+      },
+      "raw_content": "Swam 1000m breaststroke today",
+      "confidence": 0.95,
+      "extraction_notes": [
+        "Duration, laps, workout type, pool length, and other details were not provided in the input."
+      ],
+      "uncertain_fields": [],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "swim_session_2026-01-29",
+          "value": "1000m breaststroke",
+          "confidence": "certain",
+          "source": "post_query: swimming log"
+        }
+      ],
+      "insights_captured": [
+        "User logged a 1000 m breaststroke swim on 2026‑01‑29, introducing swimming as a tracked activity."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 13:11:41.438405",
+    "input_type": "LOG",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

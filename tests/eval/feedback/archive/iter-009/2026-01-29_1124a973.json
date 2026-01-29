@@ -1,0 +1,73 @@
+{
+  "id": "2026-01-29_1124a973",
+  "query": "I meant my running progress",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "CORRECTION",
+      "confidence": 0.93,
+      "selected_domains": [
+        "Running"
+      ],
+      "domain_selection_reasoning": "The user explicitly says \"I meant my running progress,\" indicating they are correcting what they intended to refer to. This pertains to tracking or discussing running activity, which falls under the Running domain.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": "my running progress",
+      "reasoning": "The phrase \"I meant...\" signals a correction of a previously implied or stated item. The corrected content is the user's running progress, so the classification is CORRECTION with high confidence. The relevant domain is Running because the correction concerns running-specific data."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "recent_run_distances",
+          "value": "2026-01-26: 5.33 km (40 min, 8 kph); 2026-01-28: 3 km (40 min, 8 kph reported but distance mismatch); 2026-01-30: 5 km (distance only)",
+          "confidence": "certain",
+          "source": "post_query: I meant my running progress"
+        },
+        {
+          "category": "insight",
+          "key": "recent_running_mileage_trend",
+          "value": "Weekly mileage dropped from ~8.3 km in the week of 2026‑01‑22 – 2026‑01‑28 to ~5 km in the following week (2026‑01‑29 – 2026‑02‑04), indicating a short‑term decrease in running volume.",
+          "confidence": "likely",
+          "source": "post_query: I meant my running progress"
+        },
+        {
+          "category": "insight",
+          "key": "run_distance_speed_mismatch_confirmed",
+          "value": "The 2026‑01‑28 run entry shows a speed of 8 kph for 40 min but a logged distance of only 3 km, confirming a data entry inconsistency.",
+          "confidence": "certain",
+          "source": "post_query: I meant my running progress"
+        }
+      ],
+      "insights_captured": [
+        "User’s recent runs: 5.33 km on Jan 26, 3 km on Jan 28 (with speed‑distance mismatch), and 5 km on Jan 30.",
+        "Weekly running mileage decreased from ~8.3 km to ~5 km across consecutive weeks.",
+        "A clear mismatch between speed and distance on Jan 28 has been confirmed."
+      ]
+    },
+    "correction": {
+      "success": true,
+      "target_entry_id": "2026-01-29_03-52-00",
+      "correction_delta": null,
+      "original_entry_id": "2026-01-29_03-52-00",
+      "error_message": null
+    }
+  },
+  "final_response": "Corrected entry 2026-01-29_03-52-00: None",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 12:55:48.790726",
+    "input_type": "CORRECTION",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

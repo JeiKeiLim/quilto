@@ -1,0 +1,81 @@
+{
+  "id": "2026-01-29_4060fcca",
+  "query": "Strength training for upper body",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.96,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement records an activity: 'Strength training for upper body.' This directly pertains to strength training exercises, which belongs to the Strength domain. Strength training is also a subset of overall fitness activities, so the broader GeneralFitness domain is relevant as well.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The input is a declarative statement without a question or correction language, so it is classified as a LOG. Confidence is high because the phrasing clearly indicates an activity being logged."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T04:12:35.868376Z",
+      "tags": [
+        "strength",
+        "upper body",
+        "training"
+      ],
+      "domain_data": {
+        "Strength": {
+          "exercises": [],
+          "session_notes": "upper body",
+          "date": "2026-01-29",
+          "duration_minutes": null,
+          "perceived_difficulty": null
+        }
+      },
+      "raw_content": "Strength training for upper body",
+      "confidence": 0.85,
+      "extraction_notes": [
+        "The input mentions a strength training session for the upper body but does not list specific exercises, sets, or other quantitative details.",
+        "The phrase \"upper body\" was interpreted as a general session note."
+      ],
+      "uncertain_fields": [
+        "session_notes"
+      ],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "preference",
+          "key": "interest_in_upper_body_strength",
+          "value": "User explicitly requested upper body strength training guidance",
+          "confidence": "certain",
+          "source": "post_query: Strength training for upper body"
+        }
+      ],
+      "insights_captured": [
+        "User expressed a clear interest in receiving upper‑body strength training recommendations, indicating a current focus on upper‑body development."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 13:12:53.858234",
+    "input_type": "LOG",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

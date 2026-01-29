@@ -1,0 +1,57 @@
+{
+  "id": "2026-01-29_f6ae76ad",
+  "query": "I meant my 40 minute treadmill run on January 28 - how did that go?",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "CORRECTION",
+      "confidence": 0.92,
+      "selected_domains": [
+        "Running"
+      ],
+      "domain_selection_reasoning": "The user refers to a specific treadmill run, which falls under the Running domain (tracking distance, duration, and performance of treadmill sessions). No other domains (Strength, Nutrition, etc.) are relevant to this correction.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": "40 minute treadmill run on January 28",
+      "reasoning": "The phrase \"I meant\" signals a correction of previously recorded information. Although the user also asks \"how did that go?\", the dominant signal is the correction language, so the input is classified as a CORRECTION. The correction target is the specific run the user is referring to."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "insight",
+          "key": "run_distance_speed_mismatch_Jan28",
+          "value": "The 40‑minute treadmill run on 2026‑01‑28 is logged with a speed of 8 kph but a distance of only 3 km, which is inconsistent (8 kph × 40 min ≈ 5.3 km). This indicates a data entry mismatch for that workout.",
+          "confidence": "certain",
+          "source": "post_query: run performance request"
+        }
+      ],
+      "insights_captured": [
+        "Identified a discrepancy in the Jan 28 run log: speed and duration imply ~5.3 km, yet the recorded distance is 3 km."
+      ]
+    },
+    "correction": {
+      "success": true,
+      "target_entry_id": "2026-01-28_23-43-00",
+      "correction_delta": null,
+      "original_entry_id": "2026-01-28_23-43-00",
+      "error_message": null
+    }
+  },
+  "final_response": "Corrected entry 2026-01-28_23-43-00: None",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 12:52:52.679178",
+    "input_type": "CORRECTION",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

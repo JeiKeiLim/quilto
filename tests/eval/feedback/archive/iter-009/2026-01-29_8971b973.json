@@ -1,0 +1,93 @@
+{
+  "id": "2026-01-29_8971b973",
+  "query": "I ran 3km this morning at a relaxed pace",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.99,
+      "selected_domains": [
+        "Running",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement records a running activity (distance, time of day, effort), which directly maps to the Running domain. Running is also a type of general physical activity, so the broader GeneralFitness domain is relevant for overall activity logging.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a past‑tense declarative statement describing a completed run, with no question or correction. Therefore it is classified as a LOG with high confidence."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T04:00:28.796057Z",
+      "tags": [
+        "running",
+        "3km",
+        "relaxed"
+      ],
+      "domain_data": {
+        "Running": {
+          "distance": 3,
+          "distance_unit": "km",
+          "duration_minutes": null,
+          "pace": null,
+          "pace_unit": null,
+          "workout_type": "easy",
+          "terrain": null,
+          "splits": [],
+          "intervals": [],
+          "average_heart_rate": null,
+          "max_heart_rate": null,
+          "cadence": null,
+          "elevation_gain": null,
+          "elevation_loss": null,
+          "perceived_exertion": null,
+          "weather": null,
+          "notes": "relaxed pace",
+          "date": "2026-01-29"
+        }
+      },
+      "raw_content": "I ran 3km this morning at a relaxed pace",
+      "confidence": 0.9,
+      "extraction_notes": [
+        "The term \"relaxed pace\" was interpreted as an easy run, but the exact workout type was not explicitly stated."
+      ],
+      "uncertain_fields": [
+        "workout_type"
+      ],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "run_2026-01-29",
+          "value": "distance_km: 3, intensity: relaxed pace",
+          "confidence": "certain",
+          "source": "post_query: user reported a 3km run at a relaxed pace"
+        }
+      ],
+      "insights_captured": [
+        "User logged a 3 km run at a relaxed pace on 2026‑01‑29."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 13:01:07.335236",
+    "input_type": "LOG",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

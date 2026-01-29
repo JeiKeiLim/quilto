@@ -1,0 +1,65 @@
+{
+  "id": "2026-01-29_02ed8023",
+  "query": "My morning run yesterday",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.98,
+      "selected_domains": [
+        "Running",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement records a past running activity ('My morning run yesterday'), which directly maps to the Running domain for tracking distance, pace, etc. Running is also a type of general fitness activity, so the broader GeneralFitness domain is relevant as well.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The input is a past-tense declarative statement without any question words or correction language, so it is classified as a LOG. The content pertains to a running session, making the Running domain primary, and because running falls under overall fitness tracking, GeneralFitness is also applicable."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-28",
+      "timestamp": "2026-01-29T03:51:26.120784Z",
+      "tags": [
+        "morning",
+        "run"
+      ],
+      "domain_data": {
+        "Running": {
+          "notes": "My morning run yesterday",
+          "date": "2026-01-28"
+        }
+      },
+      "raw_content": "My morning run yesterday",
+      "confidence": 0.4,
+      "extraction_notes": [
+        "The input only mentions a morning run with no details on distance, duration, pace, terrain, or other metrics.",
+        "Date inferred from the word 'yesterday' relative to the provided timestamp."
+      ],
+      "uncertain_fields": [],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 12:51:41.454932",
+    "input_type": "LOG",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

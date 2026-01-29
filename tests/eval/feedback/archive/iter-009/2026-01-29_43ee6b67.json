@@ -1,0 +1,104 @@
+{
+  "id": "2026-01-29_43ee6b67",
+  "query": "I just did 50 pushups and 30 squats",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.99,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement logs completed bodyweight strength exercises (pushups and squats). This falls under the Strength domain, which tracks strength training activities, and also under GeneralFitness, which covers overall workout logging.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The input is a past‑tense declarative sentence describing completed exercises, with no question or correction language, so it is classified as a LOG."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T04:04:06.933202Z",
+      "tags": [
+        "pushups",
+        "squats"
+      ],
+      "domain_data": {
+        "GeneralFitness": {
+          "activity_type": "workout",
+          "exercises": [
+            {
+              "name": "push up",
+              "sets": null,
+              "reps": 50,
+              "weight": null,
+              "weight_unit": null,
+              "duration_seconds": null,
+              "distance": null,
+              "distance_unit": null
+            },
+            {
+              "name": "squat",
+              "sets": null,
+              "reps": 30,
+              "weight": null,
+              "weight_unit": null,
+              "duration_seconds": null,
+              "distance": null,
+              "distance_unit": null
+            }
+          ],
+          "duration_minutes": null,
+          "notes": null,
+          "perceived_effort": null,
+          "date": "2026-01-29"
+        }
+      },
+      "raw_content": "I just did 50 pushups and 30 squats",
+      "confidence": 0.98,
+      "extraction_notes": [],
+      "uncertain_fields": [],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "push_up_session_2026-01-29",
+          "value": "50 reps (bodyweight)",
+          "confidence": "certain",
+          "source": "post_query: user reported pushups and squats"
+        },
+        {
+          "category": "fact",
+          "key": "squat_bodyweight_session_2026-01-29",
+          "value": "30 reps (bodyweight)",
+          "confidence": "certain",
+          "source": "post_query: user reported pushups and squats"
+        }
+      ],
+      "insights_captured": [
+        "User performed 50 push‑ups and 30 bodyweight squats on 2026‑01‑29, adding a bodyweight strength session to their workout log."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 13:04:23.668766",
+    "input_type": "LOG",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}
