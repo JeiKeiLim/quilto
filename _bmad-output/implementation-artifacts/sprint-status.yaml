@@ -324,7 +324,7 @@ development_status:
   # Key Insight: Only persist user-stated info, not agent recommendations
   epic-22: in-progress
   22-1-observer-only-persists-user-stated-info: done  # HIGH - no fabricating from agent output - code reviewed
-  22-2-restrict-global-context-scope: backlog  # HIGH - preferences/goals/insights only
+  22-2-restrict-global-context-scope: done  # HIGH - preferences/goals/insights only - code reviewed
   22-3-add-observer-validation: backlog  # MEDIUM - prevent hallucinated facts
   22-4-add-session-id-to-feedback-json: backlog  # LOW - feedback tracking improvement
   22-5-dogfooding-iteration-11: backlog  # MEDIUM - Observer focus

@@ -99,8 +99,13 @@ User Correction: {observer_input.correction}
 
 What Was Corrected: {observer_input.what_was_corrected}
 
-NOTE: User corrections represent explicit preferences and should be treated
-with "certain" confidence. The user is directly telling us what they want."""
+NOTE: User corrections primarily UPDATE THE ENTRY ITSELF, not global context.
+Only persist to global context if the correction reveals a user PREFERENCE.
+
+Example - DO NOT persist: "Actually I ran 5km not 3km" (entry update only)
+Example - DO persist: "I always use metric units" (reveals preference)
+
+If correction reveals preference, treat with "certain" confidence."""
 
     def _format_significant_log_context(self, observer_input: ObserverInput) -> str:
         """Format context for significant_log trigger.
@@ -116,11 +121,18 @@ with "certain" confidence. The user is directly telling us what they want."""
 New Entry:
 {entry_str}
 
-Look for:
-- Personal records (PRs)
-- Milestones (100th workout, first marathon, etc.)
-- Major events (competition, race, etc.)
-- New activities being started"""
+=== SYSTEM ANALYSIS (for context only, NOT for persistence) ===
+This entry data is provided for context. Per-workout metrics are NOT for global context.
+
+ONLY look for USER-STATED items worthy of global context:
+- Personal records (PRs) explicitly stated by user: "New 5K PR: 22:30!"
+- Milestones explicitly stated: "100th workout today!"
+- Major achievements user celebrates: "First marathon completed!"
+
+DO NOT persist:
+- Per-workout data (duration, distance, pace, weights, reps)
+- Extracted metrics from the entry (these belong in PARSED ENTRIES, not global context)
+- Any data user didn't explicitly highlight as significant"""
 
     def _format_trigger_context(self, observer_input: ObserverInput) -> str:
         """Format trigger-specific context.
@@ -206,10 +218,10 @@ GOOD: {{"should_update": false}}  -- User asked a question, stated nothing to pe
 
 === CATEGORIES ===
 
-- "preference": User preferences (unit_preference, response_style)
-- "pattern": Behavioral patterns (typical_active_days, usual_time_of_day)
-- "fact": Objective facts (records, current_routine)
-- "insight": Correlations and observations (sleep_performance_correlation)
+- "preference": User-stated preferences (unit_preference, response_style) - ONLY from explicit user statements
+- "pattern": Behavioral patterns (typical_active_days, usual_time_of_day) - user described their routine
+- "fact": User-stated facts ONLY (PRs, milestones) - NEVER extracted from a single workout; user must explicitly state
+- "insight": Correlations and observations (sleep_performance_correlation) - derived from user-stated patterns
 
 === TRIGGER-SPECIFIC GUIDANCE ===
 
@@ -231,6 +243,29 @@ These should ONLY be in global context if explicitly stated by user:
 - Preferences: User must say "I prefer X" or "I like X" or similar
 - Patterns: User must describe their typical behavior explicitly
 - Facts: User must state the fact directly
+
+=== GLOBAL CONTEXT SCOPE (CRITICAL) ===
+
+WHAT BELONGS IN GLOBAL CONTEXT (Observer manages):
+├── Preferences (user-stated): "I prefer morning workouts"
+├── Goals (user-stated): "Training for a marathon"
+├── Insights (behavioral patterns): "User typically runs 3x/week"
+└── Milestones (user-stated achievements): "5K PR: 22:30"
+
+WHAT DOES NOT BELONG IN GLOBAL CONTEXT:
+├── Per-workout data: "40 min run, pace 5:30/km" (goes in PARSED ENTRIES)
+├── Per-session facts: "ran 5km today" (goes in PARSED ENTRIES)
+├── Single workout metrics: durations, distances, weights, reps from one session
+└── Corrections to entries: these update the entry itself, not global context
+
+SCOPE EXAMPLES:
+
+BAD: {{"fact": "run_2026-01-26: duration_minutes: 40"}} -- Per-session data, belongs in parsed entries
+BAD: {{"fact": "bench pressed 100kg today"}} -- Single workout metric, not global context
+
+GOOD: {{"preference": "prefers running in the morning"}} -- User-stated preference
+GOOD: {{"insight": "typically runs 3x/week based on stated routine"}} -- Behavioral pattern from user statement
+GOOD: {{"fact": "5K PR: 22:30", "source": "user stated '5K PR: 22:30'"}} -- User-stated milestone
 
 === KEY CONSOLIDATION RULES ===
 

@@ -1163,3 +1163,194 @@ class TestUserVsAgentContentDistinction:
         assert "user said" in source.lower() or "user stated" in source.lower()
         assert "running outdoors" in source.lower()
 
+
+# =============================================================================
+# Test Global Context Scope Restriction (Story 22.2)
+# =============================================================================
+
+
+class TestGlobalContextScopeRestriction:
+    """Tests for global context scope restriction in Observer prompt (Story 22.2).
+
+    These tests verify that the Observer prompt correctly instructs the LLM
+    to only persist preferences, goals, and insights - not per-session facts.
+    """
+
+    def test_observer_prompt_contains_global_context_scope_section(self) -> None:
+        """Prompt includes GLOBAL CONTEXT SCOPE (CRITICAL) section."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="post_query",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            query="I ran for 40 minutes today",
+            analysis={},
+            response="Great workout!",
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        assert "GLOBAL CONTEXT SCOPE (CRITICAL)" in prompt
+        assert "preferences" in prompt.lower()
+        assert "goals" in prompt.lower()
+        assert "insights" in prompt.lower()
+
+    def test_observer_prompt_excludes_per_session_facts(self) -> None:
+        """Prompt explicitly excludes per-session facts from global context."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="post_query",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            query="I ran 5km today",
+            analysis={},
+            response="Nice run!",
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        # Must explicitly state per-session/per-workout data doesn't belong
+        assert "per-session" in prompt.lower() or "per-workout" in prompt.lower()
+        assert "DOES NOT BELONG IN GLOBAL CONTEXT" in prompt
+
+    def test_observer_prompt_allows_user_stated_preferences(self) -> None:
+        """Prompt allows user-stated preferences to be persisted."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="post_query",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            query="I prefer morning workouts",
+            analysis={},
+            response="Great!",
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        # Must indicate preferences ARE allowed
+        assert "preference" in prompt.lower()
+        # Must show positive example of preference persistence
+        assert "morning workout" in prompt.lower() or "user-stated" in prompt.lower()
+
+    def test_observer_prompt_restricts_significant_log_to_milestones(self) -> None:
+        """Prompt restricts significant_log trigger to PRs and milestones only."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="significant_log",
+            current_global_context="",
+            context_management_guidance="Track PRs",
+            new_entry={"activity": "running", "duration": 40},
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        # Significant log should mention PRs/milestones as valid
+        assert "pr" in prompt.lower() or "personal record" in prompt.lower()
+        assert "milestone" in prompt.lower()
+        # Should NOT include per-workout metrics
+        assert "per-workout" in prompt.lower() or "workout metrics" in prompt.lower() or "NOT for persistence" in prompt
+
+    def test_observer_prompt_correction_scope_guidance(self) -> None:
+        """Prompt guides corrections to update entries, not global context (unless reveals preference)."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="user_correction",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            correction="Actually I ran 5km not 3km",
+            what_was_corrected="distance",
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        # Correction context should clarify scope
+        assert "correction" in prompt.lower()
+        # Should indicate corrections primarily update entries, not global context
+        # unless they reveal a preference
+        assert "preference" in prompt.lower() or "entry" in prompt.lower()
+
+    def test_observer_prompt_category_fact_requires_user_stated(self) -> None:
+        """Prompt clarifies 'fact' category only for user-stated facts."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="post_query",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            query="test",
+            analysis={},
+            response="test",
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        # Categories section should clarify fact scope
+        assert "fact" in prompt.lower()
+        # Should mention user-stated or explicitly stated
+        assert "user-stated" in prompt.lower() or "explicitly stated" in prompt.lower()
+
+    def test_observer_prompt_contains_mental_model_diagram(self) -> None:
+        """Prompt includes mental model showing what belongs in global context."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="post_query",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            query="test",
+            analysis={},
+            response="test",
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        # Mental model should show structure
+        assert "GLOBAL CONTEXT" in prompt
+        assert "Preferences" in prompt or "preferences" in prompt
+        assert "Goals" in prompt or "goals" in prompt
+        assert "PARSED ENTRIES" in prompt or "parsed entries" in prompt.lower()
+
+    def test_observer_prompt_contains_bad_examples(self) -> None:
+        """Prompt contains BAD examples showing what NOT to persist."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="post_query",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            query="test",
+            analysis={},
+            response="test",
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        # Must show bad example with per-session data
+        # e.g., {"fact": "run_2026-01-26: duration_minutes: 40"}
+        assert "duration" in prompt.lower() or "bench pressed" in prompt.lower()
+        assert "BAD" in prompt
+
+    def test_observer_prompt_contains_good_examples(self) -> None:
+        """Prompt contains GOOD examples showing what TO persist."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="post_query",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            query="test",
+            analysis={},
+            response="test",
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        # Must show good example with preference
+        assert "GOOD" in prompt
+        # Good examples should show preference or insight
+        assert "prefer" in prompt.lower() or "insight" in prompt.lower()
