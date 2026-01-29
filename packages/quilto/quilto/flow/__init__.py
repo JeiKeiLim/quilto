@@ -5,9 +5,10 @@ including correction processing that coordinates Parser and Storage operations.
 """
 
 from quilto.flow.correction import process_correction
-from quilto.flow.models import CorrectionResult
+from quilto.flow.models import CorrectionEdit, CorrectionResult
 
 __all__ = [
+    "CorrectionEdit",
     "CorrectionResult",
     "process_correction",
 ]

@@ -308,8 +308,8 @@ development_status:
   # Epic 21: Correction Redesign
   # Source: Epic 19 Retrospective + iter-008-pre user feedback
   # Key Insight: Edit raw markdown in-place, not create new entries
-  epic-21: backlog
-  21-1-redesign-correction-edit-raw-markdown: backlog  # CRITICAL - modify existing raw file, not create new
+  epic-21: in-progress
+  21-1-redesign-correction-edit-raw-markdown: done  # CRITICAL - modify existing raw file, not create new
   21-2-implement-surgical-edit: backlog  # HIGH - preserve surrounding content
   21-3-re-parse-modified-raw-file: backlog  # HIGH - update parsed entry after correction
   21-4-improve-parser-correction-entry-matching: backlog  # MEDIUM - improve entry matching reliability

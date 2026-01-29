@@ -1,10 +1,11 @@
 """Correction flow orchestration for handling user corrections.
 
 This module provides the process_correction function that orchestrates
-the correction flow: parsing correction input and saving with upsert
-semantics to storage.
+the correction flow: parsing correction input, editing raw markdown
+in-place, re-parsing, and updating the parsed JSON.
 """
 
+import logging
 from datetime import UTC, datetime
 
 from pydantic import BaseModel
@@ -15,6 +16,8 @@ from quilto.flow.models import CorrectionResult
 from quilto.storage import Entry, StorageRepository
 
 __all__ = ["process_correction"]
+
+logger = logging.getLogger(__name__)
 
 
 async def process_correction(
@@ -27,18 +30,21 @@ async def process_correction(
     user_input: str,
     timestamp: datetime | None = None,
 ) -> CorrectionResult:
-    """Process a correction request through Parser and Storage.
+    """Process a correction request by editing raw markdown in-place.
 
     Orchestrates the correction flow by:
     1. Validating the router output is a CORRECTION type
     2. Building ParserInput with correction mode enabled
-    3. Calling Parser to identify target and extract delta
-    4. Saving the correction with upsert semantics to storage
+    3. Calling Parser to identify target and generate corrected content
+    4. Locating the target section in the raw file
+    5. Editing the raw file in-place (surgical edit)
+    6. Re-parsing the modified section
+    7. Updating the parsed JSON entry
 
     Args:
         router_output: RouterOutput with input_type=CORRECTION and correction_target.
         parser_agent: ParserAgent instance for extraction.
-        storage: StorageRepository for saving corrected entry.
+        storage: StorageRepository for editing raw files.
         recent_entries: Recent entries for target identification.
         domain_schemas: Domain schemas for parsing.
         vocabulary: Vocabulary for term normalization.
@@ -63,6 +69,7 @@ async def process_correction(
         ... )
         >>> if result.success:
         ...     print(f"Corrected entry: {result.target_entry_id}")
+        ...     print(f"Modified file: {result.modified_file}")
     """
     # 1. Validate inputs
     if router_output.input_type != InputType.CORRECTION:
@@ -88,7 +95,7 @@ async def process_correction(
         correction_target=router_output.correction_target,
     )
 
-    # 3. Call Parser
+    # 3. Call Parser to identify target and generate corrected content
     parser_output = await parser_agent.parse(parser_input)
 
     # 4. Validate Parser identified the correction
@@ -104,23 +111,87 @@ async def process_correction(
             error_message="Could not identify target entry",
         )
 
-    # 5. Create Entry for storage
-    entry_id = f"{parser_output.date.isoformat()}_{ts.strftime('%H-%M-%S')}"
-    entry = Entry(
-        id=entry_id,
-        date=parser_output.date,
-        timestamp=ts,
-        raw_content=parser_output.raw_content,
-        parsed_data=parser_output.domain_data,
+    # 5. Locate the target section in the raw file
+    section_info = storage.find_raw_entry_section(parser_output.target_entry_id)
+    if section_info is None:
+        return CorrectionResult(
+            success=False,
+            error_message=f"Could not locate entry '{parser_output.target_entry_id}' in raw files",
+        )
+
+    file_path, start_line, end_line = section_info
+    logger.debug(
+        "process_correction: Found target section in %s lines %d-%d",
+        file_path,
+        start_line,
+        end_line,
     )
 
-    # 6. Save with correction (triggers append + upsert)
-    storage.save_entry(entry, correction=parser_output)
+    # 6. Build new section content
+    # Parser's raw_content IS the complete corrected section content (includes ## HH:MM header)
+    # Extract time from target_entry_id for the header
+    try:
+        _, time_part = parser_output.target_entry_id.split("_")
+        time_components = time_part.split("-")
+        hour = int(time_components[0])
+        minute = int(time_components[1])
+        time_header = f"## {hour:02d}:{minute:02d}"
+    except (ValueError, IndexError) as e:
+        logger.error("Failed to extract time from target_entry_id: %s", e)
+        return CorrectionResult(
+            success=False,
+            error_message=f"Invalid target_entry_id format: {parser_output.target_entry_id}",
+        )
 
-    # 7. Return success
+    # Build complete section content with header
+    new_content = f"{time_header}\n{parser_output.raw_content}\n"
+
+    # 7. Edit the raw file in-place
+    try:
+        storage.edit_raw_section(file_path, start_line, end_line, new_content)
+        logger.info(
+            "process_correction: Edited %s lines %d-%d for entry %s",
+            file_path,
+            start_line,
+            end_line,
+            parser_output.target_entry_id,
+        )
+    except (FileNotFoundError, ValueError) as e:
+        logger.error("Failed to edit raw section: %s", e)
+        return CorrectionResult(
+            success=False,
+            error_message=f"Failed to edit raw file: {e}",
+        )
+
+    # 8. Re-parse the modified section to get fresh parsed_data
+    reparse_input = ParserInput(
+        raw_input=parser_output.raw_content,
+        timestamp=ts,
+        domain_schemas=domain_schemas,
+        vocabulary=vocabulary,
+        correction_mode=False,  # Not correction mode for re-parse
+    )
+    reparse_output = await parser_agent.parse(reparse_input)
+
+    # 9. Update the parsed JSON entry (upsert semantics)
+    # Accessing private methods here is intentional - correction flow is internal to quilto
+    parsed_path = storage._get_parsed_path(parser_output.date)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+    storage._update_parsed_json(  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+        parsed_path,
+        parser_output.target_entry_id,
+        reparse_output.domain_data,
+    )
+    logger.debug(
+        "process_correction: Updated parsed JSON for entry %s",
+        parser_output.target_entry_id,
+    )
+
+    # 10. Return success with details
     return CorrectionResult(
         success=True,
         target_entry_id=parser_output.target_entry_id,
         correction_delta=parser_output.correction_delta,
         original_entry_id=parser_output.target_entry_id,
+        modified_file=file_path,
+        edited_lines=(start_line, end_line),
     )

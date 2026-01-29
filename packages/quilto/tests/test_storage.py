@@ -395,10 +395,14 @@ class TestSaveEntry:
 
 
 class TestCorrections:
-    """Tests for correction flow."""
+    """Tests for correction flow (in-place editing)."""
 
-    def test_save_correction_appends_note(self, tmp_path: Path) -> None:
-        """Test that corrections append a note to raw markdown."""
+    def test_correction_updates_parsed_json_via_save_entry(self, tmp_path: Path) -> None:
+        """Test that save_entry still updates parsed JSON for corrections.
+
+        Note: Raw markdown edits are now done via edit_raw_section().
+        save_entry() no longer appends [correction] markers to raw files.
+        """
         repo = StorageRepository(tmp_path)
 
         # Save original entry
@@ -411,7 +415,7 @@ class TestCorrections:
         )
         repo.save_entry(original)
 
-        # Save correction
+        # Save correction - this now only updates parsed JSON, not raw markdown
         correction_entry = Entry(
             id="2026-01-01_10-45-00",
             date=date(2026, 1, 1),
@@ -424,11 +428,6 @@ class TestCorrections:
             correction_delta={"weight": 185},
         )
         repo.save_entry(correction_entry, correction=correction)
-
-        # Check raw file has correction marker
-        raw_path = tmp_path / "raw" / "2026" / "01" / "2026-01-01.md"
-        content = raw_path.read_text()
-        assert "[correction]" in content
 
         # Check parsed data was updated
         parsed_path = tmp_path / "parsed" / "2026" / "01" / "2026-01-01.json"
@@ -461,6 +460,330 @@ class TestCorrections:
         parsed_path = tmp_path / "parsed" / "2026" / "01" / "2026-01-01.json"
         parsed = json.loads(parsed_path.read_text())
         assert parsed["2026-01-01_10-30-00"]["weight"] == 185
+
+
+class TestFindRawEntrySection:
+    """Tests for find_raw_entry_section() method."""
+
+    def test_find_existing_entry(self, tmp_path: Path) -> None:
+        """Test finding an existing entry returns (Path, start, end) tuple."""
+        repo = StorageRepository(tmp_path)
+
+        # Create raw file with entry
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        (raw_dir / "2026-01-26.md").write_text("## 18:33\nRan 5km in 30 minutes\n")
+
+        result = repo.find_raw_entry_section("2026-01-26_18-33-00")
+
+        assert result is not None
+        file_path, start, end = result
+        assert file_path == raw_dir / "2026-01-26.md"
+        assert start == 0
+        assert end == 2  # Line 0 is header, line 1 is content
+
+    def test_find_entry_file_missing(self, tmp_path: Path) -> None:
+        """Test finding entry when file doesn't exist returns None."""
+        repo = StorageRepository(tmp_path)
+
+        result = repo.find_raw_entry_section("2026-01-26_18-33-00")
+
+        assert result is None
+
+    def test_find_entry_section_missing(self, tmp_path: Path) -> None:
+        """Test finding entry when section doesn't exist returns None."""
+        repo = StorageRepository(tmp_path)
+
+        # Create raw file with different entry
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        (raw_dir / "2026-01-26.md").write_text("## 10:00\nDifferent entry\n")
+
+        result = repo.find_raw_entry_section("2026-01-26_18-33-00")
+
+        assert result is None
+
+    def test_find_middle_section_in_file(self, tmp_path: Path) -> None:
+        """Test finding a section that's not the first or last."""
+        repo = StorageRepository(tmp_path)
+
+        # Create raw file with multiple entries
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        content = """\
+## 08:00
+Morning workout
+
+## 12:30
+Lunch run
+
+## 18:00
+Evening session
+"""
+        (raw_dir / "2026-01-26.md").write_text(content)
+
+        result = repo.find_raw_entry_section("2026-01-26_12-30-00")
+
+        assert result is not None
+        _, start, end = result
+        assert start == 3  # Line 3 is "## 12:30"
+        assert end == 6  # Line 6 is "## 18:00"
+
+    def test_find_first_section(self, tmp_path: Path) -> None:
+        """Test finding first section in file (start=0)."""
+        repo = StorageRepository(tmp_path)
+
+        # Create raw file with multiple entries
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        content = """\
+## 08:00
+Morning workout
+
+## 12:30
+Lunch run
+"""
+        (raw_dir / "2026-01-26.md").write_text(content)
+
+        result = repo.find_raw_entry_section("2026-01-26_08-00-00")
+
+        assert result is not None
+        _, start, end = result
+        assert start == 0
+        assert end == 3  # Line 3 is "## 12:30"
+
+    def test_find_last_section(self, tmp_path: Path) -> None:
+        """Test finding last section in file (end=len(lines))."""
+        repo = StorageRepository(tmp_path)
+
+        # Create raw file with multiple entries
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        content = """\
+## 08:00
+Morning workout
+
+## 18:00
+Evening session
+"""
+        (raw_dir / "2026-01-26.md").write_text(content)
+
+        result = repo.find_raw_entry_section("2026-01-26_18-00-00")
+
+        assert result is not None
+        _, start, end = result
+        assert start == 3
+        assert end == 5  # Total lines in file
+
+    def test_find_single_section_file(self, tmp_path: Path) -> None:
+        """Test finding section when it's the only one in file."""
+        repo = StorageRepository(tmp_path)
+
+        # Create raw file with single entry
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        (raw_dir / "2026-01-26.md").write_text("## 18:33\nThe only entry\n")
+
+        result = repo.find_raw_entry_section("2026-01-26_18-33-00")
+
+        assert result is not None
+        _, start, end = result
+        assert start == 0
+        assert end == 2  # Total lines
+
+    def test_duplicate_timestamps_returns_none(self, tmp_path: Path) -> None:
+        """Test that multiple sections with same time returns None (ambiguous)."""
+        repo = StorageRepository(tmp_path)
+
+        # Create raw file with duplicate timestamps
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        content = """## 18:33
+First entry
+
+## 18:33
+Duplicate timestamp
+"""
+        (raw_dir / "2026-01-26.md").write_text(content)
+
+        result = repo.find_raw_entry_section("2026-01-26_18-33-00")
+
+        assert result is None
+
+    def test_invalid_entry_id_format(self, tmp_path: Path) -> None:
+        """Test that invalid entry_id format returns None."""
+        repo = StorageRepository(tmp_path)
+
+        # Create raw file
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        (raw_dir / "2026-01-26.md").write_text("## 18:33\nContent\n")
+
+        result = repo.find_raw_entry_section("invalid-format")
+
+        assert result is None
+
+
+class TestEditRawSection:
+    """Tests for edit_raw_section() method."""
+
+    def test_edit_preserves_surrounding_content(self, tmp_path: Path) -> None:
+        """Test that edit preserves content before and after the section."""
+        repo = StorageRepository(tmp_path)
+
+        # Create raw file with multiple entries
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        original_content = """## 08:00
+Morning workout
+
+## 12:30
+Lunch run - 5km
+
+## 18:00
+Evening session
+"""
+        file_path = raw_dir / "2026-01-26.md"
+        file_path.write_text(original_content)
+
+        # Edit middle section (lines 4-7)
+        new_section = "## 12:30\nLunch run - 3km (corrected)\n"
+        repo.edit_raw_section(file_path, start=4, end=7, new_content=new_section)
+
+        # Verify surrounding content unchanged
+        modified = file_path.read_text()
+        assert "Morning workout" in modified
+        assert "Evening session" in modified
+        assert "3km (corrected)" in modified
+        assert "5km" not in modified  # Old value gone
+
+    def test_edit_first_section(self, tmp_path: Path) -> None:
+        """Test editing first section in file (start=0)."""
+        repo = StorageRepository(tmp_path)
+
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        original_content = """## 08:00
+Morning workout - 30min
+
+## 18:00
+Evening session
+"""
+        file_path = raw_dir / "2026-01-26.md"
+        file_path.write_text(original_content)
+
+        new_section = "## 08:00\nMorning workout - 45min (corrected)\n"
+        repo.edit_raw_section(file_path, start=0, end=4, new_content=new_section)
+
+        modified = file_path.read_text()
+        assert "45min (corrected)" in modified
+        assert "Evening session" in modified
+
+    def test_edit_last_section(self, tmp_path: Path) -> None:
+        """Test editing last section in file (end=len(lines))."""
+        repo = StorageRepository(tmp_path)
+
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        original_content = """## 08:00
+Morning workout
+
+## 18:00
+Evening session - 1hr
+"""
+        file_path = raw_dir / "2026-01-26.md"
+        file_path.write_text(original_content)
+
+        new_section = "## 18:00\nEvening session - 2hr (corrected)\n"
+        repo.edit_raw_section(file_path, start=4, end=6, new_content=new_section)
+
+        modified = file_path.read_text()
+        assert "Morning workout" in modified
+        assert "2hr (corrected)" in modified
+
+    def test_edit_single_section_file(self, tmp_path: Path) -> None:
+        """Test editing when file has only one section."""
+        repo = StorageRepository(tmp_path)
+
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        file_path = raw_dir / "2026-01-26.md"
+        file_path.write_text("## 18:33\nOriginal content\n")
+
+        new_section = "## 18:33\nCorrected content\n"
+        repo.edit_raw_section(file_path, start=0, end=2, new_content=new_section)
+
+        modified = file_path.read_text()
+        assert "Corrected content" in modified
+        assert "Original content" not in modified
+
+    def test_edit_file_not_found(self, tmp_path: Path) -> None:
+        """Test that editing non-existent file raises FileNotFoundError."""
+        repo = StorageRepository(tmp_path)
+
+        with pytest.raises(FileNotFoundError):
+            repo.edit_raw_section(
+                tmp_path / "nonexistent.md",
+                start=0,
+                end=2,
+                new_content="## 10:00\nContent\n",
+            )
+
+    def test_edit_invalid_start(self, tmp_path: Path) -> None:
+        """Test that negative start raises ValueError."""
+        repo = StorageRepository(tmp_path)
+
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        file_path = raw_dir / "2026-01-26.md"
+        file_path.write_text("## 18:33\nContent\n")
+
+        with pytest.raises(ValueError, match="start must be >= 0"):
+            repo.edit_raw_section(file_path, start=-1, end=2, new_content="test")
+
+    def test_edit_invalid_range(self, tmp_path: Path) -> None:
+        """Test that start >= end raises ValueError."""
+        repo = StorageRepository(tmp_path)
+
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        file_path = raw_dir / "2026-01-26.md"
+        file_path.write_text("## 18:33\nContent\n")
+
+        with pytest.raises(ValueError, match="start must be < end"):
+            repo.edit_raw_section(file_path, start=5, end=2, new_content="test")
+
+    def test_edit_preserves_utf8_encoding(self, tmp_path: Path) -> None:
+        """Test that edit preserves UTF-8 content."""
+        repo = StorageRepository(tmp_path)
+
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        file_path = raw_dir / "2026-01-26.md"
+        file_path.write_text("## 18:33\n운동 메모: 달리기 5km\n", encoding="utf-8")
+
+        new_section = "## 18:33\n운동 메모: 달리기 3km (수정됨)\n"
+        repo.edit_raw_section(file_path, start=0, end=2, new_content=new_section)
+
+        modified = file_path.read_text(encoding="utf-8")
+        assert "3km (수정됨)" in modified
+
+    def test_atomic_write_safety(self, tmp_path: Path) -> None:
+        """Test that atomic write doesn't corrupt file on success."""
+        repo = StorageRepository(tmp_path)
+
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        file_path = raw_dir / "2026-01-26.md"
+        original = "## 18:33\nOriginal content\n"
+        file_path.write_text(original)
+
+        # Perform multiple edits to verify consistency
+        for i in range(3):
+            new_section = f"## 18:33\nIteration {i}\n"
+            repo.edit_raw_section(file_path, start=0, end=2, new_content=new_section)
+            content = file_path.read_text()
+            assert f"Iteration {i}" in content
 
 
 class TestGlobalContext:
@@ -574,8 +897,13 @@ class TestEdgeCases:
         assert entries[0].raw_content == "Actual content"
         assert entries[1].raw_content == "Another entry"
 
-    def test_pattern_with_correction_entries(self, tmp_path: Path) -> None:
-        """Test that pattern retrieval handles correction entries."""
+    def test_pattern_with_legacy_correction_entries(self, tmp_path: Path) -> None:
+        """Test that pattern retrieval handles legacy [correction] marked entries.
+
+        Note: This tests backward compatibility for parsing files with the OLD
+        [correction] marker format. New corrections use in-place editing and
+        don't create [correction] markers.
+        """
         repo = StorageRepository(tmp_path)
 
         raw_dir = tmp_path / "raw" / "2026" / "01"

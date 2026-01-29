@@ -116,6 +116,46 @@ def sample_entries() -> list[Entry]:
 
 
 # =============================================================================
+# Test CorrectionEdit Model (Story 21.1)
+# =============================================================================
+
+
+class TestCorrectionEditModel:
+    """Tests for CorrectionEdit Pydantic model."""
+
+    def test_correction_edit_creation(self) -> None:
+        """Test creating a valid CorrectionEdit."""
+        from quilto.flow.models import CorrectionEdit
+
+        edit = CorrectionEdit(
+            target_file=Path("raw/2026/01/2026-01-26.md"),
+            section_start=12,
+            section_end=18,
+            original_content="## 18:33\n40 minutes at 8kph, 5km",
+            new_content="## 18:33\n40 minutes at 8kph, 3km",
+        )
+
+        assert edit.target_file == Path("raw/2026/01/2026-01-26.md")
+        assert edit.section_start == 12
+        assert edit.section_end == 18
+        assert "5km" in edit.original_content
+        assert "3km" in edit.new_content
+
+    def test_correction_edit_strict_mode(self) -> None:
+        """Test CorrectionEdit strict mode rejects type coercion."""
+        from quilto.flow.models import CorrectionEdit
+
+        with pytest.raises(ValidationError):
+            CorrectionEdit(
+                target_file="raw/2026/01/2026-01-26.md",  # type: ignore[arg-type]  # Should be Path
+                section_start=12,
+                section_end=18,
+                original_content="original",
+                new_content="new",
+            )
+
+
+# =============================================================================
 # Test CorrectionResult Model Validation
 # =============================================================================
 
@@ -138,6 +178,20 @@ class TestCorrectionResultModel:
         assert result.original_entry_id == "2026-01-14_10-30-00"
         assert result.error_message is None
 
+    def test_successful_correction_result_with_file_info(self) -> None:
+        """Test CorrectionResult with modified_file and edited_lines (Story 21.1)."""
+        result = CorrectionResult(
+            success=True,
+            target_entry_id="2026-01-14_10-30-00",
+            correction_delta={"weight_kg": 84.0},
+            original_entry_id="2026-01-14_10-30-00",
+            modified_file=Path("raw/2026/01/2026-01-14.md"),
+            edited_lines=(12, 18),
+        )
+
+        assert result.modified_file == Path("raw/2026/01/2026-01-14.md")
+        assert result.edited_lines == (12, 18)
+
     def test_failed_correction_result(self) -> None:
         """Test valid failed CorrectionResult."""
         result = CorrectionResult(
@@ -148,6 +202,8 @@ class TestCorrectionResultModel:
         assert result.success is False
         assert result.error_message == "Could not identify target entry"
         assert result.target_entry_id is None
+        assert result.modified_file is None
+        assert result.edited_lines is None
 
     def test_success_true_requires_target_entry_id(self) -> None:
         """Test that success=True requires target_entry_id."""
@@ -603,15 +659,20 @@ class TestParserCorrectionPrompt:
 
 
 # =============================================================================
-# Test StorageRepository Correction Integration
+# Test StorageRepository Correction Integration (In-Place Editing)
 # =============================================================================
 
 
 class TestStorageRepositoryCorrectionIntegration:
-    """Integration tests for correction with StorageRepository."""
+    """Integration tests for in-place correction with StorageRepository.
 
-    def test_correction_appends_to_raw_file(self, tmp_path: Path) -> None:
-        """Test that correction appends with [correction] marker."""
+    Note: Story 21.1 changed correction behavior from append-based to in-place editing.
+    - Old behavior: save_entry() appended "## HH:MM [correction]" sections
+    - New behavior: edit_raw_section() modifies original section in-place
+    """
+
+    def test_in_place_edit_modifies_raw_file(self, tmp_path: Path) -> None:
+        """Test that in-place edit modifies raw file without [correction] marker."""
         storage = StorageRepository(tmp_path)
 
         # Save original entry
@@ -624,33 +685,21 @@ class TestStorageRepositoryCorrectionIntegration:
         )
         storage.save_entry(original)
 
-        # Save correction
-        correction_entry = Entry(
-            id="2026-01-14_10-45-00",
-            date=date(2026, 1, 14),
-            timestamp=datetime(2026, 1, 14, 10, 45, 0),
-            raw_content="Correction: bench was 185, not 85",
-        )
-        correction = ParserOutput(
-            date=date(2026, 1, 14),
-            timestamp=datetime(2026, 1, 14, 10, 45, 0),
-            domain_data={},
-            raw_content="Correction: bench was 185, not 85",
-            confidence=0.9,
-            is_correction=True,
-            target_entry_id="2026-01-14_10-30-00",
-            correction_delta={"weight_kg": 84.0},
-        )
-        storage.save_entry(correction_entry, correction=correction)
-
-        # Verify raw file
+        # Use in-place edit (as correction flow now does)
         raw_path = tmp_path / "raw" / "2026" / "01" / "2026-01-14.md"
-        content = raw_path.read_text()
+        storage.edit_raw_section(
+            raw_path,
+            start=0,
+            end=2,  # Header + content
+            new_content="## 10:30\nBench pressed 185x5 (corrected)\n",
+        )
 
+        # Verify raw file has corrected content, NO [correction] marker
+        content = raw_path.read_text()
         assert "## 10:30" in content
-        assert "## 10:45 [correction]" in content
-        assert "Bench pressed 85x5" in content
-        assert "Correction: bench was 185" in content
+        assert "[correction]" not in content
+        assert "185x5 (corrected)" in content
+        assert "Bench pressed 85" not in content  # Original "85x5" gone (not as substring of 185)
 
     def test_correction_updates_parsed_json(self, tmp_path: Path) -> None:
         """Test that correction updates parsed JSON with upsert."""
@@ -666,7 +715,7 @@ class TestStorageRepositoryCorrectionIntegration:
         )
         storage.save_entry(original)
 
-        # Save correction
+        # Save correction - this still updates parsed JSON
         correction_entry = Entry(
             id="2026-01-14_10-45-00",
             date=date(2026, 1, 14),
@@ -694,8 +743,8 @@ class TestStorageRepositoryCorrectionIntegration:
         assert parsed_data["2026-01-14_10-30-00"]["reps"] == 5
         assert parsed_data["2026-01-14_10-30-00"]["weight_kg"] == 84.0  # Updated
 
-    def test_reading_corrected_entries(self, tmp_path: Path) -> None:
-        """Test that reading entries returns updated data after correction."""
+    def test_in_place_edit_then_read_entries(self, tmp_path: Path) -> None:
+        """Test that reading entries after in-place edit returns corrected content."""
         storage = StorageRepository(tmp_path)
 
         # Save original entry
@@ -703,40 +752,63 @@ class TestStorageRepositoryCorrectionIntegration:
             id="2026-01-14_10-30-00",
             date=date(2026, 1, 14),
             timestamp=datetime(2026, 1, 14, 10, 30, 0),
-            raw_content="Bench pressed 85x5",
-            parsed_data={"exercise": "bench press", "weight_kg": 38.6},
+            raw_content="Ran 5km in 30 minutes",
+            parsed_data={"distance_km": 5},
         )
         storage.save_entry(original)
 
-        # Save correction
-        correction_entry = Entry(
-            id="2026-01-14_10-45-00",
-            date=date(2026, 1, 14),
-            timestamp=datetime(2026, 1, 14, 10, 45, 0),
-            raw_content="Correction: weight was 84kg",
+        # Edit raw section in-place (as new correction flow does)
+        raw_path = tmp_path / "raw" / "2026" / "01" / "2026-01-14.md"
+        storage.edit_raw_section(
+            raw_path,
+            start=0,
+            end=2,
+            new_content="## 10:30\nRan 3km in 30 minutes (corrected distance)\n",
         )
-        correction = ParserOutput(
-            date=date(2026, 1, 14),
-            timestamp=datetime(2026, 1, 14, 10, 45, 0),
-            domain_data={},
-            raw_content="Correction: weight was 84kg",
-            confidence=0.9,
-            is_correction=True,
-            target_entry_id="2026-01-14_10-30-00",
-            correction_delta={"weight_kg": 84.0},
-        )
-        storage.save_entry(correction_entry, correction=correction)
+
+        # Update parsed JSON
+        parsed_path = storage._get_parsed_path(date(2026, 1, 14))  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+        storage._update_parsed_json(parsed_path, "2026-01-14_10-30-00", {"distance_km": 3})  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
 
         # Read entries back
         entries = storage.get_entries_by_date_range(date(2026, 1, 14), date(2026, 1, 14))
 
-        # Should have 2 entries (original + correction)
-        assert len(entries) == 2
+        # Should have 1 entry (no duplicate from old [correction] append)
+        assert len(entries) == 1
 
-        # Original entry should have updated parsed_data
-        original_entry = next(e for e in entries if e.id == "2026-01-14_10-30-00")
-        assert original_entry.parsed_data is not None
-        assert original_entry.parsed_data["weight_kg"] == 84.0
+        # Entry should have corrected raw_content and parsed_data
+        entry = entries[0]
+        assert entry.id == "2026-01-14_10-30-00"
+        assert "3km" in entry.raw_content
+        assert entry.parsed_data is not None
+        assert entry.parsed_data["distance_km"] == 3
+
+    def test_no_correction_marker_in_raw_file(self, tmp_path: Path) -> None:
+        """Test that [correction] marker is NOT created after in-place edit."""
+        storage = StorageRepository(tmp_path)
+
+        # Save original entry
+        original = Entry(
+            id="2026-01-14_10-30-00",
+            date=date(2026, 1, 14),
+            timestamp=datetime(2026, 1, 14, 10, 30, 0),
+            raw_content="Original content",
+            parsed_data={},
+        )
+        storage.save_entry(original)
+
+        # Perform in-place edit
+        raw_path = tmp_path / "raw" / "2026" / "01" / "2026-01-14.md"
+        storage.edit_raw_section(
+            raw_path,
+            start=0,
+            end=2,
+            new_content="## 10:30\nCorrected content\n",
+        )
+
+        # Verify NO [correction] marker anywhere
+        content = raw_path.read_text()
+        assert "[correction]" not in content
 
 
 # =============================================================================

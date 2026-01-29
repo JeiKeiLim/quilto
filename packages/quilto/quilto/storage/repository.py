@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+import tempfile
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
@@ -266,12 +267,14 @@ class StorageRepository:
         For new entries, creates or appends to the raw markdown file and
         creates/updates the parsed JSON file.
 
-        For corrections, appends a correction note to the raw file and
-        updates the parsed JSON with the correction delta.
+        Note: Correction flow now uses edit_raw_section() for in-place edits.
+        The correction parameter is kept for backward compatibility with
+        parsed JSON updates only.
 
         Args:
             entry: The Entry to save.
-            correction: Optional ParserOutput for correction flow.
+            correction: Optional ParserOutput for parsed JSON updates only.
+                Raw markdown corrections are now handled via edit_raw_section().
         """
         raw_path = self._get_raw_path(entry.date)
         parsed_path = self._get_parsed_path(entry.date)
@@ -280,23 +283,16 @@ class StorageRepository:
         raw_path.parent.mkdir(parents=True, exist_ok=True)
         parsed_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Handle raw markdown
+        # Handle raw markdown - always append new entries
+        # (corrections now use edit_raw_section() for in-place edits)
         time_str = entry.timestamp.strftime("%H:%M")
+        entry_content = f"## {time_str}\n{entry.raw_content}\n"
 
-        if correction and correction.is_correction:
-            # Correction flow: append correction note
-            correction_content = f"\n\n## {time_str} [correction]\n{entry.raw_content}"
+        if raw_path.exists():
             with raw_path.open("a", encoding="utf-8") as f:
-                f.write(correction_content)
+                f.write(f"\n{entry_content}")
         else:
-            # New entry: create or append
-            entry_content = f"## {time_str}\n{entry.raw_content}\n"
-
-            if raw_path.exists():
-                with raw_path.open("a", encoding="utf-8") as f:
-                    f.write(f"\n{entry_content}")
-            else:
-                raw_path.write_text(entry_content, encoding="utf-8")
+            raw_path.write_text(entry_content, encoding="utf-8")
 
         # Handle parsed JSON
         if correction and correction.is_correction and correction.correction_delta:
@@ -376,6 +372,206 @@ class StorageRepository:
         context_path = self.base_path / "context" / "global.md"
         context_path.parent.mkdir(parents=True, exist_ok=True)
         context_path.write_text(content, encoding="utf-8")
+
+    def find_raw_entry_section(self, entry_id: str) -> tuple[Path, int, int] | None:
+        """Locate the raw file and line boundaries for an entry.
+
+        Parses the entry_id format `{YYYY-MM-DD}_{HH-MM-SS}` to find the
+        corresponding raw file and the section starting with `## HH:MM`.
+
+        Args:
+            entry_id: Entry ID in format `YYYY-MM-DD_HH-MM-SS`.
+
+        Returns:
+            Tuple of (file_path, start_line, end_line) where:
+            - file_path: Path to the raw markdown file
+            - start_line: 0-indexed line number of the `## HH:MM` header
+            - end_line: 0-indexed line number of the line before the next
+              `## ` section header or EOF (exclusive, Python slice convention)
+            Returns None if entry not found (file missing, no matching section,
+            or multiple sections match the same time).
+
+        Example:
+            >>> result = repo.find_raw_entry_section("2026-01-26_18-33-00")
+            >>> if result:
+            ...     file_path, start, end = result
+            ...     print(f"Section at lines {start}-{end} in {file_path}")
+        """
+        # Parse entry_id format: YYYY-MM-DD_HH-MM-SS
+        try:
+            date_part, time_part = entry_id.split("_")
+            entry_date = date.fromisoformat(date_part)
+            # Time part is HH-MM-SS, we need HH:MM for header matching
+            time_components = time_part.split("-")
+            if len(time_components) != 3:
+                logger.warning("Invalid entry_id time format: %s", entry_id)
+                return None
+            target_hour = int(time_components[0])
+            target_minute = int(time_components[1])
+        except (ValueError, IndexError) as e:
+            logger.warning("Failed to parse entry_id '%s': %s", entry_id, e)
+            return None
+
+        # Get raw file path
+        raw_path = self._get_raw_path(entry_date)
+        if not raw_path.exists():
+            logger.debug("Raw file not found for entry_id '%s': %s", entry_id, raw_path)
+            return None
+
+        # Read file and find section
+        content = raw_path.read_text(encoding="utf-8")
+        lines = content.splitlines(keepends=True)
+
+        # Pattern for section headers: ## HH:MM or ## HH:MM [correction]
+        section_pattern = re.compile(r"^## (\d{2}):(\d{2})(?:\s*\[correction\])?\s*$")
+
+        # Find all section headers and their line numbers
+        section_starts: list[tuple[int, int, int]] = []  # (line_num, hour, minute)
+        for line_num, line in enumerate(lines):
+            match = section_pattern.match(line.rstrip("\n\r"))
+            if match:
+                hour = int(match.group(1))
+                minute = int(match.group(2))
+                section_starts.append((line_num, hour, minute))
+
+        # Find matching section
+        matching_sections = [
+            (line_num, hour, minute)
+            for line_num, hour, minute in section_starts
+            if hour == target_hour and minute == target_minute
+        ]
+
+        if len(matching_sections) == 0:
+            logger.debug("No section found for entry_id '%s' in %s", entry_id, raw_path)
+            return None
+
+        if len(matching_sections) > 1:
+            # Multiple sections with same timestamp - ambiguous, return None
+            logger.warning(
+                "Multiple sections match entry_id '%s' in %s, returning None",
+                entry_id,
+                raw_path,
+            )
+            return None
+
+        # Found exactly one match
+        start_line = matching_sections[0][0]
+
+        # Find end line (next section or EOF)
+        end_line = len(lines)  # Default to end of file
+        for line_num, _, _ in section_starts:
+            if line_num > start_line:
+                end_line = line_num
+                break
+
+        logger.debug(
+            "Found section for entry_id '%s': %s lines %d-%d",
+            entry_id,
+            raw_path,
+            start_line,
+            end_line,
+        )
+        return (raw_path, start_line, end_line)
+
+    def edit_raw_section(
+        self,
+        file_path: Path,
+        start: int,
+        end: int,
+        new_content: str,
+    ) -> None:
+        r"""Edit a section of a raw markdown file in-place.
+
+        Replaces lines[start:end] with the new content. Uses atomic write
+        (tempfile + rename) to prevent data loss if process crashes mid-write.
+
+        Args:
+            file_path: Path to the raw markdown file to edit.
+            start: Starting line number (0-indexed, inclusive).
+            end: Ending line number (0-indexed, exclusive).
+            new_content: New content to replace the section with. MUST include
+                the `## HH:MM` header line (caller provides complete section).
+
+        Raises:
+            FileNotFoundError: If file_path does not exist.
+            ValueError: If start >= end or start < 0.
+
+        Example:
+            >>> repo.edit_raw_section(
+            ...     Path("raw/2026/01/2026-01-26.md"),
+            ...     start=12,
+            ...     end=18,
+            ...     new_content="## 18:33\n40 minutes at 8kph, 3km\n",
+            ... )
+        """
+        if not file_path.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        if start < 0:
+            raise ValueError(f"start must be >= 0, got {start}")
+
+        if start >= end:
+            raise ValueError(f"start must be < end, got start={start}, end={end}")
+
+        # Read file preserving line endings
+        content = file_path.read_text(encoding="utf-8")
+        lines = content.splitlines(keepends=True)
+
+        original_line_count = len(lines)
+        original_byte_count = len(content.encode("utf-8"))
+
+        logger.debug(
+            "edit_raw_section: %s start=%d end=%d (file has %d lines, %d bytes)",
+            file_path,
+            start,
+            end,
+            original_line_count,
+            original_byte_count,
+        )
+
+        # Ensure new_content ends with newline for consistency
+        if new_content and not new_content.endswith("\n"):
+            new_content = new_content + "\n"
+
+        # Convert new_content to lines
+        new_lines = new_content.splitlines(keepends=True)
+
+        # Replace section: lines[start:end] with new_lines
+        modified_lines = lines[:start] + new_lines + lines[end:]
+
+        # Join back to content
+        modified_content = "".join(modified_lines)
+        modified_byte_count = len(modified_content.encode("utf-8"))
+
+        logger.debug(
+            "edit_raw_section: replacing lines %d-%d with %d new lines (%d bytes -> %d bytes)",
+            start,
+            end,
+            len(new_lines),
+            original_byte_count,
+            modified_byte_count,
+        )
+
+        # Atomic write: write to temp file, then rename
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=file_path.parent,
+                delete=False,
+            ) as temp_fd:
+                temp_path = Path(temp_fd.name)
+                temp_fd.write(modified_content)
+
+            # Atomic rename
+            temp_path.replace(file_path)
+            logger.debug("edit_raw_section: atomic write complete to %s", file_path)
+        except Exception:
+            # Clean up temp file on error
+            if temp_path is not None and temp_path.exists():
+                temp_path.unlink()
+            raise
 
     def get_storage_summary(self) -> StorageSummary:
         """Get summary of storage contents for Planner awareness.
