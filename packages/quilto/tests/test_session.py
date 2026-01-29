@@ -209,6 +209,33 @@ class TestSessionConfig:
             SessionConfig(max_conversation_turns=1)
         assert "greater than or equal to 2" in str(exc_info.value)
 
+    def test_default_context_turns(self) -> None:
+        """Default context_turns should be 6."""
+        config = SessionConfig()
+        assert config.context_turns == 6
+
+    def test_custom_context_turns(self) -> None:
+        """Custom context_turns should be accepted."""
+        config = SessionConfig(context_turns=10)
+        assert config.context_turns == 10
+
+    def test_minimum_context_turns_boundary(self) -> None:
+        """context_turns=2 should be accepted (minimum valid)."""
+        config = SessionConfig(context_turns=2)
+        assert config.context_turns == 2
+
+    def test_context_turns_below_minimum_rejected(self) -> None:
+        """context_turns < 2 should be rejected."""
+        with pytest.raises(ValidationError) as exc_info:
+            SessionConfig(context_turns=1)
+        assert "greater than or equal to 2" in str(exc_info.value)
+
+    def test_context_and_storage_independent(self) -> None:
+        """context_turns and max_conversation_turns should be independent."""
+        config = SessionConfig(max_conversation_turns=50, context_turns=4)
+        assert config.max_conversation_turns == 50
+        assert config.context_turns == 4
+
 
 # =============================================================================
 # SessionInfo Model Tests
@@ -588,6 +615,211 @@ class TestSession:
         metadata_turn = next((t for t in reloaded.conversation if t.metadata is not None), None)
         assert metadata_turn is not None
         assert metadata_turn.metadata == complex_metadata
+
+
+# =============================================================================
+# _build_conversation_context Tests (Story 20.6)
+# =============================================================================
+
+
+class TestBuildConversationContext:
+    """Tests for _build_conversation_context first+recent strategy.
+
+    Story 20.6: Parameterize Context Building with First+Recent Strategy.
+    Ensures context building uses first turn + last (context_turns - 1) turns
+    to preserve original user intent in multi-turn sessions.
+    """
+
+    def test_build_context_fewer_turns_than_limit(self, store: SQLiteSessionStore) -> None:
+        """When history < context_turns, all turns should be included."""
+        config = SessionConfig(context_turns=6)
+        now = datetime.now(UTC)
+        data = SessionData(session_id="ctx-test-1", created_at=now, updated_at=now)
+        store.save(data)
+        session = Session(data, store, config)
+
+        # Add 3 turns (fewer than 6)
+        session.add_turn("user", "Turn 1")
+        session.add_turn("agent", "Turn 2")
+        session.add_turn("user", "Turn 3")
+
+        context = session._build_conversation_context()  # pyright: ignore[reportPrivateUsage]
+
+        assert context is not None
+        # All 3 turns should be in context
+        assert "Turn 1" in context
+        assert "Turn 2" in context
+        assert "Turn 3" in context
+
+    def test_build_context_equal_turns_to_limit(self, store: SQLiteSessionStore) -> None:
+        """When history == context_turns, all turns should be included."""
+        config = SessionConfig(context_turns=4)
+        now = datetime.now(UTC)
+        data = SessionData(session_id="ctx-test-2", created_at=now, updated_at=now)
+        store.save(data)
+        session = Session(data, store, config)
+
+        # Add exactly 4 turns
+        session.add_turn("user", "Turn 1")
+        session.add_turn("agent", "Turn 2")
+        session.add_turn("user", "Turn 3")
+        session.add_turn("agent", "Turn 4")
+
+        context = session._build_conversation_context()  # pyright: ignore[reportPrivateUsage]
+
+        assert context is not None
+        # All 4 turns should be in context
+        assert "Turn 1" in context
+        assert "Turn 2" in context
+        assert "Turn 3" in context
+        assert "Turn 4" in context
+
+    def test_build_context_more_turns_than_limit(self, store: SQLiteSessionStore) -> None:
+        """When history > context_turns, first + last (N-1) turns included."""
+        config = SessionConfig(context_turns=6, max_conversation_turns=20)
+        now = datetime.now(UTC)
+        data = SessionData(session_id="ctx-test-3", created_at=now, updated_at=now)
+        store.save(data)
+        session = Session(data, store, config)
+
+        # Add 8 turns [T1, T2, T3, T4, T5, T6, T7, T8]
+        for i in range(1, 9):
+            session.add_turn("user" if i % 2 == 1 else "agent", f"Turn {i}")
+
+        context = session._build_conversation_context()  # pyright: ignore[reportPrivateUsage]
+
+        assert context is not None
+        # Should include: first (T1) + last 5 (T4, T5, T6, T7, T8) = 6 turns
+        assert "Turn 1" in context  # First turn preserved
+        assert "Turn 2" not in context  # Pruned
+        assert "Turn 3" not in context  # Pruned
+        assert "Turn 4" in context  # Recent
+        assert "Turn 5" in context
+        assert "Turn 6" in context
+        assert "Turn 7" in context
+        assert "Turn 8" in context
+        # Verify exactly 6 turns in context
+        assert context.count("Turn") == 6
+
+    def test_context_turns_default_value(self, store: SQLiteSessionStore) -> None:
+        """When context_turns not set, default of 6 should be used."""
+        config = SessionConfig()  # Uses default context_turns=6
+        now = datetime.now(UTC)
+        data = SessionData(session_id="ctx-test-4", created_at=now, updated_at=now)
+        store.save(data)
+        session = Session(data, store, config)
+
+        # Add 10 turns
+        for i in range(1, 11):
+            session.add_turn("user" if i % 2 == 1 else "agent", f"Turn {i}")
+
+        context = session._build_conversation_context()  # pyright: ignore[reportPrivateUsage]
+
+        assert context is not None
+        # With context_turns=6: first (T1) + last 5 (T6, T7, T8, T9, T10)
+        assert "Turn 1" in context  # First preserved
+        assert "Turn 5" not in context  # Pruned
+        assert "Turn 6" in context  # Recent starts
+        assert "Turn 10" in context
+
+    def test_context_turns_custom_value(self, store: SQLiteSessionStore) -> None:
+        """Custom context_turns value should be respected."""
+        config = SessionConfig(context_turns=3)
+        now = datetime.now(UTC)
+        data = SessionData(session_id="ctx-test-5", created_at=now, updated_at=now)
+        store.save(data)
+        session = Session(data, store, config)
+
+        # Add 5 turns
+        for i in range(1, 6):
+            session.add_turn("user" if i % 2 == 1 else "agent", f"Turn {i}")
+
+        context = session._build_conversation_context()  # pyright: ignore[reportPrivateUsage]
+
+        assert context is not None
+        # With context_turns=3: first (T1) + last 2 (T4, T5)
+        assert "Turn 1" in context
+        assert "Turn 2" not in context
+        assert "Turn 3" not in context
+        assert "Turn 4" in context
+        assert "Turn 5" in context
+
+    def test_context_and_storage_operate_independently(self, store: SQLiteSessionStore) -> None:
+        """Storage pruning and context building should operate independently."""
+        # Storage keeps 5, context uses 3
+        config = SessionConfig(max_conversation_turns=5, context_turns=3)
+        now = datetime.now(UTC)
+        data = SessionData(session_id="ctx-test-6", created_at=now, updated_at=now)
+        store.save(data)
+        session = Session(data, store, config)
+
+        # Add 7 turns - storage will prune to 5, context builds from those 5
+        for i in range(1, 8):
+            session.add_turn("user" if i % 2 == 1 else "agent", f"Turn {i}")
+
+        # Storage has 5 turns: first (T1) + last 4 (T4, T5, T6, T7)
+        history = session.get_history()
+        assert len(history) == 5
+        assert history[0].content == "Turn 1"
+        assert history[1].content == "Turn 4"
+
+        # Context uses 3 from those 5: first (T1) + last 2 (T6, T7)
+        context = session._build_conversation_context()  # pyright: ignore[reportPrivateUsage]
+        assert context is not None
+        assert "Turn 1" in context  # First
+        assert "Turn 4" not in context  # Pruned from context
+        assert "Turn 5" not in context  # Pruned from context
+        assert "Turn 6" in context  # Recent
+        assert "Turn 7" in context  # Recent
+
+    def test_build_context_empty_history(self, store: SQLiteSessionStore) -> None:
+        """Empty history should return None."""
+        config = SessionConfig()
+        now = datetime.now(UTC)
+        data = SessionData(session_id="ctx-test-7", created_at=now, updated_at=now)
+        store.save(data)
+        session = Session(data, store, config)
+
+        context = session._build_conversation_context()  # pyright: ignore[reportPrivateUsage]
+        assert context is None
+
+    def test_build_context_single_turn(self, store: SQLiteSessionStore) -> None:
+        """Single turn should be included in context."""
+        config = SessionConfig(context_turns=6)
+        now = datetime.now(UTC)
+        data = SessionData(session_id="ctx-test-8", created_at=now, updated_at=now)
+        store.save(data)
+        session = Session(data, store, config)
+
+        session.add_turn("user", "Only turn")
+
+        context = session._build_conversation_context()  # pyright: ignore[reportPrivateUsage]
+        assert context is not None
+        assert "Only turn" in context
+
+    def test_context_turns_minimum_boundary(self, store: SQLiteSessionStore) -> None:
+        """context_turns=2 (minimum) should include first + 1 recent turn."""
+        config = SessionConfig(context_turns=2)
+        now = datetime.now(UTC)
+        data = SessionData(session_id="ctx-test-9", created_at=now, updated_at=now)
+        store.save(data)
+        session = Session(data, store, config)
+
+        # Add 5 turns
+        for i in range(1, 6):
+            session.add_turn("user" if i % 2 == 1 else "agent", f"Turn {i}")
+
+        context = session._build_conversation_context()  # pyright: ignore[reportPrivateUsage]
+
+        assert context is not None
+        # With context_turns=2: first (T1) + last 1 (T5)
+        assert "Turn 1" in context  # First preserved
+        assert "Turn 2" not in context  # Pruned
+        assert "Turn 3" not in context  # Pruned
+        assert "Turn 4" not in context  # Pruned
+        assert "Turn 5" in context  # Last turn included
+        # Verify exactly 2 turns in context
+        assert context.count("Turn") == 2
 
 
 # =============================================================================

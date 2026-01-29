@@ -55,13 +55,17 @@ class SessionConfig(BaseModel):
     """Configuration for session behavior.
 
     Attributes:
-        max_conversation_turns: Maximum turns to keep (default 20).
+        max_conversation_turns: Maximum turns to keep in storage (default 20).
             When exceeded, keeps first turn + last (N-1) turns.
+        context_turns: Maximum turns to include in conversation context (default 6).
+            When building context for agents, uses first turn + last (N-1) turns.
+            Separate from storage pruning to allow fine-grained control.
     """
 
     model_config = ConfigDict(strict=True)
 
     max_conversation_turns: int = Field(default=20, ge=2)
+    context_turns: int = Field(default=6, ge=2)
 
 
 class SessionInfo(BaseModel):

@@ -131,8 +131,10 @@ class Session:
     def _build_conversation_context(self) -> str | None:
         """Build conversation context string from history.
 
-        Uses the last 4 turns formatted as "{role}: {content}".
-        This respects the 20-turn overall limit via pruning.
+        When history exceeds context_turns, uses first turn + last
+        (context_turns - 1) turns to preserve original intent while
+        including recent context. When history is within context_turns,
+        all turns are included.
 
         Returns:
             Formatted context string, or None if no history.
@@ -141,9 +143,17 @@ class Session:
         if not history:
             return None
 
-        # Take last 4 turns for context
-        recent = history[-4:]
-        lines = [f"{turn.role}: {turn.content}" for turn in recent]
+        context_turns = self._config.context_turns
+
+        if len(history) <= context_turns:
+            selected = history
+        else:
+            # First turn + last (N-1) turns - same strategy as storage pruning
+            first_turn = history[0]
+            recent_turns = history[-(context_turns - 1) :]
+            selected = [first_turn] + recent_turns
+
+        lines = [f"{turn.role}: {turn.content}" for turn in selected]
         return "\n".join(lines)
 
     async def process(
