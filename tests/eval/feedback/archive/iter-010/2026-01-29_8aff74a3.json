@@ -1,0 +1,50 @@
+{
+  "id": "2026-01-29_8aff74a3",
+  "query": "Actually my workout today was wrong - fix it",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "CORRECTION",
+      "confidence": 0.96,
+      "selected_domains": [
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The user is indicating that the recorded workout for today was incorrect and asks for it to be fixed. This pertains to a general workout log, which falls under the GeneralFitness domain that covers all types of exercise logging.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": "my workout today",
+      "reasoning": "The phrasing \"Actually my workout today was wrong - fix it\" signals a correction of previously logged information. No question is being asked, so the appropriate classification is CORRECTION with the target being the workout entry for today."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {
+      "success": false,
+      "target_entry_id": null,
+      "correction_delta": null,
+      "original_entry_id": null,
+      "error_message": "Could not identify target entry",
+      "modified_file": null,
+      "edited_lines": null
+    }
+  },
+  "final_response": "Could not process correction: Could not identify target entry",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 17:28:31.928975",
+    "input_type": "CORRECTION",
+    "session_id": "41198bb7-1b4d-42e6-87aa-e2af7b1481ca",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

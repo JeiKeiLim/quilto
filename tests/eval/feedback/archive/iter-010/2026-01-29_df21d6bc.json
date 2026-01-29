@@ -1,0 +1,65 @@
+{
+  "id": "2026-01-29_df21d6bc",
+  "query": "The squats were 4x10 not 3x10",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "CORRECTION",
+      "confidence": 0.98,
+      "selected_domains": [
+        "Strength"
+      ],
+      "domain_selection_reasoning": "The statement refers to a change in the recorded set/rep scheme for squats, which is a strength training exercise. Therefore the Strength domain is directly relevant.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": "squats were 3x10 (previously logged as 3x10, now corrected to 4x10)",
+      "reasoning": "The user explicitly indicates that the earlier logged information about the squat volume was incorrect ('not 3x10'), making this a correction rather than a new log or query."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "squat_session_2026-01-29",
+          "value": "60 kg × 10 reps × 4 sets",
+          "confidence": "certain",
+          "source": "user_correction: squat sets"
+        }
+      ],
+      "insights_captured": [
+        "User corrected the squat log for 2026-01-29, indicating the set count was 4×10 rather than the previously recorded 3×10."
+      ]
+    },
+    "correction": {
+      "success": true,
+      "target_entry_id": "2026-01-29_09-00-00",
+      "correction_delta": {
+        "total_sets": 4
+      },
+      "original_entry_id": "2026-01-29_09-00-00",
+      "error_message": null,
+      "modified_file": "logs/raw/2026/01/2026-01-29.md",
+      "edited_lines": [
+        3,
+        6
+      ]
+    }
+  },
+  "final_response": "Corrected entry 2026-01-29_09-00-00: {'total_sets': 4}",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 17:24:00.772536",
+    "input_type": "CORRECTION",
+    "session_id": "2c3446cf-f6c9-4d53-9003-18b017ca4468",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

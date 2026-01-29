@@ -1,0 +1,65 @@
+{
+  "id": "2026-01-29_76d1fb27",
+  "query": "Actually my treadmill was 35 minutes not 30",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "CORRECTION",
+      "confidence": 0.98,
+      "selected_domains": [
+        "Running"
+      ],
+      "domain_selection_reasoning": "The user is correcting the duration of a treadmill session, which is a running/cardio activity. The Running domain handles treadmill workouts, distance, duration, and related metrics.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": "treadmill duration (previously logged as 30 minutes, now corrected to 35 minutes)",
+      "reasoning": "The phrase \"Actually\" indicates the user is fixing previously recorded information. This matches the CORRECTION type. The content pertains to a treadmill session, so the Running domain is appropriate."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "jog_session_2026-01-29",
+          "value": "{\"duration_minutes\": 35}",
+          "confidence": "certain",
+          "source": "post_query: treadmill duration correction"
+        }
+      ],
+      "insights_captured": [
+        "User corrected the treadmill jog duration for 2026-01-29 from 30 minutes to 35 minutes, updating the logged record."
+      ]
+    },
+    "correction": {
+      "success": true,
+      "target_entry_id": "2026-01-29_10-30-00",
+      "correction_delta": {
+        "duration_minutes": 35
+      },
+      "original_entry_id": "2026-01-29_10-30-00",
+      "error_message": null,
+      "modified_file": "logs/raw/2026/01/2026-01-29.md",
+      "edited_lines": [
+        0,
+        3
+      ]
+    }
+  },
+  "final_response": "Corrected entry 2026-01-29_10-30-00: {'duration_minutes': 35}",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 17:32:31.082335",
+    "input_type": "CORRECTION",
+    "session_id": "b8b26a8a-c431-4cc3-8c4a-a41bcdddb978",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

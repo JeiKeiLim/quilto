@@ -1,0 +1,71 @@
+{
+  "id": "2026-01-29_9314a8de",
+  "query": "Actually that bench press was 4 sets not 5",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "CORRECTION",
+      "confidence": 0.96,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The user is correcting the number of sets for a bench press exercise, which is a strength training activity. This directly maps to the Strength domain. Because Strength is a subset of overall workout tracking, the broader GeneralFitness domain is also relevant.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": "bench press was 4 sets not 5",
+      "reasoning": "The phrasing \"Actually that ... not ...\" indicates a correction of previously recorded data. No question is asked, so the input is classified as a CORRECTION. The corrected information pertains to a bench press set count, placing it in the Strength domain (and generally in GeneralFitness)."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "bench_press_session_2026-01-31",
+          "value": "80 kg × ? reps × 4 sets",
+          "confidence": "certain",
+          "source": "user_correction: bench press sets"
+        }
+      ],
+      "insights_captured": [
+        "User clarified that the bench press performed on 2026-01-31 consisted of 4 sets, not 5."
+      ]
+    },
+    "correction": {
+      "success": true,
+      "target_entry_id": "2026-01-29_08-30-00",
+      "correction_delta": {
+        "exercises": [
+          {
+            "name": "bench press",
+            "total_sets": 4
+          }
+        ]
+      },
+      "original_entry_id": "2026-01-29_08-30-00",
+      "error_message": null,
+      "modified_file": "logs/raw/2026/01/2026-01-29.md",
+      "edited_lines": [
+        0,
+        3
+      ]
+    }
+  },
+  "final_response": "Corrected entry 2026-01-29_08-30-00: {'exercises': [{'name': 'bench press', 'total_sets': 4}]}",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 17:22:30.449454",
+    "input_type": "CORRECTION",
+    "session_id": "c387fc66-789c-4c9f-94d4-9be0516de970",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

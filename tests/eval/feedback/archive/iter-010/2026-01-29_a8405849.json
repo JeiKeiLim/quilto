@@ -1,0 +1,113 @@
+{
+  "id": "2026-01-29_a8405849",
+  "query": "Just did a 30 minute jog",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.98,
+      "selected_domains": [
+        "Running",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement records a completed cardio activity (a 30‑minute jog). This directly pertains to the Running domain, which tracks distance, duration, pace, and related metrics for running/jogging. It also falls under the broader GeneralFitness domain, which covers overall workout logging and cardio sessions.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The input is a past‑tense declarative statement describing an activity, with no question words or correction language. Therefore it is classified as a LOG with high confidence."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T08:18:19.125623Z",
+      "tags": [
+        "jog"
+      ],
+      "domain_data": {
+        "GeneralFitness": {
+          "activity_type": "jogging",
+          "exercises": [],
+          "duration_minutes": 30,
+          "notes": null,
+          "perceived_effort": null,
+          "date": "2026-01-29"
+        },
+        "Running": {
+          "distance": null,
+          "distance_unit": null,
+          "duration_minutes": 30,
+          "pace": null,
+          "pace_unit": null,
+          "workout_type": "easy",
+          "terrain": null,
+          "splits": [],
+          "intervals": [],
+          "average_heart_rate": null,
+          "max_heart_rate": null,
+          "cadence": null,
+          "elevation_gain": null,
+          "elevation_loss": null,
+          "perceived_exertion": null,
+          "weather": null,
+          "notes": null,
+          "date": "2026-01-29"
+        }
+      },
+      "raw_content": "Just did a 30 minute jog",
+      "confidence": 0.95,
+      "extraction_notes": [
+        "Distance not provided; left as null.",
+        "Workout type inferred as \"easy\" based on jog description."
+      ],
+      "uncertain_fields": [
+        "distance",
+        "distance_unit",
+        "pace",
+        "pace_unit",
+        "terrain",
+        "average_heart_rate",
+        "max_heart_rate",
+        "cadence",
+        "elevation_gain",
+        "elevation_loss",
+        "perceived_exertion",
+        "weather",
+        "notes"
+      ],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "jog_session_2026-01-29",
+          "value": "duration_minutes: 30",
+          "confidence": "certain",
+          "source": "post_query: user reported a 30 minute jog"
+        }
+      ],
+      "insights_captured": [
+        "User logged a 30‑minute jog on 2026‑01‑29, adding a new cardio session to the workout record."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 17:18:37.267010",
+    "input_type": "LOG",
+    "session_id": "cc294fda-f559-485d-9e44-f753bf7fe9ff",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

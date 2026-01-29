@@ -1,0 +1,72 @@
+{
+  "id": "2026-01-29_acc661c6",
+  "query": "That deadlift was 4x5 not 5x5",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "CORRECTION",
+      "confidence": 0.98,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement corrects the rep scheme of a deadlift, which is a strength‑training exercise. The Strength domain directly handles deadlift set/rep details, and GeneralFitness is also relevant as it covers overall workout logging.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": "deadlift set scheme (should be 4x5 instead of 5x5)",
+      "reasoning": "The user is explicitly correcting previously recorded information about a deadlift set, so the input is classified as a CORRECTION. The content pertains to strength training, thus the Strength domain is required, and because it is part of a broader workout log, GeneralFitness is also applicable."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "deadlift_session_2026-01-29",
+          "value": "4 sets × 5 reps (weight not specified)",
+          "confidence": "certain",
+          "source": "post_query: deadlift correction"
+        }
+      ],
+      "insights_captured": [
+        "User corrected the deadlift log: the session on 2026-01-29 was performed as 4 × 5 reps, not 5 × 5."
+      ]
+    },
+    "correction": {
+      "success": true,
+      "target_entry_id": "2026-01-29_11-00-00",
+      "correction_delta": {
+        "exercises": [
+          {
+            "name": "deadlift",
+            "total_sets": 4,
+            "notes": "Corrected set scheme to 4x5"
+          }
+        ]
+      },
+      "original_entry_id": "2026-01-29_11-00-00",
+      "error_message": null,
+      "modified_file": "logs/raw/2026/01/2026-01-29.md",
+      "edited_lines": [
+        0,
+        2
+      ]
+    }
+  },
+  "final_response": "Corrected entry 2026-01-29_11-00-00: {'exercises': [{'name': 'deadlift', 'total_sets': 4, 'notes': 'Corrected set scheme to 4x5'}]}",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-29 17:25:50.782498",
+    "input_type": "CORRECTION",
+    "session_id": "c9b4366c-8b29-4780-a793-378dbee2d963",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}
