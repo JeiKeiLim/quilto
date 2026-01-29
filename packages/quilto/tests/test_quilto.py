@@ -575,6 +575,99 @@ class TestClarificationFlow:
         assert "clarification" in history[1].content.lower()
 
 
+class TestVagueQueryClarification:
+    """Tests for vague query clarification heuristics.
+
+    Story 20.1 - AC #4: System asks for clarification when vague query
+    is submitted without conversation context.
+    """
+
+    @pytest.mark.asyncio
+    async def test_vague_query_without_context_triggers_clarification(self, quilto: Quilto) -> None:
+        """Vague query in new session should trigger clarification.
+
+        Scenario: User submits "What about that?" as first query in new session.
+        Expected: Planner should return clarify_questions since there's no context.
+
+        Note: This is a UNIT TEST verifying the orchestration layer handles
+        clarification responses. It mocks the graph to return clarification,
+        testing the plumbing rather than actual Planner prompt behavior.
+        Integration testing of Planner prompt is done via test-ollama.
+        """
+        session = quilto.create_session()
+        assert len(session.get_history()) == 0  # New session
+
+        # Mock graph to return clarification (simulating Planner behavior)
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+            mock_graph.ainvoke = AsyncMock(
+                return_value={
+                    "input_type": "query",
+                    "next_action": "clarify",
+                    "clarify_questions": [
+                        "What are you referring to?",
+                        "Can you provide more details about your question?",
+                    ],
+                    "selected_domains": [],
+                }
+            )
+            mock_get_graph.return_value = mock_graph
+
+            result = await session.process("What about that?")
+
+        # Should return clarification questions
+        assert result.clarification_questions is not None
+        assert len(result.clarification_questions) >= 1
+
+    @pytest.mark.asyncio
+    async def test_vague_query_with_context_proceeds_normally(self, quilto: Quilto) -> None:
+        """Vague query with prior context should proceed with retrieval.
+
+        Scenario: User has prior conversation about bench press, then asks
+        "What about that?" - should interpret "that" from context.
+        """
+        session = quilto.create_session()
+
+        # First turn - establish context
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+            mock_graph.ainvoke = AsyncMock(
+                return_value={
+                    "input_type": "query",
+                    "response": "Your bench press was 185lbs.",
+                    "selected_domains": ["strength"],
+                }
+            )
+            mock_get_graph.return_value = mock_graph
+            await session.process("How was my bench press?")
+
+        # Second turn - vague query with context available
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+
+            captured_state: dict[str, Any] = {}
+
+            async def capture_state(state: dict[str, Any]) -> dict[str, Any]:
+                captured_state.update(state)
+                return {
+                    "input_type": "query",
+                    "next_action": "retrieve",  # Should proceed, not clarify
+                    "response": "Your bench press last week was 180lbs.",
+                    "selected_domains": ["strength"],
+                }
+
+            mock_graph.ainvoke = capture_state
+            mock_get_graph.return_value = mock_graph
+
+            result = await session.process("What about last week?")
+
+        # Should NOT ask for clarification since context is available
+        assert result.clarification_questions is None
+        # Should have conversation context
+        assert captured_state.get("conversation_context") is not None
+        assert "bench press" in captured_state["conversation_context"].lower()
+
+
 # =============================================================================
 # Conversation Context Tests
 # =============================================================================
@@ -625,6 +718,73 @@ class TestConversationContext:
         context = captured_state.get("conversation_context")
         assert context is not None
         assert "user: First question" in context or "First question" in context
+
+    @pytest.mark.asyncio
+    async def test_resumed_session_includes_conversation_context(self, quilto: Quilto) -> None:
+        """Resumed session should include previous conversation context.
+
+        Simulates CLI resume flow:
+        1. Create session, process query, get response
+        2. Resume session via get_session()
+        3. Process follow-up query
+        4. Verify conversation_context contains previous turns
+
+        Story 20.1 - AC #1, #2: Session conversation context loaded and passed.
+        """
+        # === Session 1: Original conversation ===
+        session = quilto.create_session()
+        session_id = session.session_id
+
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+            mock_graph.ainvoke = AsyncMock(
+                return_value={
+                    "input_type": "query",
+                    "response": "Your bench press was 185lbs for 5 reps.",
+                    "selected_domains": ["strength"],
+                }
+            )
+            mock_get_graph.return_value = mock_graph
+
+            await session.process("How was my bench press this week?")
+
+        # Verify history was saved
+        assert len(session.get_history()) == 2  # user + agent
+
+        # === Session 2: Resumed session ===
+        resumed = quilto.get_session(session_id)
+        assert resumed is not None
+        assert len(resumed.get_history()) == 2  # History persisted
+
+        # Process follow-up and capture state
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+
+            captured_state: dict[str, Any] = {}
+
+            async def capture_state(state: dict[str, Any]) -> dict[str, Any]:
+                captured_state.update(state)
+                return {
+                    "input_type": "query",
+                    "response": "Last week you did 175lbs.",
+                    "selected_domains": ["strength"],
+                }
+
+            mock_graph.ainvoke = capture_state
+            mock_get_graph.return_value = mock_graph
+
+            await resumed.process("What about last week?")
+
+        # Verify conversation_context includes previous turns
+        # Context format: "user: <message>\nagent: <response>\n..." (built by Session._build_conversation_context)
+        context = captured_state.get("conversation_context")
+        assert context is not None, "conversation_context should be populated"
+        assert "bench press" in context.lower(), (
+            f"Context should contain 'bench press' from previous turn. Got: {context}"
+        )
+        assert "185" in context or "185lbs" in context, (
+            f"Context should contain '185' from previous response. Got: {context}"
+        )
 
 
 # =============================================================================

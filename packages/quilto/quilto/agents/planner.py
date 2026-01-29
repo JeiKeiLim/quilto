@@ -237,6 +237,32 @@ Example:
 - Query: "How do I do?"
 - Interpretation: User wants guidance on how to prepare for/run a full marathon
 
+=== VAGUE QUERY HANDLING ===
+
+CRITICAL: When conversation_context is "(No recent conversation context)" and query is vague:
+
+Vague query indicators (ANY of these patterns + no conversation context):
+1. Contains ambiguous pronouns without subject: "that", "it", "this", "those", "these", "there"
+2. Incomplete verb phrases: "How do I do?", "What should I?", "How to?"
+3. Dangling references: "What about?", "Tell me about", "How was?"
+
+If query is vague AND no context available:
+- Set next_action="clarify"
+- Add clarify_questions asking what the user is referring to
+- Explain in reasoning that context is needed to interpret the query
+
+Example vague queries WITHOUT context → require clarification:
+- "What about that?" → Cannot interpret "that" without context
+- "How do I do?" → Incomplete verb phrase, no object specified
+- "What was it like?" → Cannot interpret "it" without context
+- "Tell me about this" → Cannot interpret "this" without context
+
+Example queries that are NOT vague → proceed normally even if short:
+- "Show my bench press logs" → Specific subject (bench press)
+- "What did I eat yesterday?" → Complete question with object
+- "How was my workout?" → Complete question (workout is subject)
+- "List my exercises" → Clear action and object
+
 === RETRIEVAL STRATEGY ===
 
 Only DATE_RANGE retrieval is available. Specify start_date and end_date.
@@ -278,6 +304,7 @@ Request clarification (next_action="clarify") when:
 - Gap type is SUBJECTIVE (only user knows the current state)
 - Gap type is CLARIFICATION (query itself is ambiguous)
 - Information cannot be retrieved from stored data
+- Query is vague (short + pronouns) AND no conversation context available
 
 Add questions to clarify_questions list.
 
@@ -286,7 +313,7 @@ Add questions to clarify_questions list.
 Choose next_action based on this logic:
 - "retrieve": Normal case, have retrieval instructions ready
 - "expand_domain": Need domains not currently loaded (outside_current_expertise gaps)
-- "clarify": Gaps are SUBJECTIVE or CLARIFICATION type, or query is ambiguous
+- "clarify": Gaps are SUBJECTIVE/CLARIFICATION type, query is ambiguous, OR vague query without context
 - "synthesize": Already have sufficient context (rare, typically on successful retry)
 
 === RE-PLANNING ON FEEDBACK ===
