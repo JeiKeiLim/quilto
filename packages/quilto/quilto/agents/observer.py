@@ -61,23 +61,29 @@ class ObserverAgent:
         """
         analysis_str = str(observer_input.analysis) if observer_input.analysis else "(none)"
         conversation_context = observer_input.conversation_context or "(none)"
-        return f"""=== QUERY CONTEXT ===
+        return f"""=== USER INPUT (extract insights from here ONLY) ===
 User Query: {observer_input.query}
 
-Analysis Summary:
+=== SYSTEM ANALYSIS (for context only, NOT for persistence) ===
 {analysis_str}
 
-Response Given:
+=== AGENT RESPONSE (NEVER extract insights from here) ===
 {observer_input.response}
 
 === SESSION CONVERSATION CONTEXT ===
 {conversation_context}
 
+NOTE ON USER INPUT VS AGENT OUTPUT:
+- USER INPUT (query): The ONLY source for extracting preferences, patterns, facts
+- AGENT RESPONSE: Contains recommendations and advice - NEVER persist as user preferences
+- Analysis: System-generated context - use for understanding, not for persistence
+
 NOTE ON SESSION VS GLOBAL CONTEXT:
 - SESSION context: Temporary facts from current conversation (e.g., "user asked about leg workout")
 - GLOBAL context: Persistent preferences/patterns (e.g., "user prefers metric units")
 - DO NOT add session-specific facts to global context
-- Only add persistent insights discovered during this session"""
+- Only add persistent insights discovered during this session
+- Insights MUST come from explicit user statements, not agent suggestions"""
 
     def _format_correction_context(self, observer_input: ObserverInput) -> str:
         """Format context for user_correction trigger.
@@ -156,6 +162,33 @@ TASK: Analyze the given context and determine if any new insights should be adde
 === DOMAIN GUIDANCE ===
 {observer_input.context_management_guidance}
 
+=== USER VS AGENT CONTENT (CRITICAL) ===
+
+ONLY extract insights from the "User Query" field (user input).
+NEVER persist anything from the "Agent Response" field (agent output).
+
+The user query is what the user actually said. The agent response contains recommendations,
+suggestions, and advice - these are NOT user preferences or facts.
+
+EXAMPLES:
+
+USER QUERY: "I haven't gone to gym today. What should I do?"
+AGENT RESPONSE: "You could try a light mobility workout."
+
+BAD: {{"preference": "light or mobility-focused workout"}}  -- FABRICATED from agent
+GOOD: {{"should_update": false}}  -- User asked question, stated no preference
+
+USER QUERY: "I prefer morning workouts"
+AGENT RESPONSE: "That's great!"
+
+GOOD: {{"preference": "morning workouts", "confidence": "certain"}}  -- User explicitly stated
+
+USER QUERY: "Should I force myself to go to gym despite low motivation?"
+AGENT RESPONSE: "Consider a rest day or light session."
+
+BAD: {{"pattern": "struggles with motivation"}}  -- Interpretation, not stated
+GOOD: {{"should_update": false}}  -- User asked a question, stated nothing to persist
+
 === RULES FOR UPDATES ===
 
 1. BE CONSERVATIVE: Only add updates when you have strong evidence
@@ -184,11 +217,38 @@ For "post_query": Look for patterns revealed during analysis, inferred preferenc
 For "user_correction": Treat as explicit preference with "certain" confidence
 For "significant_log": Look for milestones, records, major events
 
+=== WHAT NOT TO PERSIST (CRITICAL) ===
+
+NEVER persist any of the following:
+- Agent recommendations (e.g., "light workout", "rest day advice")
+- Agent interpretations of user intent
+- Per-session facts (belong in parsed entries, not global context)
+- Per-workout data (durations, distances, weights from a single workout)
+- Inferences not explicitly stated by user
+- Questions user asked (these are not preferences)
+
+These should ONLY be in global context if explicitly stated by user:
+- Preferences: User must say "I prefer X" or "I like X" or similar
+- Patterns: User must describe their typical behavior explicitly
+- Facts: User must state the fact directly
+
 === KEY CONSOLIDATION RULES ===
 
 - Same key = supersede old value (don't create "unit_preference_2")
 - Related insights = merge into one (don't list every workout time separately)
 - Confidence transitions: tentative → likely → certain (never downgrade)
+
+=== SOURCE FIELD REQUIREMENTS (CRITICAL) ===
+
+The `source` field MUST quote the exact user text that justifies the update.
+No quote = no update. Vague sources are not acceptable.
+
+CORRECT: "source": "user said 'I prefer running outdoors'"
+CORRECT: "source": "user stated 'I usually workout in the morning'"
+WRONG: "source": "post_query: user asked about motivation"  -- No quote, vague
+WRONG: "source": "inferred from context"  -- No user quote
+
+If you cannot quote exact user text, set should_update: false.
 
 === OUTPUT (JSON) ===
 
@@ -199,7 +259,7 @@ Respond with a JSON object containing:
   - key: string (unique identifier, e.g., "unit_preference", "typical_schedule")
   - value: string (the value to store)
   - confidence: "certain" | "likely" | "tentative"
-  - source: string (what triggered this update, e.g., "post_query: bench press analysis")
+  - source: string (MUST quote exact user text, e.g., "user said 'I prefer metric units'")
 - insights_captured: list of strings (human-readable descriptions of what was learned)
 
 If nothing meaningful to update, return should_update=false with empty updates list.

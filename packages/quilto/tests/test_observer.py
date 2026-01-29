@@ -928,3 +928,238 @@ class TestObserverIntegration:
             categories = [u.category for u in result.updates]
             # PRs are typically recorded as facts
             assert "fact" in categories or "insight" in categories
+
+
+# =============================================================================
+# Test User vs Agent Content Distinction (Story 22.1)
+# =============================================================================
+
+
+class TestUserVsAgentContentDistinction:
+    """Tests for user vs agent content distinction in Observer prompt (Story 22.1).
+
+    These tests verify that the Observer prompt correctly instructs the LLM
+    to only persist user-stated information, not agent recommendations.
+    """
+
+    def test_observer_prompt_contains_user_vs_agent_instructions(self) -> None:
+        """Prompt contains USER_VS_AGENT_CONTENT (CRITICAL) section."""
+        client = create_mock_llm_client({})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="post_query",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            query="What should I do today?",
+            analysis={},
+            response="Try a light workout.",
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        # Must contain the critical section
+        assert "USER VS AGENT CONTENT (CRITICAL)" in prompt
+        assert "ONLY extract insights from" in prompt
+        assert "NEVER persist anything from" in prompt
+
+    def test_observer_prompt_contains_user_input_label(self) -> None:
+        """Prompt labels user query as the ONLY source for extraction."""
+        client = create_mock_llm_client({})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="post_query",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            query="I prefer morning workouts",
+            analysis={},
+            response="Great choice!",
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        # Query section should be labeled as extraction source
+        assert "USER INPUT (extract insights from here ONLY)" in prompt
+        assert "I prefer morning workouts" in prompt
+
+    def test_observer_prompt_contains_agent_response_warning(self) -> None:
+        """Prompt labels agent response with NEVER extract warning."""
+        client = create_mock_llm_client({})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="post_query",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            query="What should I do?",
+            analysis={},
+            response="Try a light mobility workout.",
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        # Response section should warn against extraction
+        assert "AGENT RESPONSE (NEVER extract insights from here)" in prompt
+        assert "Try a light mobility workout." in prompt
+
+    def test_observer_prompt_contains_fabrication_examples(self) -> None:
+        """Prompt contains good/bad examples showing fabrication prevention."""
+        client = create_mock_llm_client({})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="post_query",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            query="test",
+            analysis={},
+            response="test",
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        # Must contain fabrication examples
+        assert "FABRICATED from agent" in prompt
+        assert "should_update" in prompt and "false" in prompt.lower()
+
+    def test_observer_prompt_contains_source_quote_requirements(self) -> None:
+        """Prompt requires source field to quote exact user text."""
+        client = create_mock_llm_client({})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="post_query",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            query="test",
+            analysis={},
+            response="test",
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        # Must require exact user text quotes
+        assert "SOURCE FIELD REQUIREMENTS (CRITICAL)" in prompt
+        assert "MUST quote the exact user text" in prompt
+        assert "No quote = no update" in prompt
+
+    def test_observer_prompt_contains_what_not_to_persist(self) -> None:
+        """Prompt contains WHAT NOT TO PERSIST section."""
+        client = create_mock_llm_client({})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="post_query",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            query="test",
+            analysis={},
+            response="test",
+        )
+        prompt = observer.build_prompt(observer_input)
+
+        # Must list what not to persist
+        assert "WHAT NOT TO PERSIST (CRITICAL)" in prompt
+        assert "Agent recommendations" in prompt
+        assert "Agent interpretations" in prompt
+
+    @pytest.mark.asyncio
+    async def test_observer_does_not_persist_agent_recommendations(self) -> None:
+        """Observer returns should_update=false when only agent recommendations present."""
+        # Mock LLM returns no updates (correct behavior for agent-only content)
+        response: dict[str, Any] = {
+            "should_update": False,
+            "updates": [],
+            "insights_captured": [],
+        }
+        client = create_mock_llm_client(response)
+        observer = ObserverAgent(client)
+
+        result = await observer.observe(
+            ObserverInput(
+                trigger="post_query",
+                current_global_context="",
+                context_management_guidance="Track preferences and patterns",
+                query="I haven't gone to gym today. What should I do?",
+                analysis={},
+                response="You could try a light mobility workout.",
+            )
+        )
+
+        # User asked a question, stated no preference - should not update
+        assert result.should_update is False
+        assert result.updates == []
+
+    @pytest.mark.asyncio
+    async def test_observer_persists_explicit_user_preference(self) -> None:
+        """Observer persists when user explicitly states a preference."""
+        # Mock LLM returns update with proper source quote
+        response: dict[str, Any] = {
+            "should_update": True,
+            "updates": [
+                {
+                    "category": "preference",
+                    "key": "workout_time",
+                    "value": "morning",
+                    "confidence": "certain",
+                    "source": "user said 'I prefer morning workouts'",
+                }
+            ],
+            "insights_captured": ["User prefers morning workouts"],
+        }
+        client = create_mock_llm_client(response)
+        observer = ObserverAgent(client)
+
+        result = await observer.observe(
+            ObserverInput(
+                trigger="post_query",
+                current_global_context="",
+                context_management_guidance="Track preferences and patterns",
+                query="I prefer morning workouts",
+                analysis={},
+                response="Great choice! Morning workouts can help with consistency.",
+            )
+        )
+
+        # User explicitly stated preference - should update
+        assert result.should_update is True
+        assert len(result.updates) == 1
+        assert result.updates[0].category == "preference"
+        assert "morning" in result.updates[0].value
+        # Source should quote user text
+        assert "user said" in result.updates[0].source.lower()
+
+    @pytest.mark.asyncio
+    async def test_observer_source_quotes_user_text(self) -> None:
+        """Observer source field contains quoted user text."""
+        # Mock LLM returns update with proper source quote
+        response: dict[str, Any] = {
+            "should_update": True,
+            "updates": [
+                {
+                    "category": "preference",
+                    "key": "running_location",
+                    "value": "outdoors",
+                    "confidence": "certain",
+                    "source": "user said 'I prefer running outdoors'",
+                }
+            ],
+            "insights_captured": ["User prefers outdoor running"],
+        }
+        client = create_mock_llm_client(response)
+        observer = ObserverAgent(client)
+
+        result = await observer.observe(
+            ObserverInput(
+                trigger="post_query",
+                current_global_context="",
+                context_management_guidance="Track preferences",
+                query="I prefer running outdoors",
+                analysis={},
+                response="Outdoor running is great for mental health!",
+            )
+        )
+
+        # Source should contain quoted user text
+        assert result.should_update is True
+        assert len(result.updates) == 1
+        source = result.updates[0].source
+        assert "user said" in source.lower() or "user stated" in source.lower()
+        assert "running outdoors" in source.lower()
+

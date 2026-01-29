@@ -322,8 +322,8 @@ development_status:
   # Epic 22: Global Context / Observer Refinement
   # Source: Epic 19 Retrospective + iter-008-pre user feedback
   # Key Insight: Only persist user-stated info, not agent recommendations
-  epic-22: backlog
-  22-1-observer-only-persists-user-stated-info: backlog  # HIGH - no fabricating from agent output
+  epic-22: in-progress
+  22-1-observer-only-persists-user-stated-info: done  # HIGH - no fabricating from agent output - code reviewed
   22-2-restrict-global-context-scope: backlog  # HIGH - preferences/goals/insights only
   22-3-add-observer-validation: backlog  # MEDIUM - prevent hallucinated facts
   22-4-add-session-id-to-feedback-json: backlog  # LOW - feedback tracking improvement
