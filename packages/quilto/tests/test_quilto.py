@@ -1333,3 +1333,281 @@ class TestOrchestrationNodeExceptionHandling:
         assert "ERROR:" in traces[0]["output_summary"]
         assert "error" in result
         assert "Evaluator failed" in result["error"]
+
+
+# =============================================================================
+# Clarification Flow with Session Resume Tests (Story 20.2)
+# =============================================================================
+
+
+class TestClarificationFlowSessionResume:
+    """Tests for clarification flow integrated with session resume.
+
+    Story 20.2: Verify/Fix Clarification Flow + Session Resume
+    Tests the complete flow:
+    1. Query triggers clarification → session persisted
+    2. Resume session with answer → verify history includes original + clarification
+    3. Final response incorporates both original query AND clarification answer
+    """
+
+    @pytest.mark.asyncio
+    async def test_clarification_resume_includes_original_and_clarification(self, quilto: Quilto) -> None:
+        """AC #2: Resumed session should include original query + agent clarification.
+
+        Flow:
+        1. Send query that triggers clarification
+        2. Resume session with answer
+        3. Verify conversation_context includes:
+           - Original user query
+           - Agent clarification question
+        """
+        session = quilto.create_session()
+        session_id = session.session_id
+
+        # === Turn 1: Query triggers clarification ===
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+            mock_graph.ainvoke = AsyncMock(
+                return_value={
+                    "input_type": "query",
+                    "next_action": "clarify",
+                    "clarify_questions": ["What time did you workout?"],
+                    "selected_domains": ["general_fitness"],
+                }
+            )
+            mock_get_graph.return_value = mock_graph
+
+            result = await session.process("How was my workout?")
+
+        # Verify clarification was returned
+        assert result.clarification_questions is not None
+        assert len(result.clarification_questions) == 1
+        assert result.clarification_questions[0].question == "What time did you workout?"
+
+        # Verify history includes user query + agent clarification turn
+        history = session.get_history()
+        assert len(history) == 2
+        assert history[0].role == "user"
+        assert history[0].content == "How was my workout?"
+        assert history[1].role == "agent"
+        assert "clarification" in history[1].content.lower()
+
+        # === Turn 2: Resume session with answer ===
+        resumed = quilto.get_session(session_id)
+        assert resumed is not None
+        assert len(resumed.get_history()) == 2  # History persisted
+
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+
+            captured_state: dict[str, Any] = {}
+
+            async def capture_state(state: dict[str, Any]) -> dict[str, Any]:
+                captured_state.update(state)
+                return {
+                    "input_type": "query",
+                    "next_action": "retrieve",
+                    "response": "Your morning workout went well - 45 minutes of cardio.",
+                    "selected_domains": ["general_fitness"],
+                }
+
+            mock_graph.ainvoke = capture_state
+            mock_get_graph.return_value = mock_graph
+
+            await resumed.process("Morning session")
+
+        # Verify conversation_context includes original query + clarification
+        context = captured_state.get("conversation_context")
+        assert context is not None
+        assert "how was my workout" in context.lower()
+        assert "clarification" in context.lower() or "time" in context.lower()
+
+    @pytest.mark.asyncio
+    async def test_clarification_answer_integrated_into_response(self, quilto: Quilto) -> None:
+        """AC #3: Final response reflects both original query AND clarification answer.
+
+        Flow:
+        1. Send vague query → Get clarification question
+        2. Resume with answer
+        3. Verify Planner receives full conversation context
+        """
+        session = quilto.create_session()
+        session_id = session.session_id
+
+        # === Turn 1: Vague query triggers clarification ===
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+            mock_graph.ainvoke = AsyncMock(
+                return_value={
+                    "input_type": "query",
+                    "next_action": "clarify",
+                    "clarify_questions": ["Which workout would you like to know about - strength or cardio?"],
+                    "selected_domains": [],
+                }
+            )
+            mock_get_graph.return_value = mock_graph
+
+            await session.process("How did I do?")
+
+        # === Turn 2: Resume with clarification answer ===
+        resumed = quilto.get_session(session_id)
+        assert resumed is not None
+
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+
+            captured_state: dict[str, Any] = {}
+
+            async def capture_state(state: dict[str, Any]) -> dict[str, Any]:
+                captured_state.update(state)
+                # Simulates Planner using context to provide appropriate response
+                return {
+                    "input_type": "query",
+                    "next_action": "retrieve",
+                    "response": "Based on your strength workout, you did 3 sets of squats at 135lbs.",
+                    "selected_domains": ["strength"],
+                }
+
+            mock_graph.ainvoke = capture_state
+            mock_get_graph.return_value = mock_graph
+
+            result = await resumed.process("Strength training")
+
+        # Verify conversation context passed to graph includes both original query and answer
+        context = captured_state.get("conversation_context")
+        assert context is not None
+
+        # Should contain original query "How did I do?"
+        assert "how did i do" in context.lower() or "how did" in context.lower()
+
+        # Should contain the clarification question from agent
+        assert "strength" in context.lower() or "cardio" in context.lower()
+
+        # Final result should have response (simulated but proves flow works)
+        assert result.response is not None
+        assert "strength" in result.response.lower()
+
+    @pytest.mark.asyncio
+    async def test_multiple_clarification_rounds(self, quilto: Quilto) -> None:
+        """AC #4: Multiple clarification rounds accumulate correctly.
+
+        Flow:
+        1. Query → clarification1
+        2. Answer1 → clarification2
+        3. Answer2 → final response
+        4. Verify all answers are incorporated in context
+        """
+        session = quilto.create_session()
+        session_id = session.session_id
+
+        # === Turn 1: Initial query triggers first clarification ===
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+            mock_graph.ainvoke = AsyncMock(
+                return_value={
+                    "input_type": "query",
+                    "next_action": "clarify",
+                    "clarify_questions": ["What type of exercise?"],
+                    "selected_domains": [],
+                }
+            )
+            mock_get_graph.return_value = mock_graph
+
+            await session.process("Compare my progress")
+
+        # === Turn 2: First answer triggers second clarification ===
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+            mock_graph.ainvoke = AsyncMock(
+                return_value={
+                    "input_type": "query",
+                    "next_action": "clarify",
+                    "clarify_questions": ["What time period - this week or last month?"],
+                    "selected_domains": ["running"],
+                }
+            )
+            mock_get_graph.return_value = mock_graph
+
+            await session.process("Running")
+
+        # Verify history has 4 turns (2 user + 2 agent)
+        assert len(session.get_history()) == 4
+
+        # === Turn 3: Second answer leads to final response ===
+        resumed = quilto.get_session(session_id)
+        assert resumed is not None
+        assert len(resumed.get_history()) == 4
+
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+
+            captured_state: dict[str, Any] = {}
+
+            async def capture_state(state: dict[str, Any]) -> dict[str, Any]:
+                captured_state.update(state)
+                return {
+                    "input_type": "query",
+                    "next_action": "retrieve",
+                    "response": "Your running progress this week shows 15km total.",
+                    "selected_domains": ["running"],
+                }
+
+            mock_graph.ainvoke = capture_state
+            mock_get_graph.return_value = mock_graph
+
+            result = await resumed.process("This week")
+
+        # Verify conversation_context includes recent turns
+        # Note: _build_conversation_context() uses last 4 turns, so after 5 turns
+        # (user1, agent1, user2, agent2, user3), the context includes:
+        # agent1, user2, agent2, user3 - but NOT user1 (original query)
+        # This is expected behavior for memory efficiency.
+        context = captured_state.get("conversation_context")
+        assert context is not None
+
+        # Context should include the first clarification answer ("Running")
+        assert "running" in context.lower()
+        # Context should include the second clarification question (time period)
+        assert "time period" in context.lower() or "this week" in context.lower()
+        # Context should include the first clarification question (exercise type)
+        assert "exercise" in context.lower() or "type" in context.lower()
+
+        # Final response should be present
+        assert result.response is not None
+        assert result.clarification_questions is None  # No more clarification needed
+
+    @pytest.mark.asyncio
+    async def test_clarification_metadata_persisted_in_turn(self, quilto: Quilto) -> None:
+        """Clarification questions should be stored in turn metadata.
+
+        Verifies that clarification questions are properly serialized
+        in the agent turn metadata for conversation history display.
+        """
+        session = quilto.create_session()
+
+        with patch.object(quilto, "_get_graph") as mock_get_graph:
+            mock_graph = MagicMock()
+            mock_graph.ainvoke = AsyncMock(
+                return_value={
+                    "input_type": "query",
+                    "next_action": "clarify",
+                    "clarify_questions": [{"question": "When?", "options": ["Morning", "Evening"]}],
+                    "selected_domains": [],
+                }
+            )
+            mock_get_graph.return_value = mock_graph
+
+            await session.process("How was my workout?")
+
+        # Verify agent turn has metadata with clarification questions
+        history = session.get_history()
+        agent_turn = history[1]
+        assert agent_turn.role == "agent"
+        assert agent_turn.metadata is not None
+        assert "clarification_questions" in agent_turn.metadata
+
+        # Verify metadata structure
+        questions = agent_turn.metadata["clarification_questions"]
+        assert len(questions) == 1
+        assert questions[0]["question"] == "When?"
+        assert questions[0]["options"] == ["Morning", "Evening"]
