@@ -810,6 +810,76 @@ class TestStorageRepositoryCorrectionIntegration:
         content = raw_path.read_text()
         assert "[correction]" not in content
 
+    def test_surgical_edit_preserves_surrounding_content_integration(
+        self, tmp_path: Path
+    ) -> None:
+        """Integration test: surgical edit preserves byte-identical surrounding content (AC: #1-#4).
+
+        Story 21.2: Verify that edit_raw_section() preserves surrounding content byte-for-byte.
+        Creates raw file with 3 sections, edits middle section, verifies:
+        - Leading section (## 08:00) is byte-identical after edit
+        - Trailing section (## 18:00) is byte-identical after edit
+
+        Uses content-based matching (not hardcoded indices) to be robust against
+        different replacement line counts.
+        """
+        storage = StorageRepository(tmp_path)
+
+        # Create raw file with 3 sections: 08:00, 12:00, 18:00
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        original_content = (
+            "## 08:00\nMorning workout - 30 min jog\n\n"
+            "## 12:00\nLunch gym - bench press 60kg\n\n"
+            "## 18:00\nEvening yoga - 45 min session\n"
+        )
+        raw_path = raw_dir / "2026-01-26.md"
+        raw_path.write_text(original_content, encoding="utf-8")
+
+        # Capture surrounding sections by content markers (robust to line count changes)
+        middle_marker = "## 12:00"
+        trailing_marker = "## 18:00"
+
+        # Leading section: from start to just before middle marker
+        middle_start_idx = original_content.find(middle_marker)
+        leading_bytes_before = original_content[:middle_start_idx].encode("utf-8")
+
+        # Trailing section: from trailing marker to end
+        trailing_start_idx = original_content.find(trailing_marker)
+        trailing_bytes_before = original_content[trailing_start_idx:].encode("utf-8")
+
+        # Edit middle section (12:00) with different line count than original
+        storage.edit_raw_section(
+            raw_path,
+            start=3,
+            end=6,
+            new_content="## 12:00\nLunch gym - bench press 80kg (corrected)\nAdditional notes here\n\n",
+        )
+
+        # Read modified content
+        modified_content = raw_path.read_text(encoding="utf-8")
+
+        # Verify leading section (## 08:00) is byte-identical
+        middle_start_idx_after = modified_content.find(middle_marker)
+        leading_bytes_after = modified_content[:middle_start_idx_after].encode("utf-8")
+        assert leading_bytes_before == leading_bytes_after, (
+            f"Leading section not preserved. "
+            f"Before: {leading_bytes_before!r}, After: {leading_bytes_after!r}"
+        )
+
+        # Verify trailing section (## 18:00) is byte-identical
+        trailing_start_idx_after = modified_content.find(trailing_marker)
+        trailing_bytes_after = modified_content[trailing_start_idx_after:].encode("utf-8")
+        assert trailing_bytes_before == trailing_bytes_after, (
+            f"Trailing section not preserved. "
+            f"Before: {trailing_bytes_before!r}, After: {trailing_bytes_after!r}"
+        )
+
+        # Additional verification: the edit actually happened
+        assert "80kg (corrected)" in modified_content
+        assert "Additional notes here" in modified_content
+        assert "60kg" not in modified_content  # Old value gone
+
 
 # =============================================================================
 # Test Module Exports

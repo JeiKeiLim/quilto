@@ -785,6 +785,142 @@ Evening session - 1hr
             content = file_path.read_text()
             assert f"Iteration {i}" in content
 
+    def test_edit_preserves_surrounding_bytes_exact(self, tmp_path: Path) -> None:
+        """Verify lines[:start] is byte-identical after edit (AC: #4)."""
+        repo = StorageRepository(tmp_path)
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        content = "## 08:00\nMorning run 5km\n\n## 12:00\nLunch gym\n\n## 18:00\nEvening yoga\n"
+        file_path = raw_dir / "2026-01-26.md"
+        file_path.write_text(content, encoding="utf-8")
+
+        lines_before = content.splitlines(keepends=True)
+        # Lines 0-3 are: "## 08:00\n", "Morning run 5km\n", "\n", "## 12:00\n"
+        # We edit starting at line 3 (## 12:00), so lines[:3] should be preserved
+        leading_bytes_before = "".join(lines_before[:3]).encode("utf-8")
+
+        repo.edit_raw_section(
+            file_path, start=3, end=6, new_content="## 12:00\nCorrected lunch\n"
+        )
+
+        modified = file_path.read_text(encoding="utf-8")
+        lines_after = modified.splitlines(keepends=True)
+        leading_bytes_after = "".join(lines_after[:3]).encode("utf-8")
+
+        assert leading_bytes_before == leading_bytes_after
+
+    def test_edit_preserves_trailing_bytes_exact(self, tmp_path: Path) -> None:
+        """Verify lines[end:] is byte-identical after edit (AC: #4).
+
+        Uses content-based matching rather than hardcoded indices to verify
+        the trailing section ("## 18:00") is preserved byte-for-byte regardless
+        of replacement line count.
+        """
+        repo = StorageRepository(tmp_path)
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        content = "## 08:00\nMorning run 5km\n\n## 12:00\nLunch gym\n\n## 18:00\nEvening yoga\n"
+        file_path = raw_dir / "2026-01-26.md"
+        file_path.write_text(content, encoding="utf-8")
+
+        # Capture trailing section (## 18:00 onwards) by finding marker
+        trailing_marker = "## 18:00"
+        trailing_start_idx = content.find(trailing_marker)
+        assert trailing_start_idx > 0, "Trailing marker not found in test content"
+        trailing_bytes_before = content[trailing_start_idx:].encode("utf-8")
+
+        # Edit middle section - replacement has different line count than original
+        repo.edit_raw_section(
+            file_path, start=3, end=6, new_content="## 12:00\nCorrected lunch - multiple lines\nExtra detail\n"
+        )
+
+        modified = file_path.read_text(encoding="utf-8")
+
+        # Find trailing section in modified content by same marker
+        trailing_start_idx_after = modified.find(trailing_marker)
+        assert trailing_start_idx_after > 0, "Trailing marker not found after edit"
+        trailing_bytes_after = modified[trailing_start_idx_after:].encode("utf-8")
+
+        assert trailing_bytes_before == trailing_bytes_after
+
+    def test_edit_preserves_multibyte_utf8_exact(self, tmp_path: Path) -> None:
+        """Verify Korean/Chinese/emoji in surrounding content byte-preserved (AC: #4)."""
+        repo = StorageRepository(tmp_path)
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        content = "## 08:00\n한글 운동 🏃\n\n## 12:00\nTarget\n\n## 18:00\n中文晚餐\n"
+        file_path = raw_dir / "2026-01-26.md"
+        file_path.write_text(content, encoding="utf-8")
+
+        lines_before = content.splitlines(keepends=True)
+        # Leading: lines[:3] = "## 08:00\n", "한글 운동 🏃\n", "\n"
+        leading_bytes_before = "".join(lines_before[:3]).encode("utf-8")
+        # Trailing: lines[6:] = "\n", "## 18:00\n", "中文晚餐\n"
+        trailing_bytes_before = "".join(lines_before[6:]).encode("utf-8")
+
+        repo.edit_raw_section(
+            file_path, start=3, end=6, new_content="## 12:00\nEdited target\n"
+        )
+
+        modified = file_path.read_text(encoding="utf-8")
+        lines_after = modified.splitlines(keepends=True)
+        leading_bytes_after = "".join(lines_after[:3]).encode("utf-8")
+        # New content is 2 lines, so trailing starts at index 5
+        trailing_bytes_after = "".join(lines_after[5:]).encode("utf-8")
+
+        assert leading_bytes_before == leading_bytes_after
+        assert trailing_bytes_before == trailing_bytes_after
+
+    def test_edit_preserves_other_section_headers(self, tmp_path: Path) -> None:
+        """Assert exact header strings remain after editing middle section (AC: #2)."""
+        repo = StorageRepository(tmp_path)
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        content = "## 08:00\nMorning\n\n## 12:00\nMiddle\n\n## 18:00\nEvening\n"
+        file_path = raw_dir / "2026-01-26.md"
+        file_path.write_text(content, encoding="utf-8")
+
+        repo.edit_raw_section(
+            file_path, start=3, end=6, new_content="## 12:00\nCorrected middle\n"
+        )
+
+        modified = file_path.read_text(encoding="utf-8")
+        # Exact header strings must be present
+        assert "## 08:00" in modified
+        assert "## 18:00" in modified
+
+    def test_edit_preserves_blank_lines_between_sections(self, tmp_path: Path) -> None:
+        """Verify blank lines in SURROUNDING sections are preserved (AC: #2).
+
+        The surgical edit should preserve blank line structure in sections
+        that are NOT being edited. Tests that lines[:start] and lines[end:]
+        retain their original blank line patterns.
+        """
+        repo = StorageRepository(tmp_path)
+        raw_dir = tmp_path / "raw" / "2026" / "01"
+        raw_dir.mkdir(parents=True)
+        # 4 sections with blank line separators:
+        # Section 1 (06:00), blank, Section 2 (08:00), blank, Section 3 (12:00), blank, Section 4 (18:00)
+        content = "## 06:00\nEarly\n\n## 08:00\nMorning\n\n## 12:00\nMiddle\n\n## 18:00\nEvening\n"
+        file_path = raw_dir / "2026-01-26.md"
+        file_path.write_text(content, encoding="utf-8")
+
+        # Capture surrounding sections before edit (sections 1, 2, and 4 - NOT section 3)
+        section_1_and_2 = "## 06:00\nEarly\n\n## 08:00\nMorning\n"  # Before middle
+        section_4 = "\n## 18:00\nEvening\n"  # After middle (includes leading blank)
+
+        # Edit section 3 (12:00) with NO blank line in replacement
+        # This tests that surrounding blank lines are preserved even when middle changes
+        repo.edit_raw_section(
+            file_path, start=6, end=9, new_content="## 12:00\nCorrected middle with no trailing blank"
+        )
+
+        modified = file_path.read_text(encoding="utf-8")
+
+        # Verify surrounding content preserved exactly (including blank lines)
+        assert modified.startswith(section_1_and_2), "Leading sections not preserved"
+        assert section_4 in modified, "Trailing section with blank line not preserved"
+
 
 class TestGlobalContext:
     """Tests for global context operations."""
