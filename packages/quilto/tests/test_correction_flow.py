@@ -592,7 +592,7 @@ class TestParserCorrectionPrompt:
         assert "bench weight recorded as 85" in prompt
 
     def test_prompt_includes_matching_instructions(self) -> None:
-        """Test that prompt includes matching instructions."""
+        """Test that prompt includes matching instructions (updated in 21.4)."""
         from quilto.llm import LLMClient
 
         config = create_test_config()
@@ -610,12 +610,14 @@ class TestParserCorrectionPrompt:
 
         prompt = parser.build_prompt(parser_input)
 
-        assert "Date matching" in prompt
-        assert "Content matching" in prompt
-        assert "Value matching" in prompt
+        # Story 21.4: Updated to MATCHING PRIORITY ORDER format
+        assert "MATCHING PRIORITY ORDER" in prompt
+        assert "EXACT TIME MATCH" in prompt
+        assert "EXERCISE/ACTIVITY KEYWORD" in prompt
+        assert "VALUE MATCH" in prompt
 
     def test_prompt_includes_fallback_instructions(self) -> None:
-        """Test that prompt includes fallback instructions for no match."""
+        """Test that prompt includes fallback instructions for no match (updated in 21.4)."""
         from quilto.llm import LLMClient
 
         config = create_test_config()
@@ -633,8 +635,9 @@ class TestParserCorrectionPrompt:
 
         prompt = parser.build_prompt(parser_input)
 
-        assert "If no entry matches" in prompt
-        assert "target_entry_id to null" in prompt
+        # Story 21.4: Updated to FAILURE GUIDANCE section
+        assert "FAILURE GUIDANCE" in prompt
+        assert "target_entry_id = null" in prompt
 
     def test_prompt_no_correction_section_when_not_correction_mode(self) -> None:
         """Test that correction section is absent when correction_mode=False."""

@@ -971,7 +971,7 @@ class TestFormatRecentEntries:
         assert result == "(No recent entries)"
 
     def testformat_recent_entries_truncates_long_content(self) -> None:
-        """Long raw_content is truncated to 50 chars."""
+        """Long raw_content is truncated to 80 chars (updated in Story 21.4)."""
         from quilto.agents import ParserAgent
 
         client = create_mock_llm_client({})
@@ -985,8 +985,9 @@ class TestFormatRecentEntries:
 
         result = parser.format_recent_entries([MockEntry()])
 
-        assert "A" * 50 + "..." in result
-        assert "A" * 51 not in result
+        # Story 21.4: Truncation increased from 50 to 80 chars
+        assert "A" * 80 + "..." in result
+        assert "A" * 81 not in result
 
     def testformat_recent_entries_handles_missing_attributes(self) -> None:
         """Entries with missing attributes use 'unknown' fallback."""

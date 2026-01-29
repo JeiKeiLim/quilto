@@ -86,10 +86,99 @@ class ParserAgent:
         lines = [f'- "{term}" -> "{normalized}"' for term, normalized in vocabulary.items()]
         return "\n".join(lines)
 
+    def _extract_time_from_entry_id(self, entry_id: str) -> str:
+        """Extract time (HH:MM) from entry ID.
+
+        Args:
+            entry_id: Entry ID in format YYYY-MM-DD_HH-MM-SS.
+
+        Returns:
+            Time string in HH:MM format, or "??" if parsing fails.
+        """
+        try:
+            # Entry ID format: YYYY-MM-DD_HH-MM-SS
+            if "_" in entry_id:
+                time_part = entry_id.split("_")[1]  # HH-MM-SS
+                parts = time_part.split("-")
+                if len(parts) >= 2:
+                    return f"{parts[0]}:{parts[1]}"
+        except (IndexError, ValueError):
+            pass
+        return "??"
+
+    def _extract_domain_summary(self, parsed_data: dict[str, Any] | None) -> str:
+        """Extract domain type and key values from parsed data.
+
+        Provides domain-agnostic summary for LLM matching:
+        - Domain type (e.g., "STRENGTH", "CARDIO", "NUTRITION")
+        - Key values based on domain (exercise name, distance, food items)
+
+        Args:
+            parsed_data: Domain-specific parsed data from entry.
+
+        Returns:
+            Summary string like "STRENGTH: bench press 80kg" or "UNKNOWN".
+        """
+        if not parsed_data:
+            return "UNKNOWN"
+
+        # Get domain type from first key
+        domain_keys = list(parsed_data.keys())
+        if not domain_keys:
+            return "UNKNOWN"
+
+        domain_type = domain_keys[0].upper()
+        domain_data = parsed_data.get(domain_keys[0], {})
+
+        if not isinstance(domain_data, dict):
+            return domain_type
+
+        # Extract key values based on common domain patterns
+        key_parts: list[str] = []
+
+        # Exercise/activity name (strength, cardio)
+        for field in ("exercise", "activity", "type"):
+            if value := domain_data.get(field):
+                key_parts.append(str(value))
+                break
+
+        # Weight (strength)
+        if weight := domain_data.get("weight_kg"):
+            key_parts.append(f"{weight}kg")
+
+        # Reps/sets (strength)
+        reps = domain_data.get("reps")
+        sets = domain_data.get("sets")
+        if reps and sets:
+            key_parts.append(f"{reps}x{sets}")
+        elif reps:
+            key_parts.append(f"{reps} reps")
+        elif sets:
+            key_parts.append(f"{sets} sets")
+
+        # Distance (cardio)
+        if distance := domain_data.get("distance_km"):
+            key_parts.append(f"{distance}km")
+
+        # Duration (cardio)
+        if duration := domain_data.get("duration_min"):
+            key_parts.append(f"{duration}min")
+
+        # Food items (nutrition)
+        items = domain_data.get("items")
+        if isinstance(items, list) and items:
+            key_parts.append(", ".join(str(i) for i in items[:3]))
+
+        key_summary = " ".join(key_parts) if key_parts else ""
+        return f"{domain_type}: {key_summary}" if key_summary else domain_type
+
     def format_recent_entries(self, entries: list[Any]) -> str:
         """Format recent entries for LLM prompt.
 
-        Public method for testability.
+        Enhanced format includes time, domain type, and key values for
+        better correction target matching.
+
+        Format: "- {entry_id} | {HH:MM} | {DOMAIN: key_values} | {summary}"
 
         Args:
             entries: List of recent Entry objects.
@@ -102,12 +191,21 @@ class ParserAgent:
 
         lines: list[str] = []
         for entry in entries:
-            # Format: {id}, {date}, {raw_content summary}
             entry_id = getattr(entry, "id", "unknown")
-            entry_date = getattr(entry, "date", "unknown")
+            parsed_data = getattr(entry, "parsed_data", None)
             raw_content: str = getattr(entry, "raw_content", "")
-            summary = raw_content[:50] + "..." if len(raw_content) > 50 else raw_content
-            lines.append(f"- {entry_id}, {entry_date}, {summary}")
+
+            # Extract time from entry_id (format: YYYY-MM-DD_HH-MM-SS)
+            time_str = self._extract_time_from_entry_id(entry_id)
+
+            # Extract domain and key values
+            domain_summary = self._extract_domain_summary(parsed_data)
+
+            # Truncate raw content (80 chars for better context)
+            summary = raw_content[:80] + "..." if len(raw_content) > 80 else raw_content
+
+            # Enhanced format: entry_id | time | domain_summary | content
+            lines.append(f"- {entry_id} | {time_str} | {domain_summary} | {summary}")
         return "\n".join(lines)
 
     def build_prompt(self, parser_input: ParserInput) -> str:
@@ -131,11 +229,8 @@ class ParserAgent:
             correction_section = f"""
 === CORRECTION MODE ===
 
-This is a CORRECTION to a previous entry.
-Correction target hint: {correction_target}
-
-IMPORTANT:
-- Set is_correction = true
+This is a CORRECTION to a previous entry. You MUST:
+- Set is_correction = true (this is MANDATORY in correction mode)
 - Identify which entry from recent_entries is being corrected
 - Set target_entry_id to the identified entry's ID
 - Set correction_delta to ONLY the fields that are changing
@@ -145,21 +240,68 @@ IMPORTANT:
 
 Given the correction_target hint: "{correction_target}"
 
-Match against recent_entries using:
-1. Date matching: Does the hint mention a date or time? (e.g., "yesterday", "10:30 entry")
-2. Content matching: Does the hint mention specific exercises, foods, or activities?
-3. Value matching: Does the hint reference specific numbers that appear in entries?
+Entry format: "{{entry_id}} | {{HH:MM}} | {{DOMAIN: key_values}} | {{content_summary}}"
+- entry_id: Unique ID for the entry (use this for target_entry_id)
+- HH:MM: Time of day the entry was created
+- DOMAIN: Type of entry (STRENGTH, CARDIO, NUTRITION, etc.)
+- key_values: Key data like exercise name, weight, distance, items
+- content_summary: Raw text snippet
 
-Entry format in recent_entries: "{{entry_id}}, {{date}}, {{content_summary}}"
+=== MATCHING PRIORITY ORDER ===
 
-If multiple entries could match:
-- Select the most recent one
-- Note the ambiguity in extraction_notes
+Use this priority when identifying the target entry:
+1. EXACT TIME MATCH: If hint mentions a time (e.g., "10:30"), match time in HH:MM column
+2. EXERCISE/ACTIVITY KEYWORD: If hint mentions activity (e.g., "running"), match in DOMAIN/key_values
+3. VALUE MATCH: If hint mentions numbers (e.g., "5km", "80kg"), match in key_values
+4. MOST RECENT: If still ambiguous after above, prefer the most recent entry
 
-If no entry matches:
-- Set target_entry_id to null
-- Set is_correction to false
-- Add explanation to extraction_notes
+=== MATCHING EXAMPLES ===
+
+Example 1 - Exercise match:
+  correction_target: "fix the bench press entry"
+  recent_entries:
+    - 2026-01-26_10-30-00 | 10:30 | CARDIO: treadmill 40min | 40 minutes treadmill...
+    - 2026-01-26_18-33-00 | 18:33 | STRENGTH: bench press 80kg | Bench press 80kg...
+  CORRECT: target_entry_id = "2026-01-26_18-33-00" (bench press keyword match)
+
+Example 2 - Time match:
+  correction_target: "the 10:30 workout"
+  recent_entries:
+    - 2026-01-26_10-30-00 | 10:30 | CARDIO: treadmill 40min | 40 minutes...
+    - 2026-01-26_18-33-00 | 18:33 | STRENGTH: bench press | Bench...
+  CORRECT: target_entry_id = "2026-01-26_10-30-00" (10:30 time match)
+
+Example 3 - Running vs Treadmill:
+  correction_target: "the running entry" or "the run"
+  recent_entries:
+    - 2026-01-26_10-30-00 | 10:30 | CARDIO: treadmill 40min | 40 minutes on treadmill...
+    - 2026-01-25_09-00-00 | 09:00 | CARDIO: running 3km | Morning run 3km...
+  CORRECT: target_entry_id = "2026-01-25_09-00-00" ("running" matches "running" not "treadmill")
+
+Example 4 - Value match:
+  correction_target: "where I said 3km"
+  recent_entries:
+    - 2026-01-26_10-30-00 | 10:30 | CARDIO: treadmill 40min | ...
+    - 2026-01-25_09-00-00 | 09:00 | CARDIO: running 3km | ...
+  CORRECT: target_entry_id = "2026-01-25_09-00-00" (3km value match)
+
+Example 5 - Ambiguous (return null):
+  correction_target: "my workout"
+  recent_entries: [2 strength workouts on same day]
+  CORRECT: target_entry_id = null
+           extraction_notes = ["Ambiguous: 2 strength workouts found, need clarification"]
+
+=== FAILURE GUIDANCE ===
+
+If AMBIGUOUS (multiple entries could match equally well):
+- Set target_entry_id = null
+- Keep is_correction = true (it IS a correction attempt)
+- Add explanation to extraction_notes: "Ambiguous: [describe the conflict]"
+
+If NO MATCH FOUND (no entry matches the hint):
+- Set target_entry_id = null
+- Keep is_correction = true
+- Add explanation to extraction_notes: "No matching entry found for: [hint]"
 """
 
         # Build the full prompt

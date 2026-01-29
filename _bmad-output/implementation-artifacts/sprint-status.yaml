@@ -312,7 +312,7 @@ development_status:
   21-1-redesign-correction-edit-raw-markdown: done  # CRITICAL - modify existing raw file, not create new
   21-2-implement-surgical-edit: done  # HIGH - preserve surrounding content - code reviewed 2026-01-29
   21-3-re-parse-modified-raw-file: done  # HIGH - update parsed entry after correction - code reviewed 2026-01-29
-  21-4-improve-parser-correction-entry-matching: backlog  # MEDIUM - improve entry matching reliability
+  21-4-improve-parser-correction-entry-matching: done  # MEDIUM - improve entry matching reliability - code reviewed 2026-01-29
   21-5-dogfooding-iteration-10: backlog  # MEDIUM - CORRECTION focus
   epic-21-retrospective: optional
 
