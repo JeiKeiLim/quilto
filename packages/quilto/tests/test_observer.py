@@ -661,7 +661,7 @@ class TestObserveMethod:
                     "key": "unit_preference",
                     "value": "metric",
                     "confidence": "certain",
-                    "source": "user_correction: changed units",
+                    "source": "user said 'Use kg not lbs'",
                 }
             ],
             "insights_captured": ["User prefers metric units"],
@@ -1354,3 +1354,365 @@ class TestGlobalContextScopeRestriction:
         assert "GOOD" in prompt
         # Good examples should show preference or insight
         assert "prefer" in prompt.lower() or "insight" in prompt.lower()
+
+
+# =============================================================================
+# Test Observer Validation (Story 22.3)
+# =============================================================================
+
+
+class TestObserverValidation:
+    """Tests for Observer output validation (Story 22.3).
+
+    These tests verify that Observer validates output to filter hallucinated facts.
+    """
+
+    def test_validate_update_accepts_correctly_sourced_fact(self) -> None:
+        """Update with quoted text found in user input passes validation."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        update = ContextUpdate(
+            category="preference",
+            key="morning_workout",
+            value="prefers morning workouts",
+            confidence="certain",
+            source="user said 'I prefer morning workouts'",
+        )
+        user_input = "I prefer morning workouts and running outdoors"
+
+        result = observer._validate_update(update, user_input)  # type: ignore[reportPrivateUsage]
+        assert result is True
+
+    def test_validate_update_rejects_missing_quote(self) -> None:
+        """Update with no quoted text in source fails validation."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        update = ContextUpdate(
+            category="fact",
+            key="last_workout",
+            value="3 km run",
+            confidence="certain",
+            source="post_query: run log",  # No quotes!
+        )
+        user_input = "Tell me about my last workout"
+
+        result = observer._validate_update(update, user_input)  # type: ignore[reportPrivateUsage]
+        assert result is False
+
+    def test_validate_update_rejects_unmatched_quote(self) -> None:
+        """Update with quoted text NOT in user input fails validation."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        update = ContextUpdate(
+            category="fact",
+            key="sluggish_feeling",
+            value="user felt sluggish",
+            confidence="certain",
+            source="user said '3 km run feeling sluggish'",  # Fabricated!
+        )
+        user_input = "Tell me about my last workout"
+
+        result = observer._validate_update(update, user_input)  # type: ignore[reportPrivateUsage]
+        assert result is False
+
+    def test_validate_update_rejects_empty_user_input(self) -> None:
+        """Update with empty user input always fails validation."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        update = ContextUpdate(
+            category="preference",
+            key="morning_workout",
+            value="prefers morning workouts",
+            confidence="certain",
+            source="user said 'I prefer morning workouts'",
+        )
+        user_input = ""  # Empty!
+
+        result = observer._validate_update(update, user_input)  # type: ignore[reportPrivateUsage]
+        assert result is False
+
+    def test_validate_update_case_insensitive_match(self) -> None:
+        """Update with case mismatch still passes validation."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        update = ContextUpdate(
+            category="preference",
+            key="outdoor_running",
+            value="prefers outdoor running",
+            confidence="certain",
+            source="user said 'I PREFER OUTDOOR RUNNING'",
+        )
+        user_input = "i prefer outdoor running"
+
+        result = observer._validate_update(update, user_input)  # type: ignore[reportPrivateUsage]
+        assert result is True
+
+    def test_validate_output_filters_invalid_updates(self) -> None:
+        """Invalid updates are removed from output."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        output = ObserverOutput(
+            should_update=True,
+            updates=[
+                ContextUpdate(
+                    category="preference",
+                    key="morning_workout",
+                    value="prefers morning workouts",
+                    confidence="certain",
+                    source="user said 'I prefer morning workouts'",
+                ),
+                ContextUpdate(
+                    category="fact",
+                    key="hallucinated_fact",
+                    value="ran 10km",
+                    confidence="certain",
+                    source="post_query: run log",  # No quote, invalid
+                ),
+            ],
+            insights_captured=["User prefers morning workouts", "Ran 10km"],
+        )
+        user_input = "I prefer morning workouts"
+
+        result = observer._validate_output(output, user_input)  # type: ignore[reportPrivateUsage]
+
+        assert result.should_update is True
+        assert len(result.updates) == 1
+        assert result.updates[0].key == "morning_workout"
+        # insights_captured preserved because there are valid updates
+        assert len(result.insights_captured) == 2
+
+    def test_validate_output_sets_should_update_false_when_all_filtered(self) -> None:
+        """When all updates filtered, should_update becomes False."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        output = ObserverOutput(
+            should_update=True,
+            updates=[
+                ContextUpdate(
+                    category="fact",
+                    key="hallucinated_fact1",
+                    value="ran 10km",
+                    confidence="certain",
+                    source="post_query: run log",  # No quote
+                ),
+                ContextUpdate(
+                    category="fact",
+                    key="hallucinated_fact2",
+                    value="felt sluggish",
+                    confidence="certain",
+                    source="inferred from context",  # No quote
+                ),
+            ],
+            insights_captured=["Some insights"],
+        )
+        user_input = "Tell me about my last workout"
+
+        result = observer._validate_output(output, user_input)  # type: ignore[reportPrivateUsage]
+
+        assert result.should_update is False
+        assert len(result.updates) == 0
+        # insights_captured cleared when all updates filtered
+        assert len(result.insights_captured) == 0
+
+    @pytest.mark.asyncio
+    async def test_observe_returns_validated_output(self) -> None:
+        """Integration test: observe() returns validated output."""
+        # Mock LLM returns an invalid update (source has no quoted text)
+        response: dict[str, Any] = {
+            "should_update": True,
+            "updates": [
+                {
+                    "category": "fact",
+                    "key": "last_workout_2026-01-28",
+                    "value": "3 km run logged on 2026-01-28",
+                    "confidence": "certain",
+                    "source": "post_query: run log",  # No quoted text - invalid!
+                }
+            ],
+            "insights_captured": ["Ran 3km"],
+        }
+        client = create_mock_llm_client(response)
+        observer = ObserverAgent(client)
+
+        result = await observer.observe(
+            ObserverInput(
+                trigger="post_query",
+                current_global_context="",
+                context_management_guidance="Track preferences",
+                query="Tell me about my last workout",
+                analysis={},
+                response="You ran 3km yesterday.",
+            )
+        )
+
+        # Validation should filter out the hallucinated fact
+        assert result.should_update is False
+        assert len(result.updates) == 0
+
+    @pytest.mark.asyncio
+    async def test_observe_preserves_valid_updates(self) -> None:
+        """Integration test: observe() preserves valid updates."""
+        # Mock LLM returns a valid update (source has properly quoted user text)
+        response: dict[str, Any] = {
+            "should_update": True,
+            "updates": [
+                {
+                    "category": "preference",
+                    "key": "morning_workout",
+                    "value": "prefers morning workouts",
+                    "confidence": "certain",
+                    "source": "user said 'I prefer morning workouts'",
+                }
+            ],
+            "insights_captured": ["User prefers morning workouts"],
+        }
+        client = create_mock_llm_client(response)
+        observer = ObserverAgent(client)
+
+        result = await observer.observe(
+            ObserverInput(
+                trigger="post_query",
+                current_global_context="",
+                context_management_guidance="Track preferences",
+                query="I prefer morning workouts",
+                analysis={},
+                response="Great choice!",
+            )
+        )
+
+        # Validation should preserve the valid update
+        assert result.should_update is True
+        assert len(result.updates) == 1
+        assert result.updates[0].key == "morning_workout"
+
+    def test_get_user_input_post_query(self) -> None:
+        """_get_user_input returns query for post_query trigger."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="post_query",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            query="I prefer morning workouts",
+            analysis={},
+            response="Great!",
+        )
+
+        result = observer._get_user_input(observer_input)  # type: ignore[reportPrivateUsage]
+        assert result == "I prefer morning workouts"
+
+    def test_get_user_input_user_correction(self) -> None:
+        """_get_user_input returns correction for user_correction trigger."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="user_correction",
+            current_global_context="",
+            context_management_guidance="Track preferences",
+            correction="Actually I ran 5km not 3km",
+            what_was_corrected="distance",
+        )
+
+        result = observer._get_user_input(observer_input)  # type: ignore[reportPrivateUsage]
+        assert result == "Actually I ran 5km not 3km"
+
+    def test_get_user_input_significant_log_dict_with_raw_content(self) -> None:
+        """_get_user_input returns raw_content for significant_log with dict entry."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="significant_log",
+            current_global_context="",
+            context_management_guidance="Track PRs",
+            new_entry={"raw_content": "New 5K PR: 22:30!", "activity": "running"},
+        )
+
+        result = observer._get_user_input(observer_input)  # type: ignore[reportPrivateUsage]
+        assert result == "New 5K PR: 22:30!"
+
+    def test_get_user_input_significant_log_dict_without_raw_content(self) -> None:
+        """_get_user_input returns empty string for dict without raw_content."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="significant_log",
+            current_global_context="",
+            context_management_guidance="Track PRs",
+            new_entry={"activity": "running", "distance": "5km"},
+        )
+
+        result = observer._get_user_input(observer_input)  # type: ignore[reportPrivateUsage]
+        assert result == ""
+
+    def test_get_user_input_significant_log_non_dict(self) -> None:
+        """_get_user_input converts non-dict entry to string."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        observer_input = ObserverInput(
+            trigger="significant_log",
+            current_global_context="",
+            context_management_guidance="Track PRs",
+            new_entry="Raw string entry",
+        )
+
+        result = observer._get_user_input(observer_input)  # type: ignore[reportPrivateUsage]
+        assert result == "Raw string entry"
+
+    def test_extract_quoted_text_single_quotes(self) -> None:
+        """_extract_quoted_text extracts text between single quotes."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        result = observer._extract_quoted_text("user said 'I prefer morning workouts'")  # type: ignore[reportPrivateUsage]
+        assert result == "I prefer morning workouts"
+
+    def test_extract_quoted_text_no_quotes(self) -> None:
+        """_extract_quoted_text returns None when no quotes present."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        result = observer._extract_quoted_text("post_query: run log")  # type: ignore[reportPrivateUsage]
+        assert result is None
+
+    def test_extract_quoted_text_first_match(self) -> None:
+        """_extract_quoted_text returns first quoted match."""
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        result = observer._extract_quoted_text("user said 'first' and 'second'")  # type: ignore[reportPrivateUsage]
+        assert result == "first"
+
+    def test_validate_update_logs_warning_on_rejection(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Validation logs warning when update is rejected (AC #1)."""
+        import logging
+
+        client = create_mock_llm_client({"should_update": False})
+        observer = ObserverAgent(client)
+
+        update = ContextUpdate(
+            category="fact",
+            key="hallucinated_fact",
+            value="fabricated data",
+            confidence="certain",
+            source="post_query: some context",  # No quoted text
+        )
+        user_input = "Tell me about my workouts"
+
+        with caplog.at_level(logging.WARNING):
+            result = observer._validate_update(update, user_input)  # type: ignore[reportPrivateUsage]
+
+        assert result is False
+        assert "hallucinated_fact" in caplog.text
+        assert "source has no quoted text" in caplog.text

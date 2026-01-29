@@ -4,11 +4,17 @@ This module provides the ObserverAgent class which learns patterns
 from user data and updates the global context for personalization.
 """
 
+import logging
+import re
+
 from quilto.agents.models import (
+    ContextUpdate,
     ObserverInput,
     ObserverOutput,
 )
 from quilto.llm import LLMClient
+
+logger = logging.getLogger(__name__)
 
 
 class ObserverAgent:
@@ -301,6 +307,94 @@ If nothing meaningful to update, return should_update=false with empty updates l
 
 IMPORTANT: Be conservative. It's better to miss an insight than to pollute the context with noise."""
 
+    def _extract_quoted_text(self, source: str) -> str | None:
+        """Extract text between single quotes from source field.
+
+        Args:
+            source: The source field from ContextUpdate.
+
+        Returns:
+            The quoted text if found, None otherwise.
+        """
+        match = re.search(r"'([^']+)'", source)
+        return match.group(1) if match else None
+
+    def _validate_update(self, update: ContextUpdate, user_input: str) -> bool:
+        """Validate that update source quotes text found in user input.
+
+        Args:
+            update: The ContextUpdate to validate.
+            user_input: The original user input text.
+
+        Returns:
+            True if valid, False if hallucinated.
+        """
+        # Empty user_input means nothing can be validated
+        if not user_input.strip():
+            logger.warning(
+                "Observer validation filtered update '%s': empty user input",
+                update.key,
+            )
+            return False
+
+        quoted = self._extract_quoted_text(update.source)
+        if quoted is None:
+            logger.warning(
+                "Observer validation filtered update '%s': source has no quoted text",
+                update.key,
+            )
+            return False
+
+        if quoted.lower() not in user_input.lower():
+            logger.warning(
+                "Observer validation filtered update '%s': quoted text '%s' not in user input",
+                update.key,
+                quoted,
+            )
+            return False
+
+        return True
+
+    def _get_user_input(self, observer_input: ObserverInput) -> str:
+        """Extract user input text based on trigger type.
+
+        Args:
+            observer_input: The ObserverInput to extract from.
+
+        Returns:
+            The user input text for validation.
+        """
+        if observer_input.trigger == "post_query":
+            return observer_input.query or ""
+        elif observer_input.trigger == "user_correction":
+            return observer_input.correction or ""
+        else:  # significant_log
+            # new_entry is Any type - defensive check required
+            entry = observer_input.new_entry
+            if entry is None:
+                return ""
+            if isinstance(entry, dict):
+                return str(entry.get("raw_content", ""))
+            return str(entry)
+
+    def _validate_output(self, output: ObserverOutput, user_input: str) -> ObserverOutput:
+        """Filter out invalid updates from ObserverOutput.
+
+        Args:
+            output: The raw ObserverOutput from LLM.
+            user_input: The original user input text.
+
+        Returns:
+            ObserverOutput with only validated updates.
+        """
+        valid_updates = [update for update in output.updates if self._validate_update(update, user_input)]
+
+        return ObserverOutput(
+            should_update=len(valid_updates) > 0,
+            updates=valid_updates,
+            insights_captured=output.insights_captured if valid_updates else [],
+        )
+
     async def observe(self, observer_input: ObserverInput) -> ObserverOutput:
         """Observe user data and generate context updates.
 
@@ -332,4 +426,8 @@ IMPORTANT: Be conservative. It's better to miss an insight than to pollute the c
         )
         assert isinstance(result, ObserverOutput), f"Expected ObserverOutput, got {type(result)}"
 
-        return result
+        # Validate output to filter hallucinated facts
+        user_input = self._get_user_input(observer_input)
+        validated_result = self._validate_output(result, user_input)
+
+        return validated_result
