@@ -28,12 +28,13 @@ def runner() -> CliRunner:
 
 
 @pytest.fixture
-def mock_dependencies() -> tuple[MagicMock, MagicMock, list[MockDomain]]:
+def mock_dependencies() -> tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]:
     """Create mock dependencies tuple."""
     mock_client = MagicMock()
     mock_storage = MagicMock()
     mock_domains = [MockDomain(name="GeneralFitness", log_schema={}, vocabulary={})]
-    return (mock_client, mock_storage, mock_domains)
+    mock_config = MagicMock()  # QuiltoConfig mock
+    return (mock_client, mock_storage, mock_domains, mock_config)
 
 
 def _create_mock_process_result(
@@ -82,7 +83,7 @@ class TestUnifiedCommandRoutesLog:
     """AC1: Unified command routes LOG correctly via Quilto."""
 
     def test_command_routes_log(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """Command routes LOG input through Quilto and shows success message."""
         mock_result = _create_mock_process_result(
@@ -113,7 +114,7 @@ class TestUnifiedCommandRoutesQuery:
     """AC2: Unified command routes QUERY correctly via Quilto."""
 
     def test_command_routes_query(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """Command routes QUERY input through Quilto and shows response panel."""
         mock_result = _create_mock_process_result(
@@ -146,7 +147,7 @@ class TestUnifiedCommandHandlesBoth:
     """AC3: Unified command handles BOTH input type."""
 
     def test_command_handles_both(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """Command handles BOTH input_type showing log success and response."""
         mock_result = _create_mock_process_result(
@@ -181,7 +182,7 @@ class TestUnifiedCommandHandlesCorrection:
     """AC4: Unified command handles CORRECTION input type."""
 
     def test_command_handles_correction(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """Command handles CORRECTION input_type showing correction response."""
         mock_result = _create_mock_process_result(
@@ -212,9 +213,9 @@ class TestUnifiedCommandDebugFlag:
     """AC5: Debug flag support."""
 
     def test_debug_shows_traces(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
-        """--debug shows agent traces."""
+        """--debug shows agent traces and observability status."""
         mock_trace = MagicMock()
         mock_trace.agent_name = "router"
         mock_trace.elapsed_ms = 150.5
@@ -231,6 +232,10 @@ class TestUnifiedCommandDebugFlag:
         mock_session.session_id = "test-session-id"
         mock_session.process = AsyncMock(return_value=mock_result)
 
+        # Mock observability provider
+        mock_obs_provider = MagicMock()
+        mock_obs_provider.is_enabled.return_value = True
+
         with (
             patch("swealog.cli.app.get_dependencies", return_value=mock_dependencies),
             patch("swealog.cli.app.Quilto") as mock_quilto_cls,
@@ -239,6 +244,7 @@ class TestUnifiedCommandDebugFlag:
         ):
             mock_quilto = MagicMock()
             mock_quilto.create_session.return_value = mock_session
+            mock_quilto.observability_provider = mock_obs_provider
             mock_quilto_cls.return_value = mock_quilto
 
             result = runner.invoke(app, ["run", "--debug", "bench 185x5"])
@@ -248,13 +254,15 @@ class TestUnifiedCommandDebugFlag:
             # Rich output strips some formatting, so just check for timing
             assert "150ms" in result.output or "151ms" in result.output
             assert "input_type=log" in result.output
+            # Debug output shows observability status (AC #3)
+            assert "Observability:" in result.output
 
 
 class TestUnifiedCommandOptions:
     """Test unified command options work correctly."""
 
     def test_with_config_option(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """Command respects --config option."""
         mock_result = _create_mock_process_result(
@@ -282,7 +290,7 @@ class TestUnifiedCommandOptions:
             assert str(call_args[0][0]) == "/custom/config.yaml"
 
     def test_with_storage_option(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """Command respects --storage option."""
         mock_result = _create_mock_process_result(
@@ -333,7 +341,7 @@ class TestUnifiedCommandClarification:
     """Test clarification question handling."""
 
     def test_clarification_questions_displayed(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """Clarification questions are displayed properly."""
         mock_result = _create_mock_process_result(
@@ -365,7 +373,7 @@ class TestUnifiedCommandSession:
     """Test session support for multi-turn conversations."""
 
     def test_session_id_creates_persistent_session(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """--session option uses persistent session database."""
         mock_result = _create_mock_process_result(
@@ -394,7 +402,7 @@ class TestUnifiedCommandSession:
             assert call_kwargs["session_db_path"] == "quilto_sessions.db"
 
     def test_default_run_uses_persistent_db(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """Default run (no flags) creates Quilto with session_db_path='quilto_sessions.db'."""
         mock_result = _create_mock_process_result(
@@ -421,7 +429,7 @@ class TestUnifiedCommandSession:
             assert call_kwargs["session_db_path"] == "quilto_sessions.db"
 
     def test_default_run_prints_session_id(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """Default run (no flags) prints session ID in output."""
         mock_result = _create_mock_process_result(
@@ -447,7 +455,7 @@ class TestUnifiedCommandSession:
             assert "Session:" in result.output
 
     def test_no_persist_uses_memory_db(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """--no-persist flag creates Quilto with session_db_path=':memory:'."""
         mock_result = _create_mock_process_result(
@@ -474,7 +482,7 @@ class TestUnifiedCommandSession:
             assert call_kwargs["session_db_path"] == ":memory:"
 
     def test_session_with_no_persist_uses_memory(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """--session + --no-persist: --no-persist takes precedence (uses ':memory:')."""
         mock_result = _create_mock_process_result(
@@ -505,7 +513,7 @@ class TestUnifiedCommandSession:
             mock_quilto.get_session.assert_not_called()
 
     def test_existing_session_resume(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """--session with existing session resumes it without creating new."""
         mock_result = _create_mock_process_result(
@@ -538,7 +546,7 @@ class TestUnifiedCommandSession:
             mock_session.process.assert_called_once_with("follow-up question", mode="auto")
 
     def test_session_not_found_warns_user(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """--session with non-existent ID warns user and creates new session."""
         mock_result = _create_mock_process_result(
@@ -627,7 +635,7 @@ class TestUnifiedCommandFeedbackIntegration:
     """Integration tests for feedback recording in unified command."""
 
     def test_query_flow_prompts_feedback_when_debug(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """QUERY flow with --debug prompts for feedback and records it."""
         mock_result = _create_mock_process_result(
@@ -661,7 +669,7 @@ class TestUnifiedCommandFeedbackIntegration:
             mock_recorder.record.assert_called_once()
 
     def test_query_flow_no_feedback_prompt_without_debug(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """QUERY flow without --debug does not prompt for feedback."""
         mock_result = _create_mock_process_result(
@@ -693,7 +701,7 @@ class TestUnifiedCommandFeedbackIntegration:
             mock_recorder_cls.return_value.record.assert_not_called()
 
     def test_log_flow_prompts_feedback_when_debug(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """LOG flow with --debug still prompts for feedback."""
         mock_result = _create_mock_process_result(
@@ -729,7 +737,7 @@ class TestUnifiedCommandNonInteractive:
     """Test --non-interactive option."""
 
     def test_non_interactive_skips_prompt(
-        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain]]
+        self, runner: CliRunner, mock_dependencies: tuple[MagicMock, MagicMock, list[MockDomain], MagicMock]
     ) -> None:
         """--non-interactive skips feedback prompt even with --debug."""
         mock_result = _create_mock_process_result(

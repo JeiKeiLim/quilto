@@ -5,9 +5,9 @@
 # story_location: _bmad-output/implementation-artifacts/epic-{N}/
 #
 # LLM CONFIGURATION:
-# Sample config at: llm-config.yaml (project root)
+# Sample config at: config.yaml (project root)
 # - Ollama URL: http://localhost:11434
-# - Models: qwen2.5:3b (low tier), qwen2.5:7b (medium/high tier)
+# - Models: qwen2.5:7b (all tiers - minimum for reliable structured output)
 # - Qwen2.5 chosen for structured JSON output support
 #
 # DIRECTORY STRUCTURE:
@@ -348,6 +348,6 @@ development_status:
   24-3-unified-config-loading: done
   24-4-instrument-tool-calls-in-agents: done
   24-5-integrate-observability-with-quilto-entry-point: done
-  24-6-update-swealog-configuration: backlog
+  24-6-update-swealog-configuration: done
   24-7-dogfooding-iteration-observability-validation: backlog
   epic-24-retrospective: optional

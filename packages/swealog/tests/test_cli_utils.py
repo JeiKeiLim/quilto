@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from quilto import DomainModule, LLMClient, StorageRepository
-from quilto.llm import LLMConfig
+from quilto.config import QuiltoConfig
 from swealog.cli.utils import (
     EXIT_ERROR,
     EXIT_SUCCESS,
@@ -116,8 +116,8 @@ tiers:
         config_path.write_text(config_content)
 
         config = load_cli_config(config_path)
-        assert isinstance(config, LLMConfig)
-        assert "ollama" in config.providers
+        assert isinstance(config, QuiltoConfig)
+        assert "ollama" in config.llm.providers
 
     def test_load_cli_config_default_path(self) -> None:
         """Test load_cli_config uses default path when none specified."""
@@ -172,13 +172,14 @@ tiers:
         config_path.write_text(config_content)
         storage_path = tmp_path / "logs"
 
-        llm_client, storage, domains = get_dependencies(config_path, storage_path)
+        llm_client, storage, domains, config = get_dependencies(config_path, storage_path)
 
         assert isinstance(llm_client, LLMClient)
         assert isinstance(storage, StorageRepository)
         assert isinstance(domains, list)
         assert len(domains) == 5  # 5 fitness domains
         assert all(isinstance(d, DomainModule) for d in domains)
+        assert isinstance(config, QuiltoConfig)
 
     def test_get_dependencies_creates_storage_subdirectories(self, tmp_path: Path) -> None:
         """Test get_dependencies creates logs subdirectories via StorageRepository."""
@@ -199,7 +200,7 @@ tiers:
         config_path.write_text(config_content)
         storage_path = tmp_path
 
-        _llm_client, storage, _domains = get_dependencies(config_path, storage_path)
+        _llm_client, storage, _domains, _config = get_dependencies(config_path, storage_path)
 
         # StorageRepository creates subdirectories directly under base_path
         assert (storage.base_path / "raw").exists()
@@ -225,7 +226,7 @@ tiers:
         config_path.write_text(config_content)
         storage_path = tmp_path / "logs"
 
-        _llm_client, _storage, domains = get_dependencies(config_path, storage_path)
+        _llm_client, _storage, domains, _config = get_dependencies(config_path, storage_path)
 
         domain_names = {d.name for d in domains}
         expected_names = {"GeneralFitness", "Strength", "Nutrition", "Running", "Swimming"}
@@ -239,7 +240,9 @@ tiers:
             patch("swealog.cli.utils.StorageRepository"),
             patch("swealog.cli.utils.resolve_storage_path") as mock_resolve,
         ):
-            mock_load.return_value = MagicMock()
+            mock_config = MagicMock()
+            mock_config.llm = MagicMock()  # QuiltoConfig has .llm attribute
+            mock_load.return_value = mock_config
             mock_resolve.return_value = Path(".")
 
             get_dependencies(config_path=Path("test.yaml"), storage_path=None)

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from quilto import DomainModule, LLMClient, StorageRepository
-from quilto.llm import LLMConfig, load_llm_config
+from quilto.config import QuiltoConfig, load_config
 
 from swealog.domains import general_fitness, nutrition, running, strength, swimming
 
@@ -34,18 +34,18 @@ def run_async[T, **P](func: Callable[P, Coroutine[Any, Any, T]]) -> Callable[P, 
     return wrapper
 
 
-def load_cli_config(config_path: Path | None = None) -> LLMConfig:
-    """Load LLM configuration from file.
+def load_cli_config(config_path: Path | None = None) -> QuiltoConfig:
+    """Load unified Quilto configuration from file.
 
     Args:
-        config_path: Path to config file. Defaults to ./llm-config.yaml
+        config_path: Path to config file. Defaults to ./config.yaml
 
     Returns:
-        Loaded LLMConfig instance.
+        Loaded QuiltoConfig instance with llm and observability settings.
     """
     if config_path is None:
-        config_path = Path("llm-config.yaml")
-    return load_llm_config(config_path)
+        config_path = Path("config.yaml")
+    return load_config(config_path)
 
 
 def resolve_storage_path(storage_path: Path | None = None) -> Path:
@@ -66,18 +66,18 @@ def resolve_storage_path(storage_path: Path | None = None) -> Path:
 def get_dependencies(
     config_path: Path | None = None,
     storage_path: Path | None = None,
-) -> tuple[LLMClient, StorageRepository, list[DomainModule]]:
+) -> tuple[LLMClient, StorageRepository, list[DomainModule], QuiltoConfig]:
     """Initialize shared CLI dependencies.
 
     Args:
-        config_path: Optional path to llm-config.yaml.
+        config_path: Optional path to config.yaml.
         storage_path: Optional path to storage directory.
 
     Returns:
-        Tuple of (LLMClient, StorageRepository, list of domains).
+        Tuple of (LLMClient, StorageRepository, list of domains, QuiltoConfig).
     """
     config = load_cli_config(config_path)
-    llm_client = LLMClient(config)
+    llm_client = LLMClient(config.llm)
     storage = StorageRepository(resolve_storage_path(storage_path))
     domains: list[DomainModule] = [general_fitness, strength, nutrition, running, swimming]
-    return llm_client, storage, domains
+    return llm_client, storage, domains, config

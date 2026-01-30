@@ -32,21 +32,20 @@ def use_real_ollama(request: pytest.FixtureRequest) -> bool:
 
 @pytest.fixture
 def integration_llm_config_path() -> Path:
-    """Return path to llm-config.yaml for integration tests.
+    """Return path to config.yaml for integration tests.
 
     This ensures all integration tests use the same config file,
-    matching what users experience with manual_test.py.
+    matching what users experience with the CLI.
 
     Returns:
-        Path to llm-config.yaml in project root.
+        Path to config.yaml in project root.
 
     Raises:
-        FileNotFoundError: If llm-config.yaml doesn't exist.
+        FileNotFoundError: If config.yaml doesn't exist.
     """
-    config_path = PROJECT_ROOT / "llm-config.yaml"
+    config_path = PROJECT_ROOT / "config.yaml"
     if not config_path.exists():
         raise FileNotFoundError(
-            f"llm-config.yaml not found at {config_path}. "
-            "Integration tests require this file to match production config."
+            f"config.yaml not found at {config_path}. Integration tests require this file to match production config."
         )
     return config_path

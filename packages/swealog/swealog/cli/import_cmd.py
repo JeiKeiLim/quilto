@@ -372,7 +372,7 @@ async def import_file(
 
     # Initialize importer
     config = load_cli_config()
-    llm_client = LLMClient(config)
+    llm_client = LLMClient(config.llm)
     storage = StorageRepository(resolve_storage_path())
     domains: list[DomainModule] = [general_fitness, strength, nutrition, running, swimming]
 

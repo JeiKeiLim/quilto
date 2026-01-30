@@ -9,7 +9,7 @@ from swealog.api.dependencies import (
     ConfigNotFoundError,
     get_domains,
     get_llm_client,
-    get_llm_config,
+    get_quilto_config,
     get_storage,
 )
 
@@ -70,31 +70,31 @@ class TestGetStorage:
         assert storage is not None
 
 
-class TestGetLLMConfig:
-    """Tests for get_llm_config dependency."""
+class TestGetQuiltoConfig:
+    """Tests for get_quilto_config dependency."""
 
     def test_raises_when_config_missing(self) -> None:
         """Test that ConfigNotFoundError is raised when config doesn't exist."""
         import os
 
         # Clear cache first
-        get_llm_config.cache_clear()
+        get_quilto_config.cache_clear()
 
         # Save original path and change to temp dir
         original_cwd = os.getcwd()
         with TemporaryDirectory() as tmpdir:
             try:
                 os.chdir(tmpdir)
-                # No llm-config.yaml exists in temp dir
+                # No config.yaml exists in temp dir
                 with pytest.raises(ConfigNotFoundError) as exc_info:
-                    get_llm_config()
+                    get_quilto_config()
 
-                assert "llm-config.yaml" in str(exc_info.value)
+                assert "config.yaml" in str(exc_info.value)
             finally:
                 os.chdir(original_cwd)
 
         # Clear cache after test
-        get_llm_config.cache_clear()
+        get_quilto_config.cache_clear()
 
 
 class TestGetLLMClient:
@@ -103,7 +103,7 @@ class TestGetLLMClient:
     def test_raises_when_config_missing(self) -> None:
         """Test that get_llm_client raises ConfigNotFoundError when config missing."""
         # Clear cache first
-        get_llm_config.cache_clear()
+        get_quilto_config.cache_clear()
 
         with patch("swealog.api.dependencies.Path") as mock_path:
             mock_path.return_value.exists.return_value = False
@@ -112,7 +112,7 @@ class TestGetLLMClient:
                 get_llm_client()
 
         # Clear cache after test
-        get_llm_config.cache_clear()
+        get_quilto_config.cache_clear()
 
 
 class TestConfigNotFoundError:

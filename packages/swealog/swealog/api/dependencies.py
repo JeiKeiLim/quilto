@@ -6,12 +6,11 @@ from pathlib import Path
 from quilto import (
     DomainModule,
     LLMClient,
-    LLMConfig,
     ObserverTriggerConfig,
     Quilto,
     StorageRepository,
-    load_llm_config,
 )
+from quilto.config import QuiltoConfig, load_config
 
 from swealog.domains import (
     general_fitness,
@@ -23,23 +22,23 @@ from swealog.domains import (
 
 
 class ConfigNotFoundError(Exception):
-    """Raised when LLM configuration file is not found."""
+    """Raised when configuration file is not found."""
 
 
 @lru_cache
-def get_llm_config() -> LLMConfig:
-    """Load LLM configuration (cached).
+def get_quilto_config() -> QuiltoConfig:
+    """Load unified Quilto configuration (cached).
 
     Returns:
-        Loaded LLMConfig instance.
+        Loaded QuiltoConfig instance with llm and observability.
 
     Raises:
         ConfigNotFoundError: If config file does not exist.
     """
-    config_path = Path("llm-config.yaml")
+    config_path = Path("config.yaml")
     if not config_path.exists():
-        raise ConfigNotFoundError(f"LLM config not found: {config_path}")
-    return load_llm_config(config_path)
+        raise ConfigNotFoundError(f"Config not found: {config_path}")
+    return load_config(config_path)
 
 
 def get_llm_client() -> LLMClient:
@@ -48,8 +47,8 @@ def get_llm_client() -> LLMClient:
     Returns:
         Configured LLMClient.
     """
-    config = get_llm_config()
-    return LLMClient(config)
+    config = get_quilto_config()
+    return LLMClient(config.llm)
 
 
 def get_storage() -> StorageRepository:
@@ -81,6 +80,7 @@ def create_quilto(
     llm_client: LLMClient | None = None,
     storage: StorageRepository | None = None,
     domains: list[DomainModule] | None = None,
+    config: QuiltoConfig | None = None,
     debug: bool = False,
 ) -> Quilto:
     """Create Quilto instance with correct domains for Swealog.
@@ -91,6 +91,7 @@ def create_quilto(
         llm_client: LLM client. Uses get_llm_client() if not provided.
         storage: Storage repository. Uses get_storage() if not provided.
         domains: Domain modules. Uses get_domains() if not provided.
+        config: Quilto configuration. Uses get_quilto_config() if not provided.
         debug: Enable debug mode with traces.
 
     Returns:
@@ -103,4 +104,5 @@ def create_quilto(
         observer_config=ObserverTriggerConfig(enable_post_query=True),
         session_db_path=":memory:",  # Stateless per-request
         debug=debug,
+        config=config or get_quilto_config(),
     )

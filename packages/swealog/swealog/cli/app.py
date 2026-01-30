@@ -23,6 +23,7 @@ from quilto import (
     Quilto,
     StorageRepository,
 )
+from quilto.config import QuiltoConfig
 
 from swealog.cli.feedback import (
     FeedbackProgressHandler,
@@ -71,6 +72,7 @@ def _create_quilto(
     llm_client: LLMClient,
     storage: StorageRepository,
     domains: list[DomainModule],
+    config: QuiltoConfig,
     debug: bool = False,
     session_db_path: str = "quilto_sessions.db",
     progress_handler: FeedbackProgressHandler | None = None,
@@ -81,6 +83,7 @@ def _create_quilto(
         llm_client: LLM client for agents.
         storage: Storage repository for entries.
         domains: Available domain modules.
+        config: Unified Quilto configuration (LLM + observability).
         debug: Enable debug mode with traces.
         session_db_path: Path to session database. Defaults to 'quilto_sessions.db'.
         progress_handler: Optional handler for capturing agent outputs.
@@ -96,6 +99,7 @@ def _create_quilto(
         session_db_path=session_db_path,
         progress_handler=progress_handler,
         debug=debug,
+        config=config,
     )
 
 
@@ -289,7 +293,7 @@ async def run_command(
     ] = False,
     config: Annotated[
         Path | None,
-        typer.Option("--config", "-c", help="Path to llm-config.yaml"),
+        typer.Option("--config", "-c", help="Path to config.yaml"),
     ] = None,
     storage_path: Annotated[
         Path | None,
@@ -320,14 +324,21 @@ async def run_command(
 
     try:
         # Initialize dependencies
-        llm_client, storage, domains = get_dependencies(config, storage_path)
+        llm_client, storage, domains, quilto_config = get_dependencies(config, storage_path)
 
         # Create progress handler for debug mode to capture full agent outputs
         progress_handler = FeedbackProgressHandler(debug=debug) if debug else None
 
         # Determine session persistence
         session_db_path = ":memory:" if no_persist else "quilto_sessions.db"
-        quilto = _create_quilto(llm_client, storage, domains, debug, session_db_path, progress_handler)
+        quilto = _create_quilto(llm_client, storage, domains, quilto_config, debug, session_db_path, progress_handler)
+
+        # Log observability status in debug mode
+        if debug:
+            obs_provider = quilto.observability_provider
+            obs_enabled = obs_provider.is_enabled()
+            provider_name = type(obs_provider).__name__
+            print_info(f"Observability: {provider_name} ({'enabled' if obs_enabled else 'disabled'})")
 
         # Warn if --no-persist overrides --session
         if no_persist and session_id:

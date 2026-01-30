@@ -1,0 +1,67 @@
+# Quilto Unified Configuration - OpenRouter/Cloud Provider Example
+# ================================================================
+# This is a sample configuration using OpenRouter cloud LLM provider.
+#
+# MINIMUM REQUIREMENT: A model that supports structured JSON output.
+
+# =============================================================================
+# LLM Configuration
+# =============================================================================
+llm:
+  default_provider: "openrouter"
+  # fallback_provider: "anthropic"  # Uncomment when ANTHROPIC_API_KEY is set
+
+  providers:
+    ollama:
+      api_base: "http://localhost:11434"
+    openrouter:
+      api_key: "${OPENROUTER_API_KEY}"
+    # anthropic:
+    #   api_key: "${ANTHROPIC_API_KEY}"
+
+  # Model tiers - using OpenRouter free tier models
+  tiers:
+    low:
+      openrouter: "openai/gpt-oss-120b:free"
+      # anthropic: "claude-3-haiku-20240307"
+    medium:
+      openrouter: "openai/gpt-oss-120b:free"
+      # anthropic: "claude-3-5-sonnet-20241022"
+    high:
+      openrouter: "openai/gpt-oss-120b:free"
+      # anthropic: "claude-3-5-sonnet-20241022"
+
+  # Agent tier assignments
+  agents:
+    router:
+      tier: low
+    parser:
+      tier: medium
+    planner:
+      tier: medium
+    retriever:
+      tier: low
+    analyzer:
+      tier: high
+    synthesizer:
+      tier: high
+    evaluator:
+      tier: medium
+    clarifier:
+      tier: low
+    observer:
+      tier: medium
+
+# =============================================================================
+# Observability Configuration (Optional)
+# =============================================================================
+# Enable LLM tracing via Langfuse for debugging and performance analysis.
+# Requires Langfuse credentials (see .env.example for setup).
+observability:
+  enabled: true
+  provider: langfuse  # langfuse | noop
+  sample_rate: 1.0
+  # Credentials are loaded from environment variables:
+  # - LANGFUSE_PUBLIC_KEY
+  # - LANGFUSE_SECRET_KEY
+  # - LANGFUSE_BASE_URL

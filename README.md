@@ -29,6 +29,37 @@ This workspace contains two packages:
 - [uv](https://docs.astral.sh/uv/) package manager
 - [Ollama](https://ollama.ai/) with `qwen2.5:7b` model (or cloud API key)
 
+## Observability (Optional)
+
+Swealog supports LLM observability via [Langfuse](https://langfuse.com) for debugging and performance analysis.
+
+### Setup
+
+1. Create account at [cloud.langfuse.com](https://cloud.langfuse.com)
+2. Create a project and get your API keys
+3. Add to `.env` file (see `.env.example`):
+   ```bash
+   LANGFUSE_PUBLIC_KEY=pk-lf-xxx
+   LANGFUSE_SECRET_KEY=sk-lf-xxx
+   LANGFUSE_BASE_URL=https://cloud.langfuse.com
+   ```
+4. Enable in `config.yaml`:
+   ```yaml
+   observability:
+     enabled: true
+     provider: langfuse
+   ```
+
+### Usage
+
+Run with debug flag to see observability status:
+```bash
+uv run swealog run --debug "bench 185x5"
+# Output: Observability: LangfuseProvider (enabled)
+```
+
+View traces in your Langfuse dashboard.
+
 ## Quick Start
 
 ```bash
@@ -48,26 +79,26 @@ uv run swealog --version
 
 ```bash
 # Simple log
-uv run swealog log "bench press 185x5 felt heavy"
+uv run swealog run "bench press 185x5 felt heavy"
 
 # With custom config
-uv run swealog log "ran 5k in 25:30" --config ./my-config.yaml
+uv run swealog run "ran 5k in 25:30" --config ./my-config.yaml
 
 # With custom storage directory
-uv run swealog log "swam 2000m freestyle" --storage ./my-logs
+uv run swealog run "swam 2000m freestyle" --storage ./my-logs
 ```
 
 ### Query Your Data
 
 ```bash
 # Ask questions about your fitness data
-uv run swealog ask "how has my bench press progressed?"
+uv run swealog run "how has my bench press progressed?"
 
 # Get running statistics
-uv run swealog ask "what was my average pace last week?"
+uv run swealog run "what was my average pace last week?"
 
 # Nutrition queries
-uv run swealog ask "how many calories did I consume yesterday?"
+uv run swealog run "how many calories did I consume yesterday?"
 ```
 
 ### Batch Import
@@ -114,8 +145,9 @@ uv run swealog serve --reload
 
 | Option | Short | Description |
 |--------|-------|-------------|
-| `--config` | `-c` | Path to llm-config.yaml |
-| `--storage` | `-s` | Path to storage directory (default: ./logs) |
+| `--config` | `-c` | Path to config.yaml |
+| `--storage` | | Path to storage directory (default: ./logs) |
+| `--debug` | `-d` | Show debug output with agent timing and observability status |
 | `--version` | `-v` | Show version |
 | `--help` | | Show help |
 
@@ -170,39 +202,47 @@ curl -X POST http://localhost:8000/query \
 
 ## Configuration
 
-Create `llm-config.yaml` in your project root:
+Create `config.yaml` in your project root:
 
 ```yaml
-default_provider: "ollama"
-# fallback_provider: "anthropic"  # Uncomment for cloud fallback
+# LLM Configuration
+llm:
+  default_provider: "ollama"
+  # fallback_provider: "anthropic"  # Uncomment for cloud fallback
 
-providers:
-  ollama:
-    api_base: "http://localhost:11434"
-  # anthropic:
-  #   api_key: "${ANTHROPIC_API_KEY}"
+  providers:
+    ollama:
+      api_base: "http://localhost:11434"
+    # anthropic:
+    #   api_key: "${ANTHROPIC_API_KEY}"
 
-tiers:
-  low:
-    ollama: "qwen2.5:7b"
-  medium:
-    ollama: "qwen2.5:7b"
-  high:
-    ollama: "qwen2.5:7b"
+  tiers:
+    low:
+      ollama: "qwen2.5:7b"
+    medium:
+      ollama: "qwen2.5:7b"
+    high:
+      ollama: "qwen2.5:7b"
 
-agents:
-  router:
-    tier: low
-  parser:
-    tier: medium
-  planner:
-    tier: medium
-  analyzer:
-    tier: high
-  synthesizer:
-    tier: high
-  evaluator:
-    tier: medium
+  agents:
+    router:
+      tier: low
+    parser:
+      tier: medium
+    planner:
+      tier: medium
+    analyzer:
+      tier: high
+    synthesizer:
+      tier: high
+    evaluator:
+      tier: medium
+
+# Observability Configuration (optional)
+observability:
+  enabled: true
+  provider: langfuse  # langfuse | noop
+  sample_rate: 1.0
 ```
 
 ### Dual LLM Support
@@ -300,7 +340,8 @@ swealog/
 │       └── tests/
 │
 ├── tests/                   # Integration tests & corpus
-├── llm-config.yaml          # LLM configuration
+├── config.yaml              # Unified configuration (LLM + observability)
+├── .env.example             # Environment variable template
 ├── pyproject.toml           # Workspace configuration
 └── Makefile                 # Development commands
 ```
