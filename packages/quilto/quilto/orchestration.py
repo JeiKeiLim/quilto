@@ -1511,17 +1511,35 @@ def create_orchestration_graph(quilto: "Quilto") -> OrchestrationGraph:
     # Compile and return
     compiled = graph.compile()
 
-    # Wrap to inject quilto reference
+    # Wrap to inject quilto reference and observability callback
     class QuiltoGraph:
-        """Wrapper to inject quilto reference into state."""
+        """Wrapper to inject quilto reference and observability callback into state."""
 
         def __init__(self, inner_graph: Any, quilto_ref: "Quilto") -> None:
             self._graph = inner_graph
             self._quilto = quilto_ref
 
         async def ainvoke(self, state: dict[str, Any]) -> dict[str, Any]:
-            """Invoke graph with quilto reference injected."""
+            """Invoke graph with quilto reference and observability callback injected.
+
+            The observability callback (if enabled) is passed to LangGraph's ainvoke()
+            via the config parameter, enabling automatic tracing of agent node
+            transitions and LLM calls.
+            """
             state[StateKeys.QUILTO] = self._quilto
+
+            # Get observability callback from quilto's provider (AC#4)
+            provider = getattr(self._quilto, "observability_provider", None)
+            callback = provider.get_langgraph_callback() if provider else None
+
+            # Inject observability provider into state for consistent access pattern
+            # (aligns with Story 24.4's _get_observability_provider pattern)
+            if provider is not None:
+                state[StateKeys.OBSERVABILITY] = provider
+
+            # Invoke with or without callback
+            if callback:
+                return await self._graph.ainvoke(state, config={"callbacks": [callback]})
             return await self._graph.ainvoke(state)
 
     return QuiltoGraph(compiled, quilto)

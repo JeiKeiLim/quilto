@@ -347,7 +347,7 @@ development_status:
   24-2-langfuseprovider-implementation: done
   24-3-unified-config-loading: done
   24-4-instrument-tool-calls-in-agents: done
-  24-5-integrate-observability-with-quilto-entry-point: backlog
+  24-5-integrate-observability-with-quilto-entry-point: done
   24-6-update-swealog-configuration: backlog
   24-7-dogfooding-iteration-observability-validation: backlog
   epic-24-retrospective: optional
