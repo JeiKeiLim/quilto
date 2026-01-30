@@ -30,6 +30,7 @@ from quilto.models import (
     ProcessDebug,
     ProcessResult,
 )
+from quilto.observability import NoOpProvider, ObservabilityProvider, SpanContext
 from quilto.orchestration import StateKeys
 from quilto.quilto import Quilto
 from quilto.session import (
@@ -74,6 +75,8 @@ __all__ = [
     "LLMClient",
     "LLMConfig",
     "ModelResolution",
+    "NoOpProvider",
+    "ObservabilityProvider",
     "ObserverTriggerConfig",
     "ParserAgent",
     "ParserInput",
@@ -93,6 +96,7 @@ __all__ = [
     "SessionManager",
     "SessionState",
     "SessionStore",
+    "SpanContext",
     "SQLiteSessionStore",
     "StateKeys",
     "StorageRepository",

@@ -7,13 +7,17 @@ inputDocuments:
   - '_bmad-output/architecture-draft.md'
   - '_bmad-output/planning-artifacts/research/technical-swealog-foundational-research-2026-01-02.md'
   - '_bmad-output/research-questions.md'
+  - '_bmad-output/planning-artifacts/prd-quilto.md'
 workflowType: 'architecture'
 project_name: 'swealog'
 user_name: 'Jongkuk Lim'
 date: '2026-01-02'
-last_updated: '2026-01-27'
+last_updated: '2026-01-30'
 status: 'complete'
-next_action: 'Create implementation epic for Quilto public API'
+next_action: 'Create implementation epic for Observability support'
+editHistory:
+  - date: '2026-01-30'
+    changes: 'Added LLM Observability architecture - Langfuse integration, ObservabilityProvider protocol, dual integration pattern'
 ---
 
 # Architecture Decision Document
@@ -211,13 +215,13 @@ See: `_bmad-output/planning-artifacts/quilto-api-design-session.md` (full design
 
 **Entry Point:**
 ```python
-from quilto import Quilto, LLMClient, StorageRepository
+from quilto import Quilto, load_config, StorageRepository
 
-llm_client = LLMClient(config_path="./llm.yaml")
+config = load_config("./config.yaml")  # LLM + observability config
 storage = StorageRepository(base_path="./logs")
 
 q = Quilto(
-    llm_client=llm_client,
+    config=config,
     storage=storage,
     domains=[FitnessDomain()],
     progress_handler=MyUIHandler(),  # Optional
@@ -239,7 +243,8 @@ result = await session.process("Why was Wednesday harder?")  # Follow-up
 |----------|--------|
 | Entry point | `Quilto` class |
 | Main method | `session.process()` with auto-detect (LOG/QUERY/CORRECTION) |
-| Configuration | Flat constructor; accepts `LLMClient`, `StorageRepository` instances |
+| Configuration | Unified `config.yaml`; accepts config object + `StorageRepository` instance |
+| Observability | `ObservabilityProvider` protocol; Langfuse default, swappable |
 | Progress callbacks | `ProgressHandler` protocol (async methods) |
 | Customization | Closed orchestration - apps configure via DomainModules + config flags |
 | Return type | `ProcessResult` (Pydantic BaseModel) |
@@ -261,16 +266,18 @@ SessionManager
 quilto/
 ├── agents/           # Individual agents
 ├── llm/              # LLM client abstraction
+├── observability/    # Observability abstraction (see LLM Observability section)
 ├── state/            # Observer triggers
 ├── storage/          # Storage abstraction
-├── session/          # NEW: Session management
+├── session/          # Session management
 │   ├── manager.py    # SessionManager
 │   ├── session.py    # Session class
 │   ├── models.py     # SessionData, ConversationTurn
 │   └── stores/       # SessionStore implementations
-├── quilto.py         # NEW: Quilto class (public entry point)
-├── models.py         # NEW: ProcessResult, ClarificationQuestion
-└── handlers.py       # NEW: ProgressHandler protocol
+├── config.py         # Unified config loading (LLM + observability)
+├── quilto.py         # Quilto class (public entry point)
+├── models.py         # ProcessResult, ClarificationQuestion
+└── handlers.py       # ProgressHandler protocol
 ```
 
 ### LLM Client Abstraction
@@ -285,19 +292,221 @@ LLM calls abstracted via tiered configuration for easy provider switching:
 
 See: `_bmad-output/planning-artifacts/agent-system-design.md` (Section 15)
 
+### LLM Observability
+
+**Status: DECIDED - Langfuse with Provider Abstraction**
+
+Observability for LLM calls and agent execution flow, enabling debugging, performance analysis, and error correlation across the 9-agent system.
+
+See: `prd-quilto.md` (FR59-63, NFR9)
+
+#### Location
+
+**Decision:** `quilto/observability/`
+
+Top-level module (not nested under `llm/`) because observability spans:
+- LLM calls (via LangGraph's Langfuse integration)
+- Agent execution flow (graph nodes, state transitions)
+- Tool calls (storage operations, external APIs)
+
+#### Integration Pattern
+
+**Decision:** Dual Integration
+
+| Layer | Integration | What Gets Traced |
+|-------|-------------|------------------|
+| **LangGraph** | Native Langfuse callback | Agent nodes, state transitions, LLM calls within nodes |
+| **Tool calls** | Manual span instrumentation | Storage reads/writes, external operations |
+
+**Trace structure (example query):**
+```
+Trace: "user query: why is my bench stuck?"
+├── Span: Router (verdict: QUERY)
+├── Span: Planner (extracted hints, retrieval plan)
+│   └── LLM Call: planning
+├── Span: Retriever
+│   ├── Tool: storage.read_entries (date_range: 2026-01)
+│   └── LLM Call: context summarization
+├── Span: Analyzer
+│   └── LLM Call: pattern analysis
+├── Span: Synthesizer
+│   └── LLM Call: response composition
+└── Span: Evaluator (verdict: SUFFICIENT)
+    └── LLM Call: quality check
+```
+
+**Tool calls requiring instrumentation:**
+
+| Agent | Tool Operations |
+|-------|-----------------|
+| **Retriever** | `storage.read_entries()`, file access |
+| **Parser** | `storage.write_raw()`, `storage.write_parsed()` |
+| **Observer** | `storage.read_context()`, `storage.write_context()` |
+
+#### Provider Interface
+
+Abstraction for swappable observability backends (Langfuse MVP, future: LangSmith, Arize, OpenTelemetry):
+
+```python
+# quilto/observability/provider.py
+from contextlib import AbstractContextManager
+from dataclasses import dataclass
+from typing import Any, Protocol, runtime_checkable
+
+@dataclass
+class SpanContext:
+    """Context for an active span."""
+    span_id: str
+    trace_id: str
+
+@runtime_checkable
+class ObservabilityProvider(Protocol):
+    """Protocol for observability backends."""
+
+    # LangGraph integration
+    def get_langgraph_callback(self) -> Any | None:
+        """Return callback handler for LangGraph execution.
+
+        Returns None if observability is disabled.
+        """
+        ...
+
+    # Manual span creation (for tool calls)
+    def span(
+        self,
+        name: str,
+        metadata: dict[str, Any] | None = None,
+        input: Any | None = None,
+    ) -> AbstractContextManager[SpanContext]:
+        """Create a span for tracing an operation.
+
+        Usage:
+            with provider.span("storage.read", metadata={"path": "..."}):
+                result = storage.read(...)
+        """
+        ...
+
+    # Event logging within current span
+    def log_event(self, name: str, metadata: dict[str, Any] | None = None) -> None:
+        """Log an event within the current trace context."""
+        ...
+
+    # Error tracking (FR63)
+    def log_error(self, error: Exception, metadata: dict[str, Any] | None = None) -> None:
+        """Log an error with correlation to current span."""
+        ...
+
+    # Lifecycle
+    def is_enabled(self) -> bool:
+        """Check if observability is active."""
+        ...
+
+    def flush(self) -> None:
+        """Ensure all traces are sent (call before shutdown)."""
+        ...
+```
+
+**Implementations:**
+- `LangfuseProvider` - MVP implementation
+- `NoOpProvider` - When observability disabled (graceful degradation per NFR9)
+- `LangSmithProvider` - Future
+- `ArizeProvider` - Future
+
+#### Configuration
+
+**Decision:** Config in `config.yaml` (renamed from `llm.yaml`)
+
+```yaml
+# config.yaml
+llm:
+  default_provider: ollama
+  fallback_provider: anthropic
+  # ... existing LLM config
+
+observability:
+  enabled: true
+  provider: langfuse  # langfuse | langsmith | arize | none
+  sample_rate: 1.0    # 1.0 = trace 100% of requests
+```
+
+**Credentials via environment variables:**
+- `LANGFUSE_PUBLIC_KEY`
+- `LANGFUSE_SECRET_KEY`
+- `LANGFUSE_HOST` (optional, defaults to cloud.langfuse.com)
+
+**Graceful degradation (NFR9):** System functions correctly when:
+- `observability.enabled: false`
+- Provider unavailable (connection errors)
+- Missing credentials
+
+#### Package Structure Update
+
+```
+quilto/
+├── agents/           # Individual agents
+├── llm/              # LLM client abstraction
+├── observability/    # NEW: Observability abstraction
+│   ├── __init__.py
+│   ├── provider.py   # ObservabilityProvider protocol
+│   ├── langfuse.py   # LangfuseProvider implementation
+│   └── noop.py       # NoOpProvider (disabled/fallback)
+├── state/            # Observer triggers
+├── storage/          # Storage abstraction
+├── session/          # Session management
+├── config.py         # NEW: Unified config loading (replaces llm/loader.py)
+├── quilto.py         # Quilto class (public entry point)
+├── models.py         # ProcessResult, ClarificationQuestion
+└── handlers.py       # ProgressHandler protocol
+```
+
+#### Public API Integration
+
+Updated entry point with observability:
+
+```python
+from quilto import Quilto, load_config
+from quilto.observability import LangfuseProvider
+
+config = load_config("./config.yaml")  # Loads LLM + observability config
+
+# Observability auto-configured from config, or override:
+obs_provider = LangfuseProvider()  # Uses env vars for credentials
+
+q = Quilto(
+    config=config,
+    storage=StorageRepository(base_path="./logs"),
+    domains=[FitnessDomain()],
+    observability=obs_provider,  # Optional, uses config default if omitted
+)
+```
+
+#### Migration Notes
+
+1. **Rename `llm.yaml` → `config.yaml`** - Separate story/task
+2. **Update `load_llm_config()` → `load_config()`** - Returns unified config
+3. **Add `observability` section to existing configs** - Backward compatible (defaults to disabled)
+
 ---
 
 ## Next Steps
 
-1. **Create Implementation Epic** - Stories for Quilto public API
+1. **Create Implementation Epic for Observability**
+   - `quilto/observability/provider.py` - Protocol definition
+   - `quilto/observability/langfuse.py` - Langfuse implementation
+   - `quilto/observability/noop.py` - NoOp implementation
+   - `quilto/config.py` - Unified config loading
+   - Rename `llm.yaml` → `config.yaml`
+   - Instrument tool calls in agents (Retriever, Parser, Observer)
+
+2. **Create Implementation Epic for Quilto Public API**
    - `quilto/models.py` - ProcessResult, ClarificationQuestion
    - `quilto/handlers.py` - ProgressHandler protocol
    - `quilto/session/` - Session, SessionManager, SQLiteSessionStore
    - `quilto/quilto.py` - Quilto class with LangGraph orchestration
 
-2. **Migrate Swealog** - Replace manual agent wiring with `Quilto` usage
+3. **Migrate Swealog** - Replace manual agent wiring with `Quilto` usage
    - Remove ~400 lines from `swealog/api/routes/query.py`
    - Use `q = Quilto(...); session.process(...)` pattern
 
-3. **Verify Observer** - Confirm `logs/logs/context/` gets populated after migration
+4. **Verify Observer** - Confirm `logs/context/` gets populated after migration
 

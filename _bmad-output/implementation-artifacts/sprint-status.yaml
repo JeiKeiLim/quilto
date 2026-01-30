@@ -1,4 +1,4 @@
-# generated: 2026-01-08
+# generated: 2026-01-30
 # project: swealog
 # project_key: swealog
 # tracking_system: file-system
@@ -43,7 +43,7 @@
 # - SM typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
-generated: 2026-01-08
+generated: 2026-01-30
 project: swealog
 project_key: swealog
 tracking_system: file-system
@@ -338,4 +338,16 @@ development_status:
   23-2-fix-log-persistence: done  # CRITICAL - Fixed: save_entry call in parse_node (code-reviewed 2026-01-30)
   23-3-dogfooding-iteration-12: done  # MEDIUM - LOG persistence fix verified, 81.8% success (LLM issues not persistence) - code reviewed
   epic-23-retrospective: done  # Completed 2026-01-30 - Epic objective achieved, LLM reliability issues noted for future
-  23-1-test-story: done  # Test story for workflow validation - code reviewed 2026-01-30
+
+  # Epic 24: LLM Observability
+  # Source: PRD FR59-63, NFR9 + Architecture LLM Observability section
+  # Implementation Readiness: READY (validated 2026-01-30)
+  epic-24: in-progress
+  24-1-observabilityprovider-protocol-noopprovider: done
+  24-2-langfuseprovider-implementation: backlog
+  24-3-unified-config-loading: backlog
+  24-4-instrument-tool-calls-in-agents: backlog
+  24-5-integrate-observability-with-quilto-entry-point: backlog
+  24-6-update-swealog-configuration: backlog
+  24-7-dogfooding-iteration-observability-validation: backlog
+  epic-24-retrospective: optional
