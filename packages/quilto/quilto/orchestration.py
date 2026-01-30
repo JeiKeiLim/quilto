@@ -11,6 +11,7 @@ Quilto agents through the processing flows:
 import inspect
 import logging
 import time
+import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Final, Literal, TypedDict
 
@@ -46,6 +47,7 @@ from quilto.state.observer_triggers import (
     serialize_global_context,
 )
 from quilto.storage import GlobalContextManager
+from quilto.storage.models import Entry
 
 if TYPE_CHECKING:
     from quilto.agents.models import ActiveDomainContext
@@ -981,6 +983,22 @@ async def parse_node(state: QuiltoState) -> dict[str, Any]:
         await _call_progress_handler(
             quilto, "on_agent_complete", "parser", elapsed / 1000, parser_output.model_dump(mode="json")
         )
+
+        # Save entry to storage for LOG persistence
+        try:
+            now = datetime.now(UTC)
+            entry = Entry(
+                id=f"{now.strftime('%Y-%m-%d_%H-%M-%S')}_{uuid.uuid4().hex[:6]}",
+                date=now.date(),
+                timestamp=now,
+                raw_content=user_input,
+                parsed_data=parser_output.domain_data,
+            )
+            quilto.storage.save_entry(entry)
+            logger.debug("Saved LOG entry: %s", entry.id)
+        except Exception as e:
+            logger.warning("Failed to save LOG entry to storage: %s", e)
+            # Continue - save failure should not block parse response
 
         return {
             StateKeys.PARSED_DATA: parser_output.domain_data,
