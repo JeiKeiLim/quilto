@@ -328,4 +328,15 @@ development_status:
   22-3-add-observer-validation: done  # MEDIUM - prevent hallucinated facts - code reviewed
   22-4-add-session-id-to-feedback-json: done  # LOW - feedback tracking improvement (already implemented, validated)
   22-5-dogfooding-iteration-11: done  # MEDIUM - Observer focus - 100% success, Epic 22 PASS - code reviewed
-  epic-22-retrospective: optional
+  epic-22-retrospective: done  # Completed 2026-01-30 - Critical finding: LOG persistence bug (Epic 23)
+
+  # Epic 23: LOG Persistence Fix & Process Improvement
+  # Source: Epic 22 Retrospective - LOG entries not saved to storage
+  # Critical bug discovered through user feedback in iter-011-pre
+  epic-23: backlog
+  23-1-investigate-log-persistence-failure: backlog  # CRITICAL - Trace LOG flow from Parser → Storage
+  23-2-fix-log-persistence: backlog  # CRITICAL - Implement fix based on 23.1 findings
+  23-3-add-file-level-verification-to-dogfooding: backlog  # HIGH - Create verification script/process
+  23-4-update-documentation: backlog  # MEDIUM - Add dogfooding rules to CLAUDE.md, project-context.md
+  23-5-dogfooding-iteration-12: backlog  # MEDIUM - Verify LOG fix + new verification process
+  epic-23-retrospective: optional

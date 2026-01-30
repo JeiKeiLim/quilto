@@ -213,6 +213,25 @@ Before requesting code review, verify:
 - [ ] Tests cover both `None` and `""` for optional string fields
 - [ ] `make test-ollama` passes (integration tests with real Ollama)
 
+### Dogfooding Verification Rules (MANDATORY)
+
+Every dogfooding iteration MUST verify file-level changes, not just intermediate outputs:
+
+| Input Type | Required Verification |
+|------------|----------------------|
+| **LOG** | `logs/raw/YYYY/MM/YYYY-MM-DD.md` created/appended, `logs/parsed/*.json` updated |
+| **CORRECTION** | Target raw file modified at correct section |
+| **QUERY** | No file changes (read-only operation) |
+| **Preference/Goal** | `logs/context/*.json` updated with new entry |
+
+**Verification Process:**
+1. Capture file state BEFORE running command (`ls -la`, `cat` relevant files)
+2. Run `uv run swealog run --config ... --storage ./logs --debug "..."`
+3. Check intermediate outputs in `tests/eval/feedback/active/*.json`
+4. **CRITICAL:** Diff file state AFTER to verify persistence actually happened
+
+**Why:** Intermediate outputs can look correct while actual file writes fail silently (discovered in Epic 22 Retrospective - LOG persistence bug).
+
 ---
 
 ## Key Documents
