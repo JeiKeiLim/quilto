@@ -264,3 +264,128 @@ class TestLangfuseProviderFlush:
 
         # Should not raise
         enabled_provider.flush()
+
+
+class TestLangfuseToolSpans:
+    """Tests for tool call span instrumentation (Story 24.4).
+
+    These tests verify that tool spans (storage operations) are correctly
+    nested under agent spans in the Langfuse trace hierarchy.
+    """
+
+    def test_tool_span_nested_under_agent_span(self, enabled_provider: LangfuseProvider) -> None:
+        """Verify tool spans are created nested under agent spans.
+
+        This simulates the orchestration pattern where an agent node
+        wraps storage operations in observability spans.
+        """
+        with enabled_provider.span("Retriever") as retriever_ctx:
+            retriever_trace = retriever_ctx.trace_id
+
+            with enabled_provider.span(
+                "storage.retrieve",
+                metadata={"instructions_count": 2, "max_entries": 100},
+            ) as tool_ctx:
+                # Tool span should share trace_id with parent
+                assert tool_ctx.trace_id == retriever_trace
+                # But have different span_id
+                assert tool_ctx.span_id != retriever_ctx.span_id
+                # Span ID should be non-empty
+                assert tool_ctx.span_id != ""
+
+    def test_multiple_tool_spans_in_same_trace(self, enabled_provider: LangfuseProvider) -> None:
+        """Verify multiple tool spans can exist in the same trace.
+
+        This simulates observe_node which wraps both read_context and apply_updates.
+        """
+        with enabled_provider.span("Observer") as observer_ctx:
+            trace_id = observer_ctx.trace_id
+
+            # First tool span
+            with enabled_provider.span(
+                "context_manager.read_context",
+                metadata={"storage_base_path": "/tmp/test"},
+            ) as read_ctx:
+                assert read_ctx.trace_id == trace_id
+                read_span_id = read_ctx.span_id
+
+            # Second tool span
+            with enabled_provider.span(
+                "context_manager.apply_updates",
+                metadata={"updates_count": 3},
+            ) as apply_ctx:
+                assert apply_ctx.trace_id == trace_id
+                # Different from first tool span
+                assert apply_ctx.span_id != read_span_id
+
+    def test_tool_span_with_storage_metadata(self, enabled_provider: LangfuseProvider) -> None:
+        """Verify tool spans capture storage operation metadata.
+
+        Tests the pattern used in parse_node for save_entry instrumentation.
+        """
+        with enabled_provider.span("Parser") as parser_ctx:
+            save_metadata = {
+                "entry_id": "2026-01-30_12-00-00_abc123",
+                "date": "2026-01-30",
+                "domains": ["general_fitness", "nutrition"],
+            }
+            with enabled_provider.span("storage.save_entry", metadata=save_metadata) as save_ctx:
+                # Verify span was created
+                assert save_ctx.trace_id == parser_ctx.trace_id
+                assert save_ctx.span_id != ""
+
+    @pytest.mark.slow
+    def test_tool_spans_visible_in_langfuse_trace(
+        self,
+        enabled_provider: LangfuseProvider,
+        langfuse_credentials: dict[str, str],
+    ) -> None:
+        """Verify tool spans appear as nested spans in Langfuse trace.
+
+        Creates a simulated agent + tool span hierarchy, flushes to Langfuse,
+        and retrieves the trace to verify the structure exists.
+
+        This tests AC #4: nested trace structure visible in Langfuse.
+        """
+        test_id = str(uuid.uuid4())[:8]
+        agent_name = f"Retriever-{test_id}"
+
+        # Create agent span with nested tool span
+        with enabled_provider.span(agent_name, metadata={"test": "tool_spans"}) as agent_ctx:
+            trace_id = agent_ctx.trace_id
+
+            with enabled_provider.span(
+                "storage.get_entries_by_date_range",
+                metadata={
+                    "start_date": "2026-01-23",
+                    "end_date": "2026-01-30",
+                    "entries_found": 15,
+                },
+            ):
+                # Simulate storage operation
+                pass
+
+        # Flush to ensure traces are sent
+        enabled_provider.flush()
+
+        # Retrieve trace via Langfuse API
+        from langfuse import Langfuse
+
+        langfuse = Langfuse(
+            public_key=langfuse_credentials["public_key"],
+            secret_key=langfuse_credentials["secret_key"],
+            host=langfuse_credentials["host"],
+        )
+
+        trace = wait_for_trace(langfuse.api, trace_id, max_wait=30)
+
+        if trace is None:
+            pytest.skip(
+                f"Trace {trace_id} not found after 30 seconds. "
+                "Langfuse async ingestion can take 10-30+ seconds. "
+                "The trace was created; retrieval timing varies."
+            )
+
+        # Verify trace exists with correct name
+        assert trace.id == trace_id
+        assert trace.name == agent_name

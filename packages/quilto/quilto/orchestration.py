@@ -51,6 +51,7 @@ from quilto.storage.models import Entry
 
 if TYPE_CHECKING:
     from quilto.agents.models import ActiveDomainContext
+    from quilto.observability.provider import ObservabilityProvider
     from quilto.quilto import Quilto
 
 logger = logging.getLogger(__name__)
@@ -68,6 +69,7 @@ class StateKeys:
     # Internal
     QUILTO: Final[str] = "_quilto"
     TRACES: Final[str] = "traces"
+    OBSERVABILITY: Final[str] = "_observability_provider"
 
     # Input
     USER_INPUT: Final[str] = "user_input"
@@ -248,6 +250,9 @@ class QuiltoState(TypedDict, total=False):
     # Progress callback
     _quilto: Any  # Reference to Quilto instance
 
+    # Observability
+    _observability_provider: Any  # ObservabilityProvider instance
+
     # Confidence
     confidence: float | None
 
@@ -391,6 +396,33 @@ def _get_quilto(state: QuiltoState, node_name: str) -> "Quilto | None":
     if quilto is None:
         logger.error("%s: Missing _quilto in state - graph not initialized", node_name)
     return quilto
+
+
+def _get_observability_provider(state: QuiltoState) -> "ObservabilityProvider":
+    """Get observability provider from state, falling back to NoOp.
+
+    Args:
+        state: Current orchestration state.
+
+    Returns:
+        ObservabilityProvider instance (NoOpProvider if not configured).
+    """
+    from quilto.observability.noop import NoOpProvider
+    from quilto.observability.provider import ObservabilityProvider
+
+    # Check if provider is directly in state (set by QuiltoGraph wrapper)
+    provider = state.get(StateKeys.OBSERVABILITY)
+    if provider is not None and isinstance(provider, ObservabilityProvider):
+        return provider
+
+    # Fall back to getting it from Quilto instance (for Story 24.5)
+    quilto = state.get(StateKeys.QUILTO)
+    if quilto is not None:
+        provider = getattr(quilto, "observability_provider", None)
+        if provider is not None and isinstance(provider, ObservabilityProvider):
+            return provider
+
+    return NoOpProvider()
 
 
 # =============================================================================
@@ -588,6 +620,9 @@ async def retrieve_node(state: QuiltoState) -> dict[str, Any]:
     instructions = state.get(StateKeys.RETRIEVAL_INSTRUCTIONS, [])
     await _call_progress_handler(quilto, "on_agent_start", "retriever", f"{len(instructions)} instructions")
 
+    # Get observability provider for tool instrumentation
+    provider = _get_observability_provider(state)
+
     try:
         # Instructions are already dict-based (from PlannerOutput.retrieval_instructions)
         retriever = RetrieverAgent(quilto.storage)
@@ -595,7 +630,27 @@ async def retrieve_node(state: QuiltoState) -> dict[str, Any]:
             instructions=instructions,
             max_entries=100,
         )
-        retriever_output = await retriever.retrieve(retriever_input)
+
+        # Wrap storage retrieval in observability span
+        # Note: entries_found logged after operation completes via log_event
+        selected_domains = state.get(StateKeys.SELECTED_DOMAINS, [])
+        with provider.span(
+            "storage.retrieve",
+            metadata={
+                "instructions_count": len(instructions),
+                "max_entries": 100,
+                "domains": selected_domains,
+            },
+        ):
+            retriever_output = await retriever.retrieve(retriever_input)
+            # Log result metadata (entries_found is only known after retrieval)
+            provider.log_event(
+                "retrieval_complete",
+                metadata={
+                    "entries_found": len(retriever_output.entries),
+                    "retrieval_attempts": len(retriever_output.retrieval_summary),
+                },
+            )
 
         elapsed = (time.perf_counter() - start) * 1000
         await _call_progress_handler(
@@ -961,6 +1016,9 @@ async def parse_node(state: QuiltoState) -> dict[str, Any]:
     start = time.perf_counter()
     await _call_progress_handler(quilto, "on_agent_start", "parser", user_input[:50])
 
+    # Get observability provider for tool instrumentation
+    provider = _get_observability_provider(state)
+
     try:
         # Reconstruct domain context with defensive validation
         domain_context, _was_fallback = _get_domain_context_with_fallback(state, "parse_node")
@@ -994,7 +1052,26 @@ async def parse_node(state: QuiltoState) -> dict[str, Any]:
                 raw_content=user_input,
                 parsed_data=parser_output.domain_data,
             )
-            quilto.storage.save_entry(entry)
+
+            # Wrap storage save in observability span
+            # Calculate file paths inline for observability (per AC#2 requirement)
+            # Uses same path structure as StorageRepository._get_raw_path/_get_parsed_path
+            base = quilto.storage.base_path
+            d = entry.date
+            raw_path = base / "raw" / str(d.year) / f"{d.month:02d}" / f"{d.isoformat()}.md"
+            parsed_path = base / "parsed" / str(d.year) / f"{d.month:02d}" / f"{d.isoformat()}.json"
+            with provider.span(
+                "storage.save_entry",
+                metadata={
+                    "entry_id": entry.id,
+                    "date": str(entry.date),
+                    "domains": list(parser_output.domain_data.keys()),
+                    "raw_file_path": str(raw_path),
+                    "parsed_file_path": str(parsed_path),
+                },
+            ):
+                quilto.storage.save_entry(entry)
+
             logger.debug("Saved LOG entry: %s", entry.id)
         except Exception as e:
             logger.warning("Failed to save LOG entry to storage: %s", e)
@@ -1034,7 +1111,12 @@ async def correction_node(state: QuiltoState) -> dict[str, Any]:
     start = time.perf_counter()
     await _call_progress_handler(quilto, "on_agent_start", "correction", "upsert")
 
+    # Get observability provider for tool instrumentation
+    provider = _get_observability_provider(state)
+
     try:
+        from datetime import timedelta
+
         from quilto.agents.models import RouterOutput
 
         # Reconstruct domain context with defensive validation
@@ -1049,23 +1131,41 @@ async def correction_node(state: QuiltoState) -> dict[str, Any]:
             domain_schemas[domain.name] = domain.log_schema
 
         # Get recent entries for correction target identification
-        from datetime import timedelta
-
         recent_date = datetime.now(UTC).date() - timedelta(days=7)
-        recent_entries = quilto.storage.get_entries_by_date_range(recent_date, datetime.now(UTC).date())
+        end_date = datetime.now(UTC).date()
+
+        # Wrap storage retrieval in observability span
+        with provider.span(
+            "storage.get_entries_by_date_range",
+            metadata={
+                "start_date": str(recent_date),
+                "end_date": str(end_date),
+                "purpose": "correction_target_identification",
+            },
+        ):
+            recent_entries = quilto.storage.get_entries_by_date_range(recent_date, end_date)
 
         user_input: str = state.get(StateKeys.USER_INPUT, "")
 
         parser = ParserAgent(quilto.llm_client)
-        result = await process_correction(
-            router_output=router_output,
-            parser_agent=parser,
-            storage=quilto.storage,
-            recent_entries=recent_entries,
-            domain_schemas=domain_schemas,
-            vocabulary=domain_context.vocabulary,
-            user_input=user_input,
-        )
+
+        # Wrap correction processing in observability span (includes internal storage operations)
+        with provider.span(
+            "process_correction",
+            metadata={
+                "recent_entries_count": len(recent_entries),
+                "correction_target": router_output.correction_target,
+            },
+        ):
+            result = await process_correction(
+                router_output=router_output,
+                parser_agent=parser,
+                storage=quilto.storage,
+                recent_entries=recent_entries,
+                domain_schemas=domain_schemas,
+                vocabulary=domain_context.vocabulary,
+                user_input=user_input,
+            )
 
         elapsed = (time.perf_counter() - start) * 1000
         await _call_progress_handler(
@@ -1116,6 +1216,9 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
     start = time.perf_counter()
     await _call_progress_handler(quilto, "on_agent_start", "observer", "post_query")
 
+    # Get observability provider for tool instrumentation
+    provider = _get_observability_provider(state)
+
     try:
         from quilto.agents.models import ObserverInput
 
@@ -1127,8 +1230,13 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
         # Get context manager
         context_manager = GlobalContextManager(quilto.storage)
 
-        # Get current global context
-        global_context = context_manager.read_context()
+        # Wrap context read in observability span
+        with provider.span(
+            "context_manager.read_context",
+            metadata={"storage_base_path": str(quilto.storage.base_path)},
+        ):
+            global_context = context_manager.read_context()
+
         serialized_context = serialize_global_context(global_context)
 
         # Get combined guidance
@@ -1155,7 +1263,12 @@ async def observe_node(state: QuiltoState) -> dict[str, Any]:
 
         # Apply updates if needed
         if observer_output.should_update:
-            context_manager.apply_updates(observer_output.updates)
+            # Wrap context apply in observability span
+            with provider.span(
+                "context_manager.apply_updates",
+                metadata={"updates_count": len(observer_output.updates)},
+            ):
+                context_manager.apply_updates(observer_output.updates)
 
         elapsed = (time.perf_counter() - start) * 1000
         await _call_progress_handler(
