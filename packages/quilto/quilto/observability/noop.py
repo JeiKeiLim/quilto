@@ -84,3 +84,19 @@ class NoOpProvider:
     def flush(self) -> None:
         """No-op flush - nothing to send."""
         pass
+
+    def get_current_trace_id(self) -> str | None:
+        """Return None since observability is disabled.
+
+        Returns:
+            None - no active trace when observability is off.
+        """
+        return None
+
+    def get_last_trace_id(self) -> str | None:
+        """Return None since observability is disabled.
+
+        Returns:
+            None - no traces when observability is off.
+        """
+        return None

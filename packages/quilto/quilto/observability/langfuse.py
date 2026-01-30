@@ -52,6 +52,7 @@ class LangfuseProvider:
         # Initialize Langfuse client if credentials available
         self._enabled = False
         self._langfuse: Any = None
+        self._last_callback: Any = None  # Store last callback handler for trace_id retrieval
 
         if self._public_key and self._secret_key:
             try:
@@ -94,9 +95,9 @@ class LangfuseProvider:
         try:
             from langfuse.langchain import CallbackHandler
 
-            # CallbackHandler reads credentials from env vars set during init
-            # or from the shared Langfuse client context
-            return CallbackHandler(public_key=self._public_key)
+            # Create and store callback handler for later trace_id retrieval
+            self._last_callback = CallbackHandler(public_key=self._public_key)
+            return self._last_callback
         except Exception as e:
             logger.warning(f"Failed to create LangGraph callback handler: {e}")
             return None
@@ -198,3 +199,35 @@ class LangfuseProvider:
             self._langfuse.flush()
         except Exception as e:
             logger.warning(f"Failed to flush Langfuse: {e}")
+
+    def get_current_trace_id(self) -> str | None:
+        """Return the current trace ID if in an active trace context.
+
+        Returns:
+            The trace ID string if in an active trace, None otherwise.
+        """
+        if not self._enabled or self._langfuse is None:
+            return None
+
+        try:
+            return self._langfuse.get_current_trace_id()
+        except Exception:
+            return None
+
+    def get_last_trace_id(self) -> str | None:
+        """Return the trace ID from the last LangGraph callback execution.
+
+        Use this after LangGraph processing to retrieve the trace ID
+        for display or logging purposes.
+
+        Returns:
+            The trace ID from the last callback execution, or None if not available.
+        """
+        if not self._enabled or self._last_callback is None:
+            return None
+
+        try:
+            # Access the last_trace_id property from the callback handler
+            return getattr(self._last_callback, "last_trace_id", None)
+        except Exception:
+            return None

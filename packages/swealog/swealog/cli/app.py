@@ -365,6 +365,14 @@ async def run_command(
                 display = summary[:50] + "..." if len(summary) > 50 else summary
                 print_info(f"[{trace.agent_name}] {trace.elapsed_ms:.0f}ms - {display}")
 
+        # Display Langfuse trace_id if observability is enabled (AC #1, #2)
+        if debug:
+            obs_provider = quilto.observability_provider
+            if obs_provider.is_enabled():
+                trace_id = obs_provider.get_last_trace_id()
+                if trace_id:
+                    print_info(f"Trace ID: {trace_id}")
+
         # Display result
         _display_result(result)
 

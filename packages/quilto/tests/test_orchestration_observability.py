@@ -64,6 +64,8 @@ class TestGetObservabilityProviderLogic:
         mock_provider.log_event = MagicMock()
         mock_provider.log_error = MagicMock()
         mock_provider.flush = MagicMock()
+        mock_provider.get_current_trace_id = MagicMock()
+        mock_provider.get_last_trace_id = MagicMock()
 
         state = cast(QuiltoState, {"_observability_provider": mock_provider})
 
@@ -88,6 +90,8 @@ class TestGetObservabilityProviderLogic:
         mock_provider.log_event = MagicMock()
         mock_provider.log_error = MagicMock()
         mock_provider.flush = MagicMock()
+        mock_provider.get_current_trace_id = MagicMock()
+        mock_provider.get_last_trace_id = MagicMock()
 
         mock_quilto = MagicMock()
         mock_quilto.observability_provider = mock_provider
@@ -275,3 +279,43 @@ class TestCorrectionNodeWithNoOpProvider:
             result = mock_result
 
         assert result.success is True
+
+
+class TestNoOpProviderTraceIdMethods:
+    """Tests for NoOpProvider trace_id methods (Story 24.7 - Task 6)."""
+
+    def test_get_current_trace_id_returns_none(self) -> None:
+        """Verify get_current_trace_id() returns None when observability is disabled."""
+        provider = NoOpProvider()
+
+        result = provider.get_current_trace_id()
+
+        assert result is None
+
+    def test_get_last_trace_id_returns_none(self) -> None:
+        """Verify get_last_trace_id() returns None when observability is disabled."""
+        provider = NoOpProvider()
+
+        result = provider.get_last_trace_id()
+
+        assert result is None
+
+    def test_get_current_trace_id_within_span(self) -> None:
+        """Verify get_current_trace_id() returns None even within a span context."""
+        provider = NoOpProvider()
+
+        with provider.span("test_span"):
+            result = provider.get_current_trace_id()
+
+        assert result is None
+
+    def test_get_last_trace_id_after_callback_creation(self) -> None:
+        """Verify get_last_trace_id() returns None after get_langgraph_callback()."""
+        provider = NoOpProvider()
+
+        # Simulate callback creation (returns None for NoOp)
+        callback = provider.get_langgraph_callback()
+        result = provider.get_last_trace_id()
+
+        assert callback is None
+        assert result is None

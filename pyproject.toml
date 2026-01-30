@@ -45,4 +45,5 @@ markers = [
     "integration: marks tests that require real Ollama (run with --use-real-ollama)",
     "llm_eval: LLM evaluation tests using LLM-as-judge (slow, requires API keys)",
     "slow: marks tests as slow-running (deselect with '-m \"not slow\"')",
+    "langfuse: marks tests that require Langfuse credentials (LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY)",
 ]

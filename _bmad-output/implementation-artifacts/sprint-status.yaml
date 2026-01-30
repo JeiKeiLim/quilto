@@ -349,5 +349,5 @@ development_status:
   24-4-instrument-tool-calls-in-agents: done
   24-5-integrate-observability-with-quilto-entry-point: done
   24-6-update-swealog-configuration: done
-  24-7-dogfooding-iteration-observability-validation: backlog
+  24-7-dogfooding-iteration-observability-validation: done
   epic-24-retrospective: optional

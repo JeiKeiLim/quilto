@@ -110,3 +110,22 @@ class ObservabilityProvider(Protocol):
         are transmitted to the observability backend.
         """
         ...
+
+    def get_current_trace_id(self) -> str | None:
+        """Return the current trace ID if in an active trace context.
+
+        Returns:
+            The trace ID string if in an active trace, None otherwise.
+        """
+        ...
+
+    def get_last_trace_id(self) -> str | None:
+        """Return the trace ID from the last LangGraph callback execution.
+
+        Use this after LangGraph processing to retrieve the trace ID
+        for display or logging purposes.
+
+        Returns:
+            The trace ID from the last callback execution, or None if not available.
+        """
+        ...
