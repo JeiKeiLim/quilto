@@ -10,6 +10,14 @@ from quilto.agents import (
     RouterInput,
     RouterOutput,
 )
+from quilto.config import (
+    ObservabilityConfig,
+    ObservabilityProviderName,
+    QuiltoConfig,
+    create_observability_provider,
+    load_config,
+    load_config_from_dict,
+)
 from quilto.domain import DomainModule
 from quilto.domain_selector import DomainSelector
 from quilto.flow import CorrectionResult, process_correction
@@ -82,7 +90,9 @@ __all__ = [
     "LLMConfig",
     "ModelResolution",
     "NoOpProvider",
+    "ObservabilityConfig",
     "ObservabilityProvider",
+    "ObservabilityProviderName",
     "ObserverTriggerConfig",
     "ParserAgent",
     "ParserInput",
@@ -92,6 +102,7 @@ __all__ = [
     "ProgressHandler",
     "ProviderConfig",
     "Quilto",
+    "QuiltoConfig",
     "RouterAgent",
     "RouterInput",
     "RouterOutput",
@@ -109,8 +120,11 @@ __all__ = [
     "TierModels",
     "UserClarificationResponse",
     "__version__",
+    "create_observability_provider",
     "enter_wait_user",
     "expand_domain_node",
+    "load_config",
+    "load_config_from_dict",
     "load_llm_config",
     "load_llm_config_from_dict",
     "observe_node",
