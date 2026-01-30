@@ -1,0 +1,84 @@
+{
+  "id": "2026-01-30_c04f7a05",
+  "query": "I prefer morning workouts",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.96,
+      "selected_domains": [
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The user is stating a preference about when they work out (morning). This relates to overall workout scheduling and habits, which falls under the GeneralFitness domain. No specific strength, running, swimming, or nutrition details are mentioned.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a past‑tense declarative statement expressing a personal preference, with no question words or punctuation, and it does not contain correction language or a goal statement. Therefore it is classified as a LOG."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T23:41:32.966318Z",
+      "tags": [
+        "morning",
+        "workouts"
+      ],
+      "domain_data": {
+        "GeneralFitness": {
+          "activity_type": "workout",
+          "exercises": [],
+          "duration_minutes": null,
+          "notes": "I prefer morning workouts",
+          "perceived_effort": null,
+          "date": "2026-01-29"
+        },
+        "Strength": null,
+        "Nutrition": null,
+        "Running": null,
+        "Swimming": null
+      },
+      "raw_content": "I prefer morning workouts",
+      "confidence": 0.55,
+      "extraction_notes": [
+        "The input expresses a preference rather than a concrete workout log. The activity_type was inferred as \"workout\" and the note was captured verbatim."
+      ],
+      "uncertain_fields": [
+        "activity_type"
+      ],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "preference",
+          "key": "workout_time_preference",
+          "value": "morning",
+          "confidence": "certain",
+          "source": "user said 'I prefer morning workouts'"
+        }
+      ],
+      "insights_captured": [
+        "User explicitly prefers to do workouts in the morning."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-30 08:41:42.237586",
+    "input_type": "LOG",
+    "session_id": "60d6265e-b7f7-4b7f-8019-c1579568b0f2",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

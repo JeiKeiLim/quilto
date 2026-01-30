@@ -1,0 +1,56 @@
+{
+  "id": "2026-01-30_df571495",
+  "query": "I don't feel like working out today",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.96,
+      "selected_domains": [
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement expresses a personal feeling about not exercising, which falls under general fitness tracking of workout intentions and mood.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The input is a declarative statement without a question mark or goal phrasing, so it is classified as a LOG. It relates to overall fitness behavior, making the GeneralFitness domain the most appropriate."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T23:50:55.732393Z",
+      "tags": [],
+      "domain_data": {},
+      "raw_content": "I don't feel like working out today",
+      "confidence": 0.2,
+      "extraction_notes": [
+        "The input expresses a lack of intent to exercise and contains no concrete activity, exercise, nutrition, or other log details."
+      ],
+      "uncertain_fields": [],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-30 08:51:02.659569",
+    "input_type": "LOG",
+    "session_id": "4a4b739a-65e5-4a79-bb57-ada9d1a5992b",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

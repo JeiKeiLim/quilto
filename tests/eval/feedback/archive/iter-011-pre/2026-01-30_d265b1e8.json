@@ -1,0 +1,69 @@
+{
+  "id": "2026-01-30_d265b1e8",
+  "query": "I slept for 5 hours only. feeling tired but not that bad",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.98,
+      "selected_domains": [
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement records a personal health metric (sleep duration and feeling of fatigue). This falls under health tracking, which is covered by the GeneralFitness domain. No workout, nutrition, running, or swimming details are present, so other domains are not relevant.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The input is a declarative statement describing a recent sleep experience without any question or request for advice, making it a pure log entry."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T22:46:02.141861Z",
+      "tags": [
+        "sleep",
+        "tired"
+      ],
+      "domain_data": {},
+      "raw_content": "I slept for 5 hours only. feeling tired but not that bad",
+      "confidence": 1.0,
+      "extraction_notes": [
+        "The input does not correspond to any of the defined domain schemas (GeneralFitness, Strength, Nutrition, Running, Swimming)."
+      ],
+      "uncertain_fields": [],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "fact",
+          "key": "sleep_duration_2026-01-30",
+          "value": "5 hours",
+          "confidence": "certain",
+          "source": "user said 'I slept for 5 hours only. feeling tired but not that bad'"
+        }
+      ],
+      "insights_captured": [
+        "User reported sleeping only 5 hours and feeling mildly tired."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "Interesting. this also did not create nor update actual files for both raw and parsed json.",
+  "session": {
+    "timestamp": "2026-01-30 07:47:54.980614",
+    "input_type": "LOG",
+    "session_id": "e68ea162-7e6b-447b-b149-a1b12ba945f5",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": false
+  },
+  "feedback_sentiment": null
+}

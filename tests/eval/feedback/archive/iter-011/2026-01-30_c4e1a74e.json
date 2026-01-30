@@ -1,0 +1,91 @@
+{
+  "id": "2026-01-30_c4e1a74e",
+  "query": "Did 3 sets of squats at 60kg",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.98,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement records a strength training activity (squats with weight), which directly maps to the Strength domain. Strength training is also a subset of general fitness activities, so GeneralFitness is relevant as well.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a past‑tense declarative statement describing an exercise session, with no question or correction language, so it is classified as a LOG."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T23:42:23.532364Z",
+      "tags": [
+        "squat"
+      ],
+      "domain_data": {
+        "Strength": {
+          "exercises": [
+            {
+              "name": "squat",
+              "sets": [],
+              "total_sets": 3,
+              "notes": null
+            }
+          ],
+          "session_notes": null,
+          "date": "2026-01-29",
+          "duration_minutes": null,
+          "perceived_difficulty": null
+        },
+        "GeneralFitness": {
+          "activity_type": "workout",
+          "exercises": [
+            {
+              "name": "squat",
+              "sets": 3,
+              "reps": null,
+              "weight": 60,
+              "weight_unit": "kg",
+              "duration_seconds": null,
+              "distance": null,
+              "distance_unit": null
+            }
+          ],
+          "duration_minutes": null,
+          "notes": null,
+          "perceived_effort": null,
+          "date": "2026-01-29"
+        }
+      },
+      "raw_content": "Did 3 sets of squats at 60kg",
+      "confidence": 0.98,
+      "extraction_notes": [],
+      "uncertain_fields": [],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-30 08:42:34.152072",
+    "input_type": "LOG",
+    "session_id": "efec97b3-1a0a-4da7-b9a8-9bcde58471b9",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

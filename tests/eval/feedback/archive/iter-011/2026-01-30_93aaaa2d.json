@@ -1,0 +1,109 @@
+{
+  "id": "2026-01-30_93aaaa2d",
+  "query": "I like running outdoors better than treadmill",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.97,
+      "selected_domains": [
+        "Running",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement expresses a preference for outdoor running versus treadmill running, which directly relates to the Running domain (tracking and discussing running activities). Running is a subset of overall fitness, so GeneralFitness is also relevant as a broader category for cardio preferences.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a declarative statement about a personal preference and contains no question words or punctuation, nor does it indicate a goal or correction. Therefore it is classified as a LOG."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T23:52:22.035962Z",
+      "tags": [
+        "running",
+        "outdoors",
+        "treadmill"
+      ],
+      "domain_data": {
+        "Running": {
+          "distance": null,
+          "distance_unit": null,
+          "duration_minutes": null,
+          "pace": null,
+          "pace_unit": null,
+          "workout_type": null,
+          "terrain": null,
+          "splits": [],
+          "intervals": [],
+          "average_heart_rate": null,
+          "max_heart_rate": null,
+          "cadence": null,
+          "elevation_gain": null,
+          "elevation_loss": null,
+          "perceived_exertion": null,
+          "weather": null,
+          "notes": null,
+          "date": null
+        }
+      },
+      "raw_content": "I like running outdoors better than treadmill",
+      "confidence": 0.3,
+      "extraction_notes": [
+        "The input contains only a preference statement and does not provide any quantitative running data (distance, duration, pace, etc.).",
+        "Terrain is implied to be outdoors, but the Running schema only accepts specific terrain enums (road, trail, track, treadmill, mixed), so terrain is left null."
+      ],
+      "uncertain_fields": [
+        "distance",
+        "distance_unit",
+        "duration_minutes",
+        "pace",
+        "pace_unit",
+        "workout_type",
+        "terrain",
+        "average_heart_rate",
+        "max_heart_rate",
+        "cadence",
+        "elevation_gain",
+        "elevation_loss",
+        "perceived_exertion",
+        "weather",
+        "notes"
+      ],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": true,
+      "updates": [
+        {
+          "category": "preference",
+          "key": "running_environment_preference",
+          "value": "outdoor",
+          "confidence": "certain",
+          "source": "user said 'I like running outdoors better than treadmill'"
+        }
+      ],
+      "insights_captured": [
+        "User explicitly prefers running outdoors over treadmill workouts."
+      ]
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-30 08:52:33.862156",
+    "input_type": "LOG",
+    "session_id": "cc8c5a5d-cfeb-4f2c-bdd1-432d8ae875c7",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

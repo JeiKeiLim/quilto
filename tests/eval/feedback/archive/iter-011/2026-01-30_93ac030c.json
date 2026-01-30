@@ -1,0 +1,43 @@
+{
+  "id": "2026-01-30_93ac030c",
+  "query": "Did 3 sets of overhead press at 50kg",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.98,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement records a completed strength training activity (overhead press). This directly maps to the Strength domain, which tracks weight, sets, and specific lifts. Because Strength is a subset of overall fitness activities, the broader GeneralFitness domain is also relevant for general workout logging.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a past‑tense declarative statement describing an exercise session, with no question or correction language, so it is classified as a LOG."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-30 08:53:58.907452",
+    "input_type": "LOG",
+    "session_id": "f8b92240-27d3-42a6-830e-1f44d076e9c2",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

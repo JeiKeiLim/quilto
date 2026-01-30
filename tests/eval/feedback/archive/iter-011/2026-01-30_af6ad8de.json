@@ -1,0 +1,85 @@
+{
+  "id": "2026-01-30_af6ad8de",
+  "query": "I ran 5km in 30 minutes today",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.99,
+      "selected_domains": [
+        "Running",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement records a completed running activity (5 km in 30 minutes), which directly maps to the Running domain for tracking distance, duration, and pace. Running is also a form of cardio activity covered under the broader GeneralFitness domain, so both domains are relevant.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a past‑tense declarative statement describing an activity, with no question words or correction language, so it is classified as a LOG. Confidence is high because the pattern matches the LOG definition clearly."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-29",
+      "timestamp": "2026-01-29T23:42:02.362390Z",
+      "tags": [
+        "running",
+        "5km",
+        "30min"
+      ],
+      "domain_data": {
+        "Running": {
+          "distance": 5,
+          "distance_unit": "km",
+          "duration_minutes": 30,
+          "pace": "6:00 min/km",
+          "pace_unit": "min/km",
+          "workout_type": null,
+          "terrain": null,
+          "splits": [],
+          "intervals": [],
+          "average_heart_rate": null,
+          "max_heart_rate": null,
+          "cadence": null,
+          "elevation_gain": null,
+          "elevation_loss": null,
+          "perceived_exertion": null,
+          "weather": null,
+          "notes": null,
+          "date": "2026-01-29"
+        }
+      },
+      "raw_content": "I ran 5km in 30 minutes today",
+      "confidence": 0.95,
+      "extraction_notes": [
+        "Pace calculated from distance (5 km) and duration (30 min) as 6:00 min/km; not explicitly stated."
+      ],
+      "uncertain_fields": [
+        "pace",
+        "pace_unit"
+      ],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-30 08:42:13.388149",
+    "input_type": "LOG",
+    "session_id": "9ce2698c-bb89-4db9-b9f7-53dc59ec7ee9",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}
