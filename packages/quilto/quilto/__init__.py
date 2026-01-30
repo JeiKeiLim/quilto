@@ -30,7 +30,12 @@ from quilto.models import (
     ProcessDebug,
     ProcessResult,
 )
-from quilto.observability import NoOpProvider, ObservabilityProvider, SpanContext
+from quilto.observability import (
+    LangfuseProvider,
+    NoOpProvider,
+    ObservabilityProvider,
+    SpanContext,
+)
 from quilto.orchestration import StateKeys
 from quilto.quilto import Quilto
 from quilto.session import (
@@ -72,6 +77,7 @@ __all__ = [
     "DomainSelector",
     "Entry",
     "InputType",
+    "LangfuseProvider",
     "LLMClient",
     "LLMConfig",
     "ModelResolution",

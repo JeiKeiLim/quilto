@@ -344,7 +344,7 @@ development_status:
   # Implementation Readiness: READY (validated 2026-01-30)
   epic-24: in-progress
   24-1-observabilityprovider-protocol-noopprovider: done
-  24-2-langfuseprovider-implementation: backlog
+  24-2-langfuseprovider-implementation: done
   24-3-unified-config-loading: backlog
   24-4-instrument-tool-calls-in-agents: backlog
   24-5-integrate-observability-with-quilto-entry-point: backlog
