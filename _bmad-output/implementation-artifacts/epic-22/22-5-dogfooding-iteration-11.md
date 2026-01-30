@@ -1,6 +1,6 @@
 # Story 22.5: Dogfooding Iteration 11
 
-Status: review
+Status: done
 
 **Story Type:** Validation (testing, analysis, and documentation; minimal code changes expected)
 
@@ -438,7 +438,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - **Epic 22 Verification: PASS** - All 4 stories verified working correctly
 - **Success Rate:** 100% (13/13 queries rated >= 3/5)
-- **Average Rating:** 4.69/5
+- **Average Rating:** 4.85/5
 - **Story 22.1:** Observer no longer fabricates preferences from agent recommendations
 - **Story 22.2:** Global context restricted to preferences/goals/insights only (no per-session facts stored from today's testing)
 - **Story 22.3:** Validation working - all updates have properly quoted source fields

@@ -3,7 +3,7 @@
 ## Executive Summary
 - **Total queries:** 13
 - **Overall success rate:** 100% (13/13 rating >= 3)
-- **Average rating:** 4.69/5
+- **Average rating:** 4.85/5
 - **Target success rate (>= 90%):** MET
 
 ## Epic 22 Story Verification
@@ -15,7 +15,7 @@
 - Query-only inputs correctly triggered `should_update: false` with no fabrication
 - No fabricated preferences like "user prefers light workout" from agent recommendations
 
-**Key Observation:** All 8 query-only inputs resulted in `should_update: false`, proving the fix works.
+**Key Observation:** All 6 query-only inputs resulted in `should_update: false`, proving the fix works.
 
 ### Story 22.2 -- Global Context Scope Restriction: PASS
 **Evidence:**
@@ -45,18 +45,18 @@
 
 ### Story 22.4 -- Session ID in Feedback: PASS
 **Evidence:** All 13 feedback files have valid UUID-4 session_id fields:
-- `7e5cbca1-91a3-4829-9d5c-bd671b5483ac`
-- `60d6265e-b7f7-4b7f-8019-c1579568b0f2`
-- `9ce2698c-bb89-4db9-b9f7-53dc59ec7ee9`
-- `efec97b3-1a0a-4da7-b9a8-9bcde58471b9`
 - `0416e291-d0fc-4769-abea-24755af10fe0`
-- `a2c72d07-308e-4440-beef-63e54dfe4f21`
-- `bef81688-6ff1-48b3-ae7c-93838f006562`
-- `630180d8-42d9-49c2-883c-085ba4da9294`
 - `4a4b739a-65e5-4a79-bb57-ada9d1a5992b`
-- `f3cba934-3a7f-43f4-a27b-a5920cf756a3`
+- `60d6265e-b7f7-4b7f-8019-c1579568b0f2`
+- `7e5cbca1-91a3-4829-9d5c-bd671b5483ac`
+- `9ce2698c-bb89-4db9-b9f7-53dc59ec7ee9`
+- `a2c72d07-308e-4440-beef-63e54dfe4f21`
+- `b2094a7e-a810-419a-9741-822972487ffe`
 - `cc8c5a5d-cfeb-4f2c-bdd1-432d8ae875c7`
+- `efec97b3-1a0a-4da7-b9a8-9bcde58471b9`
 - `f055153d-efeb-44a5-9b68-92340f41300e`
+- `f3cba934-3a7f-43f4-a27b-a5920cf756a3`
+- `f5e727a0-259f-4538-9bcc-b9af29deb0c9`
 - `f8b92240-27d3-42a6-830e-1f44d076e9c2`
 
 ## Global Context Review
@@ -92,21 +92,18 @@
 | 2 | I prefer morning workouts | LOG | 5/5 | `should_update: true` | Preference stored with source |
 | 3 | I ran 5km in 30 minutes today | LOG | 5/5 | `should_update: false` | Per-session NOT stored |
 | 4 | Did 3 sets of squats at 60kg | LOG | 5/5 | `should_update: false` | Per-session NOT stored |
-| 5 | My goal is to run 10km by March | BOTH | 4/5 | `should_update: false` | Not stored (may be redundant with existing marathon goal) |
-| 6 | How am I doing with my fitness? | QUERY | 5/5 | `should_update: false` | Good response |
-| 7 | Tell me about my running pattern | QUERY | 5/5 | `should_update: false` | Excellent detailed response |
-| 8 | Am I making progress? | QUERY | 4/5 | N/A (clarification) | Correctly triggered clarification |
-| 9 | How am I doing? | QUERY | 4/5 | N/A (clarification) | Correctly triggered clarification |
-| 10 | I don't feel like working out today | LOG | 5/5 | `should_update: false` | No fabrication |
-| 11 | What did I do last week? | QUERY | 5/5 | `should_update: false` | Excellent summary |
-| 12 | I like running outdoors better than treadmill | LOG | 5/5 | `should_update: true` | Preference stored with source |
-| 13 | I want to lose 5kg by summer | BOTH | 5/5 | `should_update: true` | Goal stored with source |
-| 14 | Did 3 sets of overhead press at 50kg | LOG | 4/5 | `should_update: false` | Minor parser warning but logged |
-| 15 | How many workouts this week? | QUERY | 5/5 | `should_update: false` | Excellent factual response |
-| 16 | Korean: 이번 주 운동 요약해줘 | QUERY | 5/5 | `should_update: false` | Excellent Korean response |
+| 5 | How am I doing with my fitness? | QUERY | 5/5 | `should_update: false` | Good response |
+| 6 | Tell me about my running pattern | QUERY | 5/5 | `should_update: false` | Excellent detailed response |
+| 7 | I don't feel like working out today | LOG | 5/5 | `should_update: false` | No fabrication |
+| 8 | What did I do last week? | QUERY | 5/5 | `should_update: false` | Excellent summary |
+| 9 | I like running outdoors better than treadmill | LOG | 5/5 | `should_update: true` | Preference stored with source |
+| 10 | I want to lose 5kg by summer | BOTH | 5/5 | `should_update: true` | Goal stored with source |
+| 11 | Did 3 sets of overhead press at 50kg | LOG | 4/5 | `should_update: false` | Minor parser warning but logged |
+| 12 | How many workouts this week? | QUERY | 5/5 | `should_update: false` | Excellent factual response |
+| 13 | 이번 주 운동 요약해줘 | QUERY | 5/5 | `should_update: false` | Excellent Korean response |
 
 **Success Rate:** 13/13 = 100% (all >= 3/5)
-**Average Rating:** 4.69/5
+**Average Rating:** 4.85/5
 
 ## Regression Check
 - **QUERY:** PASS (all query flows working correctly)
@@ -114,7 +111,6 @@
 - **CORRECTION:** Not explicitly tested but previous iteration (10) confirmed 100%
 - **Session:** PASS (all feedback files have valid session_id)
 - **Korean:** PASS (excellent response matching query language)
-- **Clarification:** PASS (correctly triggered for vague queries)
 
 ## Conclusion
 

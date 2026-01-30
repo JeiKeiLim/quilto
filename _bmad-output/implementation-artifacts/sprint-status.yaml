@@ -322,10 +322,10 @@ development_status:
   # Epic 22: Global Context / Observer Refinement
   # Source: Epic 19 Retrospective + iter-008-pre user feedback
   # Key Insight: Only persist user-stated info, not agent recommendations
-  epic-22: in-progress
+  epic-22: done
   22-1-observer-only-persists-user-stated-info: done  # HIGH - no fabricating from agent output - code reviewed
   22-2-restrict-global-context-scope: done  # HIGH - preferences/goals/insights only - code reviewed
   22-3-add-observer-validation: done  # MEDIUM - prevent hallucinated facts - code reviewed
   22-4-add-session-id-to-feedback-json: done  # LOW - feedback tracking improvement (already implemented, validated)
-  22-5-dogfooding-iteration-11: review  # MEDIUM - Observer focus - 100% success, Epic 22 PASS
+  22-5-dogfooding-iteration-11: done  # MEDIUM - Observer focus - 100% success, Epic 22 PASS - code reviewed
   epic-22-retrospective: optional
