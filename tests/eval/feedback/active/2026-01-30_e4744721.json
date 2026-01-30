@@ -1,0 +1,43 @@
+{
+  "id": "2026-01-30_e4744721",
+  "query": "I did 10 pushups today",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.99,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement records a completed bodyweight exercise (pushups). This is a strength training activity, so the Strength domain is directly relevant. Pushups also count as a general fitness activity, making the GeneralFitness domain applicable as well.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a past‑tense declarative statement describing an activity, with no question words or correction language, so it is classified as a LOG. Confidence is high because the pattern clearly matches a typical activity log."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-30 10:11:21.838071",
+    "input_type": "LOG",
+    "session_id": "c7de0612-3b13-404b-8892-09f8cd987f9b",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}
