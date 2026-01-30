@@ -336,7 +336,6 @@ development_status:
   epic-23: backlog
   23-1-investigate-log-persistence-failure: backlog  # CRITICAL - Trace LOG flow from Parser → Storage
   23-2-fix-log-persistence: backlog  # CRITICAL - Implement fix based on 23.1 findings
-  23-3-add-file-level-verification-to-dogfooding: backlog  # HIGH - Create verification script/process
-  23-4-update-documentation: backlog  # MEDIUM - Add dogfooding rules to CLAUDE.md, project-context.md
-  23-5-dogfooding-iteration-12: backlog  # MEDIUM - Verify LOG fix + new verification process
+  # 23-3 removed: File-level verification rules already in CLAUDE.md/project-context.md - Claude follows them
+  23-3-dogfooding-iteration-12: backlog  # MEDIUM - Verify LOG fix with file-level verification
   epic-23-retrospective: optional
