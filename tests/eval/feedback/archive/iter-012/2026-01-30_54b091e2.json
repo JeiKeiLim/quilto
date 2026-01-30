@@ -1,0 +1,82 @@
+{
+  "id": "2026-01-30_54b091e2",
+  "query": "Ran 5km in 28 minutes",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.99,
+      "selected_domains": [
+        "Running",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement records a running activity (distance and time), which directly maps to the Running domain. Running is also a component of overall physical activity, making the broader GeneralFitness domain relevant as well.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a past‑tense declarative statement describing a completed activity, with no question or correction language, so it is classified as a LOG."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-30",
+      "timestamp": "2026-01-30T01:49:43.022231Z",
+      "tags": [
+        "running",
+        "5km",
+        "28min"
+      ],
+      "domain_data": {
+        "Running": {
+          "distance": 5,
+          "distance_unit": "km",
+          "duration_minutes": 28,
+          "pace": null,
+          "pace_unit": null,
+          "workout_type": null,
+          "terrain": null,
+          "splits": [],
+          "intervals": [],
+          "average_heart_rate": null,
+          "max_heart_rate": null,
+          "cadence": null,
+          "elevation_gain": null,
+          "elevation_loss": null,
+          "perceived_exertion": null,
+          "weather": null,
+          "notes": null,
+          "date": "2026-01-30"
+        }
+      },
+      "raw_content": "Ran 5km in 28 minutes",
+      "confidence": 0.96,
+      "extraction_notes": [
+        "Pace not provided explicitly, so it is left null."
+      ],
+      "uncertain_fields": [],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-30 10:50:20.958529",
+    "input_type": "LOG",
+    "session_id": "4f7ddaf2-1e38-45d3-b6dc-5de6c97b0dbb",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

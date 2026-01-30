@@ -1,0 +1,132 @@
+{
+  "id": "2026-01-30_1191724b",
+  "query": "I did 15 pushups and 20 squats today",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.99,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement logs bodyweight exercises (pushups and squats), which are strength training movements. Therefore the Strength domain is directly relevant. Since these activities also fall under overall fitness tracking, the broader GeneralFitness domain is also applicable.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a past‑tense declarative statement describing completed exercises, with no question or correction language, so it is classified as a LOG."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-30",
+      "timestamp": "2026-01-30T01:48:37.853677Z",
+      "tags": [
+        "pushup",
+        "squat"
+      ],
+      "domain_data": {
+        "GeneralFitness": {
+          "activity_type": "workout",
+          "exercises": [
+            {
+              "name": "Push Up",
+              "sets": null,
+              "reps": 15,
+              "weight": null,
+              "weight_unit": null,
+              "duration_seconds": null,
+              "distance": null,
+              "distance_unit": null
+            },
+            {
+              "name": "squat",
+              "sets": null,
+              "reps": 20,
+              "weight": null,
+              "weight_unit": null,
+              "duration_seconds": null,
+              "distance": null,
+              "distance_unit": null
+            }
+          ],
+          "duration_minutes": null,
+          "notes": null,
+          "perceived_effort": null,
+          "date": "2026-01-30"
+        },
+        "Strength": {
+          "exercises": [
+            {
+              "name": "Push Up",
+              "sets": [
+                {
+                  "reps": 15,
+                  "weight": null,
+                  "weight_unit": null,
+                  "rpe": null,
+                  "rir": null,
+                  "notes": null
+                }
+              ],
+              "total_sets": null,
+              "notes": null
+            },
+            {
+              "name": "squat",
+              "sets": [
+                {
+                  "reps": 20,
+                  "weight": null,
+                  "weight_unit": null,
+                  "rpe": null,
+                  "rir": null,
+                  "notes": null
+                }
+              ],
+              "total_sets": null,
+              "notes": null
+            }
+          ],
+          "session_notes": null,
+          "date": "2026-01-30",
+          "duration_minutes": null,
+          "perceived_difficulty": null
+        }
+      },
+      "raw_content": "I did 15 pushups and 20 squats today",
+      "confidence": 0.98,
+      "extraction_notes": [
+        "Number of sets not specified; assumed a single set per exercise.",
+        "Weight not provided; left null."
+      ],
+      "uncertain_fields": [
+        "GeneralFitness.exercises.sets",
+        "Strength.exercises.sets"
+      ],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-30 10:49:11.434986",
+    "input_type": "LOG",
+    "session_id": "bb86e5f7-a13a-4d2e-b9af-cbb18a918339",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

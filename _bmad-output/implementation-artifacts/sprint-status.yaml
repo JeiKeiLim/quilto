@@ -336,6 +336,5 @@ development_status:
   epic-23: in-progress
   23-1-investigate-log-persistence-failure: done  # CRITICAL - Investigation complete, root cause documented
   23-2-fix-log-persistence: done  # CRITICAL - Fixed: save_entry call in parse_node (code-reviewed 2026-01-30)
-  # 23-3 removed: File-level verification rules already in CLAUDE.md/project-context.md - Claude follows them
-  23-3-dogfooding-iteration-12: backlog  # MEDIUM - Verify LOG fix with file-level verification
+  23-3-dogfooding-iteration-12: done  # MEDIUM - LOG persistence fix verified, 81.8% success (LLM issues not persistence) - code reviewed
   epic-23-retrospective: optional

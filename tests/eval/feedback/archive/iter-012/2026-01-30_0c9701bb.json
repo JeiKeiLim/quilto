@@ -1,0 +1,64 @@
+{
+  "id": "2026-01-30_0c9701bb",
+  "query": "오늘 수영 500m 했어요",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.99,
+      "selected_domains": [
+        "Swimming"
+      ],
+      "domain_selection_reasoning": "The statement records a swimming activity (500 meters) performed today, which directly maps to the Swimming domain that tracks distance, strokes, and session details. No other domains (e.g., Strength, Running, Nutrition, GeneralFitness) are specifically referenced.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The Korean sentence is a past‑tense declarative statement describing an activity, matching the LOG pattern. There is no question or correction language present."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-30",
+      "timestamp": "2026-01-30T01:52:20.224202Z",
+      "tags": [
+        "swim",
+        "500m"
+      ],
+      "domain_data": {
+        "Swimming": {
+          "distance": 500,
+          "distance_unit": "m"
+        }
+      },
+      "raw_content": "오늘 수영 500m 했어요",
+      "confidence": 0.96,
+      "extraction_notes": [
+        "Only the distance (500 meters) and activity (swim) were explicitly mentioned; all other swimming fields are omitted."
+      ],
+      "uncertain_fields": [],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-30 10:53:06.517575",
+    "input_type": "LOG",
+    "session_id": "cf205edc-2d77-4260-9883-cc8b5331418f",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

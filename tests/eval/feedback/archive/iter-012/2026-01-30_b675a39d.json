@@ -1,0 +1,55 @@
+{
+  "id": "2026-01-30_b675a39d",
+  "query": "Actually that was 6km not 5km",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "CORRECTION",
+      "confidence": 0.96,
+      "selected_domains": [
+        "Running"
+      ],
+      "domain_selection_reasoning": "The user is correcting the recorded distance of a run (5 km → 6 km). This pertains specifically to the Running domain, which handles distance tracking for running activities.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": "The previously logged run distance should be updated from 5 km to 6 km.",
+      "reasoning": "The statement begins with \"Actually\" and explicitly states a correction to a prior value, matching the CORRECTION pattern. No question is asked, and the content relates to a running distance, so the Running domain is the appropriate choice."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {
+      "success": true,
+      "target_entry_id": "2026-01-30_01-50-00",
+      "correction_delta": {
+        "distance": 6
+      },
+      "original_entry_id": "2026-01-30_01-50-00",
+      "error_message": null,
+      "modified_file": "logs/raw/2026/01/2026-01-30.md",
+      "edited_lines": [
+        6,
+        9
+      ]
+    }
+  },
+  "final_response": "Corrected entry 2026-01-30_01-50-00: {'distance': 6}",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-30 10:59:42.217434",
+    "input_type": "CORRECTION",
+    "session_id": "3cf459ec-ac4c-40a3-a3b5-4402f4c35cb0",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

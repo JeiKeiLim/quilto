@@ -1,0 +1,39 @@
+{
+  "id": "2026-01-30_d331e77b",
+  "query": "My goal is to do 50 pushups in a row by February",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "BOTH",
+      "confidence": 0.98,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement refers to a specific strength‑training goal (push‑ups), which falls under the Strength domain. Because it is a fitness goal and may involve broader programming, recovery, and tracking, the GeneralFitness domain is also relevant.",
+      "log_portion": "My goal is to do 50 pushups in a row by February",
+      "query_portion": "How can I train to achieve 50 pushups in a row by February?",
+      "correction_target": null,
+      "reasoning": "The phrasing \"My goal is...\" matches the goal pattern, indicating a BOTH type: it logs the goal and implicitly asks for guidance on achieving it. Therefore both a log and a query portion are extracted, and the relevant domains are Strength (bodyweight strength work) and GeneralFitness (overall fitness programming)."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {},
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-30 11:04:00.898331",
+    "input_type": "BOTH",
+    "session_id": "e08f4f5a-0e84-45c0-9b76-78bb14fea599",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}

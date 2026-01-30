@@ -1,0 +1,106 @@
+{
+  "id": "2026-01-30_e7ee4370",
+  "query": "I did 10 pushups",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.99,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The statement records a completed bodyweight exercise (pushups). This is a strength training activity, so the Strength domain is directly relevant. Pushups also count as a general fitness activity, making the GeneralFitness domain applicable as well.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a past‑tense declarative statement with no question words or correction language, so it is classified as a LOG. Confidence is high because the pattern clearly matches a simple activity log."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {
+      "date": "2026-01-30",
+      "timestamp": "2026-01-30T01:33:23.250336Z",
+      "tags": [
+        "pushups"
+      ],
+      "domain_data": {
+        "GeneralFitness": {
+          "activity_type": "workout",
+          "exercises": [
+            {
+              "name": "push up",
+              "sets": null,
+              "reps": 10,
+              "weight": null,
+              "weight_unit": null,
+              "duration_seconds": null,
+              "distance": null,
+              "distance_unit": null
+            }
+          ],
+          "duration_minutes": null,
+          "notes": null,
+          "perceived_effort": null,
+          "date": null
+        },
+        "Strength": {
+          "exercises": [
+            {
+              "name": "push up",
+              "sets": [
+                {
+                  "reps": 10,
+                  "weight": null,
+                  "weight_unit": null,
+                  "rpe": null,
+                  "rir": null,
+                  "notes": null
+                }
+              ],
+              "total_sets": 1,
+              "notes": null
+            }
+          ],
+          "session_notes": null,
+          "date": null,
+          "duration_minutes": null,
+          "perceived_difficulty": null
+        }
+      },
+      "raw_content": "I did 10 pushups",
+      "confidence": 0.95,
+      "extraction_notes": [
+        "The statement \"I did 10 pushups\" was interpreted as a single set of 10 repetitions of the exercise \"push up\".",
+        "No weight, RPE, or other set details were provided, so those fields are left null."
+      ],
+      "uncertain_fields": [
+        "Strength.exercises[0].total_sets",
+        "Strength.exercises[0].sets"
+      ],
+      "is_correction": false,
+      "target_entry_id": null,
+      "correction_delta": null
+    },
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-30 10:33:39.335408",
+    "input_type": "LOG",
+    "session_id": "834ce2f7-bc53-46f9-a164-a1a6fb2cc921",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": false
+  },
+  "feedback_sentiment": null
+}

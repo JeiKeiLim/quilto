@@ -1,0 +1,43 @@
+{
+  "id": "2026-01-30_6c047363",
+  "query": "Morning workout: 3 sets of bench press 60kg, then 10 minutes stretching",
+  "intermediate_outputs": {
+    "router": {
+      "input_type": "LOG",
+      "confidence": 0.99,
+      "selected_domains": [
+        "Strength",
+        "GeneralFitness"
+      ],
+      "domain_selection_reasoning": "The entry records a bench press workout, which falls under the Strength domain, and includes a 10‑minute stretching session, which is covered by the GeneralFitness domain (flexibility and recovery). Both domains are therefore relevant.",
+      "log_portion": null,
+      "query_portion": null,
+      "correction_target": null,
+      "reasoning": "The sentence is a straightforward declarative statement describing a completed workout; it contains no question words or punctuation indicating a query, nor any correction language. Hence it is classified as a LOG with high confidence."
+    },
+    "planner": {},
+    "retriever": {},
+    "analyzer": {},
+    "synthesizer": {},
+    "evaluator": {},
+    "parser": {},
+    "observer": {
+      "should_update": false,
+      "updates": [],
+      "insights_captured": []
+    },
+    "correction": {}
+  },
+  "final_response": "",
+  "user_feedback": "",
+  "session": {
+    "timestamp": "2026-01-30 10:51:56.507933",
+    "input_type": "LOG",
+    "session_id": "f866f47a-44d3-4abe-b2c4-f8284761d5e6",
+    "config_path": "llm-config-openai.yaml",
+    "storage_path": "logs",
+    "debug_enabled": true,
+    "non_interactive": true
+  },
+  "feedback_sentiment": null
+}
