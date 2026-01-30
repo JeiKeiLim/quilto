@@ -3902,11 +3902,384 @@ WRONG (should NOT be in global context):
 
 ---
 
+## Epic 24: LLM Observability
+
+*Add observability support for debugging, performance analysis, and error correlation*
+
+**Source:** PRD FR59-63, NFR9 + Architecture LLM Observability section
+**Status:** Ready
+
+**Quilto:** `quilto/observability/`, `quilto/config.py`
+**Swealog:** Config updates only
+
+**FRs covered:** FR59, FR60, FR61, FR62, FR63, NFR9
+
+**Key Decisions (from Architecture):**
+- Location: `quilto/observability/` (top-level, not under llm/)
+- Integration: Dual pattern - LangGraph callback + manual span instrumentation
+- Provider: Langfuse MVP with `ObservabilityProvider` protocol for extensibility
+- Config: Unified `config.yaml` (renamed from `llm.yaml`)
+- Graceful degradation when observability unavailable
+
+**Testing Philosophy - Self-Validating Langfuse Integration:**
+> Dev agent should validate observability by **sending traces to real Langfuse** and then **retrieving them via Langfuse API** to assert correctness. This is more reliable than mocks for observability testing.
+
+**Pattern for each story (where applicable):**
+1. Execute operation that creates trace
+2. Call `provider.flush()` to ensure delivery
+3. Retrieve trace via `langfuse.get_trace(trace_id)` or `langfuse.fetch_traces()`
+4. Assert programmatically on trace structure, spans, metadata
+5. Unit tests remain for edge cases (missing credentials, disabled state)
+
+**Langfuse credentials are available in `.env`** - dev agent should use them for integration tests.
+
+---
+
+### Story 24.1: ObservabilityProvider Protocol + NoOpProvider
+
+**Priority:** HIGH | **Effort:** Small (1-2 hours)
+
+**As a** Quilto developer,
+**I want** a clean observability interface,
+**So that** I can swap providers without changing application code.
+
+**Acceptance Criteria:**
+
+1. **Given** new directory `quilto/observability/`
+   **When** created
+   **Then** contains `__init__.py`, `provider.py`, `noop.py`
+
+2. **Given** `ObservabilityProvider` protocol
+   **When** defined
+   **Then** includes: `get_langgraph_callback()`, `span()`, `log_event()`, `log_error()`, `is_enabled()`, `flush()`
+
+3. **Given** `NoOpProvider` implementation
+   **When** observability is disabled
+   **Then** all methods are safe no-ops (span returns null context manager)
+
+4. **Given** `SpanContext` dataclass
+   **When** created
+   **Then** contains `span_id` and `trace_id` fields
+
+**Files to Create:**
+- `packages/quilto/quilto/observability/__init__.py`
+- `packages/quilto/quilto/observability/provider.py` - Protocol + SpanContext
+- `packages/quilto/quilto/observability/noop.py` - NoOpProvider
+
+**Testing Guidelines:**
+- Unit test: NoOpProvider.span() works as context manager (no exception)
+- Unit test: NoOpProvider.is_enabled() returns False
+- Unit test: NoOpProvider.get_langgraph_callback() returns None
+- Type check: Protocol is properly defined (pyright passes)
+
+---
+
+### Story 24.2: LangfuseProvider Implementation
+
+**Priority:** HIGH | **Effort:** Medium (2-3 hours)
+**Depends On:** 24.1
+
+**As a** Quilto user,
+**I want** Langfuse integration,
+**So that** I can trace LLM calls and agent execution in Langfuse dashboard.
+
+**Acceptance Criteria:**
+
+1. **Given** `LangfuseProvider` class
+   **When** instantiated with credentials
+   **Then** connects to Langfuse (cloud or self-hosted)
+
+2. **Given** `get_langgraph_callback()`
+   **When** called
+   **Then** returns Langfuse callback handler for LangGraph
+
+3. **Given** `span()` context manager
+   **When** used
+   **Then** creates nested spans in Langfuse trace
+
+4. **Given** `log_error()`
+   **When** called with exception
+   **Then** error is logged with correlation to current span
+
+5. **Given** missing credentials
+   **When** LangfuseProvider instantiated
+   **Then** falls back gracefully (warning logged, provider disabled)
+
+**Files to Create:**
+- `packages/quilto/quilto/observability/langfuse.py`
+
+**Dependencies:**
+- Add `langfuse` to quilto dependencies in `pyproject.toml`
+
+**Testing Guidelines:**
+- Unit test: Missing credentials → is_enabled() returns False
+- **Langfuse Integration Test (REQUIRED):**
+  1. Create LangfuseProvider with real credentials from .env
+  2. Start a trace with known name/ID
+  3. Create nested spans using `span()` context manager
+  4. Call `flush()` to ensure delivery
+  5. Retrieve trace via Langfuse API: `langfuse.get_trace(trace_id)`
+  6. Assert: trace exists, spans are nested correctly, metadata present
+  7. Assert: `log_event()` creates event in trace
+  8. Assert: `log_error()` creates error event with exception details
+
+---
+
+### Story 24.3: Unified Config Loading
+
+**Priority:** HIGH | **Effort:** Small (1-2 hours)
+
+**As a** Quilto developer,
+**I want** unified configuration,
+**So that** LLM and observability settings are in one place.
+
+**Acceptance Criteria:**
+
+1. **Given** new `quilto/config.py`
+   **When** `load_config()` called
+   **Then** loads both LLM and observability settings
+
+2. **Given** config file structure
+   **When** parsed
+   **Then** supports:
+   ```yaml
+   llm:
+     default_provider: ollama
+     # ... existing LLM config
+   observability:
+     enabled: true
+     provider: langfuse
+     sample_rate: 1.0
+   ```
+
+3. **Given** environment variables
+   **When** present
+   **Then** `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST` are used
+
+4. **Given** `observability.enabled: false` or missing section
+   **When** config loaded
+   **Then** NoOpProvider is used (graceful degradation)
+
+5. **Given** backward compatibility
+   **When** old `llm.yaml` exists without observability
+   **Then** config loads successfully with observability disabled
+
+**Files to Create/Modify:**
+- `packages/quilto/quilto/config.py` - new unified config loader
+- Update `packages/quilto/quilto/__init__.py` - export `load_config`
+
+**Testing Guidelines:**
+- Unit test: load_config() parses YAML correctly
+- Unit test: Missing observability section → returns disabled config
+- Unit test: Environment variables override config file values
+- Unit test: Invalid config file → raises clear error
+
+---
+
+### Story 24.4: Instrument Tool Calls in Agents
+
+**Priority:** MEDIUM | **Effort:** Medium (2-3 hours)
+**Depends On:** 24.1
+
+**As a** Quilto developer,
+**I want** storage operations traced,
+**So that** I can see full execution flow including tool calls.
+
+**Acceptance Criteria:**
+
+1. **Given** Retriever agent storage reads
+   **When** `storage.read_entries()` called
+   **Then** operation is wrapped in span with metadata (date_range, domain)
+
+2. **Given** Parser agent storage writes
+   **When** `storage.write_raw()` and `storage.write_parsed()` called
+   **Then** operations are wrapped in spans with file paths
+
+3. **Given** Observer agent context operations
+   **When** `storage.read_context()` and `storage.write_context()` called
+   **Then** operations are wrapped in spans
+
+4. **Given** trace in Langfuse
+   **When** viewed
+   **Then** shows nested structure:
+   ```
+   Trace: "user query"
+   ├── Span: Router
+   ├── Span: Retriever
+   │   └── Tool: storage.read_entries
+   ├── Span: Analyzer
+   └── Span: Synthesizer
+   ```
+
+**Files to Modify:**
+- `packages/quilto/quilto/agents/retriever.py`
+- `packages/quilto/quilto/agents/parser.py`
+- `packages/quilto/quilto/agents/observer.py`
+- Pass `ObservabilityProvider` to agents (via state or injection)
+
+**Testing Guidelines:**
+- Unit test: Agent works normally when observability disabled (NoOpProvider)
+- **Langfuse Integration Test (REQUIRED):**
+  1. Run agent (e.g., Retriever) with real LangfuseProvider
+  2. Trigger storage operation (read_entries)
+  3. Call `flush()`
+  4. Retrieve trace via Langfuse API
+  5. Assert: Agent span exists with correct name
+  6. Assert: Tool span (storage.read_entries) is nested under agent span
+  7. Assert: Metadata includes operation details (date_range, file paths)
+
+---
+
+### Story 24.5: Integrate Observability with Quilto Entry Point
+
+**Priority:** HIGH | **Effort:** Medium (2-3 hours)
+**Depends On:** 24.1, 24.2, 24.3
+
+**As a** Quilto application developer,
+**I want** observability auto-configured,
+**So that** I don't need manual setup beyond config.
+
+**Acceptance Criteria:**
+
+1. **Given** `Quilto` class initialization
+   **When** `observability` parameter provided
+   **Then** uses provided provider
+
+2. **Given** `Quilto` class initialization
+   **When** `observability` parameter omitted
+   **Then** creates provider from config (Langfuse if enabled, NoOp otherwise)
+
+3. **Given** LangGraph execution
+   **When** graph runs
+   **Then** Langfuse callback is passed to graph invocation
+
+4. **Given** API usage pattern
+   **When** developer uses Quilto
+   **Then** works like:
+   ```python
+   config = load_config("./config.yaml")
+   q = Quilto(config=config, storage=storage, domains=[...])
+   # Observability auto-configured from config
+   ```
+
+5. **Given** `flush()` method
+   **When** application shuts down
+   **Then** ensures all traces are sent
+
+**Files to Modify:**
+- `packages/quilto/quilto/quilto.py` - add observability integration
+- `packages/quilto/quilto/graph/` - pass callback to LangGraph execution
+
+**Testing Guidelines:**
+- Unit test: Quilto creates correct provider from config
+- Unit test: Quilto accepts explicit provider override
+- **Langfuse Integration Test (REQUIRED):**
+  1. Create Quilto instance with observability enabled (real credentials)
+  2. Process a simple LOG input via session.process()
+  3. Call quilto.flush() or provider.flush()
+  4. Retrieve trace via Langfuse API
+  5. Assert: Root trace exists with user input as name/metadata
+  6. Assert: LangGraph callback captured agent node transitions
+  7. Assert: LLM calls show model, tokens, latency (via LangGraph integration)
+
+---
+
+### Story 24.6: Update Swealog Configuration
+
+**Priority:** MEDIUM | **Effort:** Small (30 min - 1 hour)
+**Depends On:** 24.5
+
+**As a** Swealog user,
+**I want** observability enabled in Swealog,
+**So that** I can debug agent behavior.
+
+**Acceptance Criteria:**
+
+1. **Given** Swealog config file
+   **When** observability section added
+   **Then** Langfuse tracing is active (if credentials set)
+
+2. **Given** `.env.example` or documentation
+   **When** user checks setup
+   **Then** includes `LANGFUSE_*` environment variable examples
+
+3. **Given** Swealog CLI
+   **When** `--debug` flag used
+   **Then** observability status is logged (enabled/disabled, provider)
+
+**Files to Modify:**
+- `packages/swealog/config/` - add observability section to config examples
+- `packages/swealog/swealog/cli/main.py` - log observability status in debug mode
+- Update README or docs with Langfuse setup instructions
+
+**Testing Guidelines:**
+- Manual test: Run Swealog with Langfuse credentials → verify traces appear
+- Manual test: Run Swealog without credentials → verify graceful degradation
+- Unit test: Debug mode logs observability status
+
+---
+
+### Story 24.7: Dogfooding Iteration - Observability Validation
+
+**Priority:** MEDIUM | **Effort:** Medium (2 hours)
+**Depends On:** 24.1, 24.2, 24.3, 24.4, 24.5, 24.6
+
+**As a** Swealog developer,
+**I want** to validate observability works end-to-end,
+**So that** I can trust traces for debugging.
+
+**Acceptance Criteria:**
+
+1. **Given** Langfuse credentials configured
+   **When** LOG query processed
+   **Then** trace shows: Router → Parser → Observer spans
+
+2. **Given** QUERY processed
+   **When** viewed in Langfuse
+   **Then** trace shows: Router → Planner → Retriever (with storage span) → Analyzer → Synthesizer → Evaluator
+
+3. **Given** storage operations
+   **When** viewed in trace
+   **Then** shows file paths, date ranges, operation metadata
+
+4. **Given** LLM calls within agents
+   **When** viewed in trace
+   **Then** shows model, token counts, latency (via LangGraph integration)
+
+5. **Given** error during agent execution
+   **When** error occurs
+   **Then** error is logged with correlation to trace
+
+**Query Types to Test:**
+- **LOG:** Simple log entry → verify Parser/Observer spans
+- **QUERY:** Complex query → verify full agent chain
+- **Error:** Force error → verify error tracking
+
+**Langfuse Validation Protocol (REQUIRED for each test):**
+1. Run Swealog command (LOG, QUERY, etc.)
+2. Note the trace_id from debug output (add to debug mode if needed)
+3. Retrieve trace via Langfuse API: `langfuse.get_trace(trace_id)`
+4. Programmatically assert on trace structure:
+   - **LOG trace:** Router → Parser → Observer (3 agent spans)
+   - **QUERY trace:** Router → Planner → Retriever → Analyzer → Synthesizer → Evaluator (6+ spans)
+   - **Each agent span:** Contains LLM generation with model, tokens, latency
+   - **Storage spans:** Nested under Retriever/Parser/Observer with file metadata
+   - **Error trace:** Error event attached to failing span with exception details
+
+**Success Criteria:**
+- All agent transitions visible in Langfuse (verified via API)
+- Storage operations show nested under agents (verified via API)
+- Token counts and latency visible for LLM calls (verified via API)
+- Errors correlated to specific agents (verified via API)
+- Dev agent retrieves and validates traces programmatically (not manual dashboard check)
+
+---
+
 ## Future Epics
 
-### Epic 23+: Continued Dogfooding Iterations
+### Epic 25+: Continued Dogfooding Iterations
 
-*Stories generated from Epic 22 dogfooding results*
+*Stories generated from Epic 24 dogfooding results*
 
-**Status:** Backlog (depends on Epic 22 completion)
+**Status:** Backlog (depends on Epic 24 completion)
 

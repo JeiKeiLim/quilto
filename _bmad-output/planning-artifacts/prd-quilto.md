@@ -2,6 +2,10 @@
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 workflowStatus: complete
 completedDate: '2026-01-08'
+lastEdited: '2026-01-30'
+editHistory:
+  - date: '2026-01-30'
+    changes: 'Added LLM Observability Support - Langfuse integration, ObservabilityProvider interface, FR59-63, NFR9'
 inputDocuments:
   - '_bmad-output/swealog-project-context-v2.md'
   - '_bmad-output/swealog-bmad-context.md'
@@ -364,6 +368,7 @@ Quilto is a **Python SDK** for building AI-powered personal logging applications
 | **CLI Framework** | Typer + Rich | Beautiful CLI output, easy command definition |
 | **Retrieval Strategy** | Date/keyword (no embeddings v1) | Data scale fits context windows (~109k chars/year) |
 | **Global Context** | ~2k tokens, markdown format | Archival strategy for size management |
+| **Observability** | Langfuse (initial) + abstraction layer | LLM call tracing, latency, token usage, errors; swappable providers (LangSmith, Arize, OpenTelemetry) |
 
 *See `architecture.md` and `agent-system-design.md` for detailed rationale.*
 
@@ -390,6 +395,7 @@ The public API consists of:
 | `DomainModule` | Domain vocabulary, schemas, expertise | Yes |
 | `StorageRepository` | Data persistence abstraction | Optional (defaults provided) |
 | `LLMClient` | Model provider abstraction | Optional (Ollama/cloud defaults) |
+| `ObservabilityProvider` | LLM tracing and monitoring abstraction | Optional (Langfuse default) |
 
 **Core principle:** Developers implement domain knowledge; Quilto handles orchestration.
 
@@ -474,6 +480,7 @@ Per project-type configuration, these sections are **not applicable**:
 | **Input Modes** | Auto, log, query |
 | **Storage** | Local markdown + JSON |
 | **LLM** | Ollama (local) + cloud API fallback |
+| **Observability** | Langfuse integration for LLM tracing, latency, token usage, errors |
 | **Interface** | CLI only |
 | **Distribution** | Source install (no PyPI required) |
 
@@ -638,6 +645,14 @@ If resources are more constrained than expected:
 
 - FR58: ~~System can provide guidance for first-time users on how to log effectively~~ **[DEFERRED]** - Typer CLI provides `--help` by default; sufficient for MVP dogfooding
 
+### LLM Observability
+
+- FR59: System can emit LLM call traces including request/response content, latency, and token usage
+- FR60: System can configure observability provider via environment variables (API keys) and config file
+- FR61: Developers can implement custom observability provider via ObservabilityProvider interface
+- FR62: System can trace agent execution flow across multi-agent workflows with correlation IDs
+- FR63: System can track and report LLM errors with correlation to specific agent operations
+
 ---
 
 ## Non-Functional Requirements
@@ -690,6 +705,15 @@ If resources are more constrained than expected:
 **NFR8: Storage Backend Flexibility**
 - Default storage (markdown + JSON) must work without additional dependencies
 - Alternative storage backends must be addable via StorageRepository interface
+
+### Observability
+
+**NFR9: LLM Observability & Debugging**
+- Observability data must be available for debugging agent behavior and performance analysis
+- Traces must include: LLM call latency, token counts (input/output), model used, error states
+- Agent execution flow must be traceable with correlation IDs across multi-agent workflows
+- Observability provider must be configurable without code changes (environment variables + config file)
+- System must function correctly when observability provider is unavailable (graceful degradation)
 
 ### Skipped Categories
 
